@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 'use client'
 import TwoColTableLoading from '@/components/Loading/TwoColTableLoading'
 import { ConfirmModal, CustomButton } from '@/components/index'
@@ -87,7 +86,6 @@ export default function StickiesModal({ hideModal }: ModalProps) {
 
   useEffect(() => {
     void fetchData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -101,7 +99,6 @@ export default function StickiesModal({ hideModal }: ModalProps) {
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wrapperRef])
 
   return (

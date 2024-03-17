@@ -174,16 +174,7 @@ const Page: React.FC = () => {
 
   // Update list whenever list in redux updates
   useEffect(() => {
-    // if (Array.isArray(globallist)) {
-    //   // Do not display self account
-    //   const newList = globallist.filter((item: any) => item.id !== session.user.id)
-    //   setList(newList)
-    // } else {
-    //   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    //   setList(globallist)
-    // }
     setList(globallist)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [globallist])
 
   // Fetch data
