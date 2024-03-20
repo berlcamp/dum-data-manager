@@ -11,16 +11,16 @@ export default function TrackerSideBar() {
         <li>
           <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2">
             <ListChecks className="w-4 h-4" />
-            <span>Letter Tracker</span>
+            <span>Document Tracker</span>
           </div>
         </li>
         <li>
           <Link
-            href="/lettertracker"
+            href="/documenttracker"
             className={`app__menu_link ${
-              currentRoute === '/lettertracker' ? 'app_menu_link_active' : ''
+              currentRoute === '/documenttracker' ? 'app_menu_link_active' : ''
             }`}>
-            <span className="flex-1 ml-3 whitespace-nowrap">All Letters</span>
+            <span className="flex-1 ml-3 whitespace-nowrap">All Documents</span>
           </Link>
         </li>
       </ul>

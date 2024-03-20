@@ -8,6 +8,54 @@ export const docTypes = [
   'Others'
 ]
 
+export const docRouting = [
+  'Forwarded to Accounting',
+  'Forwarded to Budget',
+  'Forwarded to GSO',
+  'Forwarded to Admin',
+  'Forwarded to Mayors Office',
+  'Received at Admin',
+  'Received at Mayors Office',
+]
+
+export const documentTypes = [
+  { type: 'Business Permit', shortcut: 'BUSS-PER' },
+  { type: 'Case', shortcut: 'CASE' },
+  { type: 'Certification', shortcut: 'CERT' },
+  { type: 'Contract of Service', shortcut: 'COS' },
+  { type: 'Cheque', shortcut: 'CHQ' },
+  { type: 'DTR', shortcut: 'DTR' },
+  { type: 'Disbursement Voucher', shortcut: 'DV' },
+  { type: 'Executive Order', shortcut: 'EO' },
+  { type: 'IPCR/OPCR', shortcut: 'IPCR/OPCR' },
+  { type: 'Letters', shortcut: 'LETTER' },
+  { type: 'Leave', shortcut: 'LEAVE' },
+  { type: 'Liquidation', shortcut: 'LIQUIDATION' },
+  { type: 'Retirement', shortcut: 'RET' },
+  { type: 'Memorandum Order', shortcut: 'MEMO' },
+  { type: 'Notice', shortcut: 'NOTICE' },
+  { type: 'Notice of Violation', shortcut: 'NOTI-VIOL' },
+  { type: 'Office Order', shortcut: 'OFC-ORD' },
+  { type: 'Other Documents', shortcut: 'OTR-DOC' },
+  { type: 'Order of Payment', shortcut: 'ORD-PYMT' },
+  { type: 'Ordinance', shortcut: 'ORD' },
+  { type: 'OBR', shortcut: 'OBR' },
+  { type: 'OBR/Payroll', shortcut: 'OBR/PYRL' },
+  { type: 'Permit', shortcut: 'PERMIT' },
+  { type: 'Project', shortcut: 'PROJ' },
+  { type: 'PR/OBR', shortcut: 'PR/OBR' },
+  { type: 'Purchase Request', shortcut: 'PR' },
+  { type: 'Proposal', shortcut: 'PRPSL' },
+  { type: 'Purchase Order', shortcut: 'PO' },
+  { type: 'OBR/Reimbursement', shortcut: 'OBR/REIMB' },
+  { type: 'Resolution', shortcut: 'RESO' },
+  { type: 'Reports', shortcut: 'REPORT' },
+  { type: 'Salary Loan', shortcut: 'SAL-LOAN' },
+  { type: 'Show Cause', shortcut: 'SHW-CAUSE' },
+  { type: 'Special Order', shortcut: 'SO' },
+  { type: 'Travel Order', shortcut: 'TO' }
+]
+
 export const statusList = [
   { status: 'Disapproved', color: '#e02626' },
   { status: 'For Further Instruction', color: '#997c00' },

@@ -14,7 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { docTypes } from '@/constants/TrackerConstants'
+import { documentTypes } from '@/constants/TrackerConstants'
 import { cn } from '@/lib/utils'
 import { Listbox, Transition } from '@headlessui/react'
 import { CheckIcon, ChevronDownIcon } from '@heroicons/react/20/solid'
@@ -150,7 +150,7 @@ const Filters = ({
                       leaveFrom="opacity-100"
                       leaveTo="opacity-0">
                       <Listbox.Options className="app__listbox_options">
-                        {docTypes.map((type, itemIdx) => (
+                        {documentTypes.map((doc, itemIdx) => (
                           <Listbox.Option
                             key={itemIdx}
                             className={({ active }) =>
@@ -160,14 +160,14 @@ const Filters = ({
                                   : 'text-gray-900'
                               }`
                             }
-                            value={type}>
+                            value={doc.type}>
                             {({ selected }) => (
                               <>
                                 <span
                                   className={`block truncate text-xs ${
                                     selected ? 'font-medium' : 'font-normal'
                                   }`}>
-                                  {type}
+                                  {doc.type}
                                 </span>
                                 {selected ? (
                                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-amber-600">

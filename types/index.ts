@@ -70,6 +70,7 @@ export interface DocumentTypes {
   id: string
   type: string
   specify: string
+  location: string
   requester: string
   activity_date: string
   status: string

@@ -38,7 +38,7 @@ import { useDropzone, type FileWithPath } from 'react-dropzone'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { Input } from '@/components/ui/input'
-import { docTypes } from '@/constants/TrackerConstants'
+import { docRouting, documentTypes } from '@/constants/TrackerConstants'
 import type { AccountTypes, AttachmentTypes, DocumentTypes } from '@/types'
 import { XMarkIcon } from '@heroicons/react/20/solid'
 import { format } from 'date-fns'
@@ -48,6 +48,9 @@ import Attachment from './Attachment'
 const FormSchema = z.object({
   type: z.string().min(1, {
     message: 'Type is required.',
+  }),
+  location: z.string().min(1, {
+    message: 'Current Location is required.',
   }),
   requester: z.string().min(1, {
     message: 'Requester is required.',
@@ -121,6 +124,7 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
     resolver: zodResolver(FormSchema),
     defaultValues: {
       type: editData ? editData.type : '',
+      location: editData ? editData.location : 'Received at Mayors Office',
       specify: editData ? editData.specify : '',
       requester: editData ? editData.requester : '',
       particulars: editData ? editData.particulars : '',
@@ -148,6 +152,7 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
       const newData = {
         status: 'Open',
         type: formdata.type,
+        location: formdata.location,
         specify: formdata.specify,
         date_received: format(new Date(formdata.date_received), 'yyyy-MM-dd'),
         activity_date: formdata.activity_date
@@ -198,6 +203,7 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
       const newData = {
         type: formdata.type,
         specify: formdata.specify,
+        location: formdata.location,
         date_received: format(new Date(formdata.date_received), 'yyyy-MM-dd'),
         activity_date: formdata.activity_date
           ? format(new Date(formdata.activity_date), 'yyyy-MM-dd')
@@ -364,12 +370,9 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
                           <Select
                             onValueChange={(value) => {
                               form.setValue('type', value)
-                              if (value === 'Others') {
+                              if (value === 'Other Documents') {
                                 setShowSpecify(true)
                                 setSpecifyLabel('Specify Type')
-                              } else if (value === 'Medical Assistance') {
-                                setShowSpecify(true)
-                                setSpecifyLabel('Specify Hospital')
                               } else {
                                 setShowSpecify(false)
                               }
@@ -381,11 +384,11 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {docTypes.map((type, index) => (
+                              {documentTypes.map((doc, index) => (
                                 <SelectItem
-                                  key={type}
-                                  value={type}>
-                                  {type}
+                                  key={index}
+                                  value={doc.type}>
+                                  {doc.type}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -498,6 +501,36 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
                               />
                             </PopoverContent>
                           </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="location"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Current Location
+                          </FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choose Location" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {docRouting.map((route, index) => (
+                                <SelectItem
+                                  key={index}
+                                  value={route}>
+                                  {route}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}

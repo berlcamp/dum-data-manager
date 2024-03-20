@@ -32,15 +32,15 @@ const MainMenu: React.FC = () => {
                 </div>
               </div>
             </Link>
-            <Link href="/lettertracker">
+            <Link href="/documenttracker">
               <div className="app__menu_item">
                 <div className="pt-1">
                   <DocumentDuplicateIcon className="w-8 h-8" />
                 </div>
                 <div>
-                  <div className="app__menu_item_label">Letter Tracker</div>
+                  <div className="app__menu_item_label">Document Tracker</div>
                   <div className="app__menu_item_label_description">
-                    Letters and Requests
+                    Document Tracker
                   </div>
                 </div>
               </div>
