@@ -51,13 +51,13 @@ const FormSchema = z.object({
   requester: z.string().min(1, {
     message: 'Requester is required.',
   }),
-  department_id: z.string().min(1, {
+  department_id: z.coerce.string().min(1, {
     message: 'Department is required.',
   }),
-  po_id: z.string().min(1, {
+  po_id: z.coerce.string().min(1, {
     message: 'PO is required.',
   }),
-  vehicle_id: z.string().min(1, {
+  vehicle_id: z.coerce.string().min(1, {
     message: 'Vehicle is required, you can vehicles under "Vehicles" menu.',
   }),
   quantity: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
@@ -344,7 +344,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                           <Select
                             onValueChange={field.onChange}
                             defaultValue={
-                              editData ? editData.po_id : field.value
+                              editData ? editData.po_id.toString() : field.value
                             }>
                             <FormControl>
                               <SelectTrigger>
@@ -376,7 +376,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                           <Select
                             onValueChange={field.onChange}
                             defaultValue={
-                              editData ? editData.department_id : field.value
+                              editData
+                                ? editData.department_id.toString()
+                                : field.value
                             }>
                             <FormControl>
                               <SelectTrigger>
@@ -408,7 +410,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                           <Select
                             onValueChange={field.onChange}
                             defaultValue={
-                              editData ? editData.vehicle_id : field.value
+                              editData
+                                ? editData.vehicle_id.toString()
+                                : field.value
                             }>
                             <FormControl>
                               <SelectTrigger>

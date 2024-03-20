@@ -12,7 +12,7 @@ export default function RisSidebar() {
         <li>
           <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2">
             <ListChecks className="w-4 h-4" />
-            <span>Fuel</span>
+            <span>R.I.S.</span>
           </div>
         </li>
         <li>

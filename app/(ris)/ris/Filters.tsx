@@ -41,8 +41,8 @@ const Filters = ({ setFilterKeyword }: FilterTypes) => {
                   <FormItem className="flex flex-col">
                     <FormLabel className="app__form_label">Search</FormLabel>
                     <Input
-                      placeholder="RIS No / Requester / Department"
-                      className="w-[340px]"
+                      placeholder="RIS No / Requester"
+                      className="w-[240px]"
                       {...field}
                     />
                   </FormItem>

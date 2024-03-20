@@ -24,10 +24,10 @@ const MainMenu: React.FC = () => {
                 </div>
                 <div>
                   <div className="app__menu_item_label">
-                    Fuel Request & Issue Slip
+                    Fuel Requisition & Issue Slip
                   </div>
                   <div className="app__menu_item_label_description">
-                    Fuel P.O. / Request & Issue Slip
+                    Fuel P.O. / Requisition & Issue Slip
                   </div>
                 </div>
               </div>

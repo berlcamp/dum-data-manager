@@ -110,8 +110,6 @@ const Page: React.FC = () => {
     setLoading(true)
 
     try {
-      const filterUrl = searchParams.get('filter')
-
       const result = await fetchDocuments(
         {
           filterDate,

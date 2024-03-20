@@ -10,10 +10,8 @@ import {
   Title,
   TopBar,
   Unauthorized,
-  UserBlock,
 } from '@/components/index'
 import { fetchRis } from '@/utils/fetchApi'
-import { format } from 'date-fns'
 import React, { useEffect, useState } from 'react'
 
 import Filters from './Filters'
@@ -26,16 +24,16 @@ import { updateList } from '@/GlobalRedux/Features/listSlice'
 import { superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
+import { format } from 'date-fns'
 import { useDispatch, useSelector } from 'react-redux'
 import AddEditModal from './AddEditModal'
-import PrintModal from './PrintModal'
+import PrintButton from './PrintButton'
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showPrintModal, setShowPrintModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RisTypes | null>(null)
 
   // Filters
@@ -118,11 +116,6 @@ const Page: React.FC = () => {
     setSelectedItem(item)
   }
 
-  const handlePrint = (item: RisTypes) => {
-    setSelectedItem(item)
-    setShowPrintModal(true)
-  }
-
   // Update list whenever list in redux updates
   useEffect(() => {
     setList(globallist)
@@ -189,10 +182,14 @@ const Page: React.FC = () => {
                       key={index}
                       className="app__tr">
                       <td className="hidden md:table-cell app__td">
-                        <div className="font-medium">{item.ris_number}</div>
+                        <div className="font-medium">{item.id}</div>
                       </td>
                       <td className="app__td">
-                        <div className="space-y-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <div className="md:hidden">
+                            <span className="font-light">RIS No:</span>{' '}
+                            <span className="font-medium">{item.id}</span>
+                          </div>
                           <div>
                             <span className="font-light">PO No:</span>{' '}
                             <span className="font-medium">
@@ -220,38 +217,29 @@ const Page: React.FC = () => {
                           <div>
                             <span className="font-light">Department:</span>{' '}
                             <span className="font-medium">
-                              {item.department?.name}
+                              {item.department?.name} -{' '}
+                              {item.department?.office}
                             </span>
                           </div>
                           <div>
                             <span className="font-light">Date Requested:</span>{' '}
                             <span className="font-medium">
-                              {format(
-                                new Date(item.date_requested),
-                                'MMMM dd, yyyy'
-                              )}
+                              {item.date_requested &&
+                                format(
+                                  new Date(item.date_requested),
+                                  'MMMM dd, yyyy'
+                                )}
                             </span>
                           </div>
                           <div>
                             <span className="font-light">Purpose:</span>{' '}
                             <span className="font-medium">{item.purpose}</span>
                           </div>
-
-                          <div className="md:hidden flex items-center">
-                            <span className="font-light">
-                              Added/Updated By:
-                            </span>
-                            <UserBlock user={item.ddm_user} />
-                          </div>
                         </div>
                       </td>
                       <td className="app__td">
                         <div className="flex space-x-2 items-center">
-                          <button
-                            onClick={() => handlePrint(item)}
-                            className="app__btn_blue_xs">
-                            Print
-                          </button>
+                          <PrintButton ris={item} />
                           <button
                             onClick={() => handleEdit(item)}
                             className="app__btn_green_xs">
@@ -284,15 +272,6 @@ const Page: React.FC = () => {
             <AddEditModal
               editData={selectedItem}
               hideModal={() => setShowAddModal(false)}
-            />
-          )}
-          {/* Receipt Modal */}
-          {showPrintModal && selectedItem && (
-            <PrintModal
-              ris={selectedItem}
-              hideModal={() => {
-                setShowPrintModal(false)
-              }}
             />
           )}
         </div>

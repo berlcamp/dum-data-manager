@@ -3,7 +3,6 @@
 
 import { RisTypes } from '@/types'
 import { format } from 'date-fns'
-import Image from 'next/image'
 import React from 'react'
 
 interface ChildProps {
@@ -15,46 +14,134 @@ const RisToPrint: React.FC<ChildProps> = ({ forwardedRef, ris }) => {
   return (
     <div
       ref={forwardedRef}
-      className="w-[450px]">
-      <div className="">
-        <div className="text-base text-center font-bold">RIS</div>
-        <div className="text-[10px] text-center">
-          AGRICULTURE KEEPS ORGANIC{' '}
-        </div>
-        <div className="text-[10px] font-light mt-2">
-          <table className="w-full">
-            <thead>
-              <tr className="border-t border-b border-gray-700">
-                <td>Qty</td>
-                <td>Description</td>
-                <td>Amount</td>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="align-top">
-                <td>asdfasdf</td>
-                <td>
-                  <div>asdfsdf</div>
-                </td>
-                <td>asdf</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div className="flex items-center justify-between text-[8px] mt-1 px-4">
-          <span>{format(new Date(), 'MM/dd/yyyy')}</span>
-          <span>{format(new Date(), 'p')}</span>
-        </div>
-        <div className="flex items-center justify-center relative mt-2">
-          <Image
-            src="/qr.png"
-            width={80}
-            height={80}
-            priority={true}
-            alt="Logo QR"
-          />
-        </div>
-      </div>
+      className="w-[350px] mx-auto mt-8 text-xs">
+      <table className="w-full">
+        <thead>
+          <tr>
+            <td
+              colSpan={5}
+              className="text-center border border-gray-700">
+              <div className="py-2 text-sm font-bold">GAS SLIP</div>
+            </td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td
+              colSpan={5}
+              className="text-center border border-gray-700">
+              MUNICIPALITY OF DUMINGAG
+            </td>
+          </tr>
+          <tr>
+            <td
+              colSpan={3}
+              className="border px-1 border-gray-700">
+              <span className="font-bold">OFFICE: </span>{' '}
+              <span>{ris.department?.office}</span>
+            </td>
+            <td
+              colSpan={2}
+              className="border px-1 border-gray-700">
+              <span className="font-bold">DATE: </span>{' '}
+              <span>
+                {ris.date_requested &&
+                  format(new Date(ris.date_requested), 'MM/dd/yyyy')}
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td
+              colSpan={5}
+              className="border border-gray-700">
+              <span className="font-bold">TYPE OF VEHICLE:</span>{' '}
+              <span>
+                {ris.vehicle?.name} {ris.vehicle?.plate_number}
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td
+              colSpan={5}
+              className="text-center border border-gray-700">
+              <div className="py-2 text-sm font-bold">REQUISITION</div>
+            </td>
+          </tr>
+          <tr>
+            <td className="text-center border border-gray-700">Description</td>
+            <td className="text-center border border-gray-700">Quantity</td>
+            <td className="text-center border border-gray-700">Unit</td>
+            <td className="text-center border border-gray-700">Price/Liter</td>
+            <td className="text-center border border-gray-700">Amount</td>
+          </tr>
+          <tr>
+            <td className="text-center border border-gray-700">
+              {ris.purchase_order?.type}
+            </td>
+            <td className="text-center border border-gray-700">
+              {ris.quantity}
+            </td>
+            <td className="text-center border border-gray-700">Liters</td>
+            <td className="text-center border border-gray-700"></td>
+            <td className="text-center border border-gray-700"></td>
+          </tr>
+          <tr>
+            <td className="text-center border border-gray-700">&nbsp;</td>
+            <td className="text-center border border-gray-700"></td>
+            <td className="text-center border border-gray-700"></td>
+            <td className="text-center border border-gray-700"></td>
+            <td className="text-center border border-gray-700"></td>
+          </tr>
+          <tr>
+            <td className="text-center border border-gray-700">&nbsp;</td>
+            <td className="text-center border border-gray-700"></td>
+            <td className="text-center border border-gray-700"></td>
+            <td className="text-center border border-gray-700"></td>
+            <td className="text-center border border-gray-700"></td>
+          </tr>
+          <tr>
+            <td className="text-center border border-gray-700">&nbsp;</td>
+            <td className="text-center border border-gray-700"></td>
+            <td className="text-center border border-gray-700"></td>
+            <td className="text-center border border-gray-700"></td>
+            <td className="text-center border border-gray-700"></td>
+          </tr>
+          <tr>
+            <td
+              colSpan={5}
+              className="border px-1 border-gray-700">
+              <div className="font-bold">Purpose:</div>
+              <div className="pl-14">{ris.purpose}</div>
+            </td>
+          </tr>
+          <tr>
+            <td
+              colSpan={3}
+              className="border px-1 border-gray-700">
+              <span className="font-bold">Approved By:</span>
+            </td>
+            <td
+              colSpan={2}
+              className="border px-1 border-gray-700">
+              <span className="font-bold">Issued By:</span>
+            </td>
+          </tr>
+          <tr>
+            <td
+              colSpan={3}
+              className="border text-center border-gray-700">
+              <div className="mt-10 font-bold">RAPHAEL CLAUDE A. ROUSSEAU</div>
+              <div className="italic">GSO Designee</div>
+            </td>
+            <td
+              colSpan={2}
+              className="border text-center border-gray-700">
+              <div className="mt-10 font-bold">ARFEL HOPE L. BOMES</div>
+              <div className="italic">MMO - STAFF</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   )
 }

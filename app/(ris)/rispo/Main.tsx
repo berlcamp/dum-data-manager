@@ -10,7 +10,6 @@ import {
   Title,
   TopBar,
   Unauthorized,
-  UserBlock,
 } from '@/components/index'
 import { fetchPurchaseOrders } from '@/utils/fetchApi'
 import { format } from 'date-fns'
@@ -178,7 +177,6 @@ const Page: React.FC = () => {
                 <tr>
                   <th className="hidden md:table-cell app__th">PO #</th>
                   <th className="app__th">Details</th>
-                  <th className="hidden md:table-cell app__th">Created By</th>
                   <th className="app__th"></th>
                 </tr>
               </thead>
@@ -192,7 +190,13 @@ const Page: React.FC = () => {
                         <div className="font-medium">{item.po_number}</div>
                       </td>
                       <td className="app__td">
-                        <div className="space-y-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <div className="md:hidden">
+                            <span className="font-light">PO #:</span>{' '}
+                            <span className="font-medium">
+                              {item.po_number}
+                            </span>
+                          </div>
                           <div>
                             <span className="font-light">Type:</span>{' '}
                             <span className="font-medium">{item.type}</span>
@@ -204,7 +208,8 @@ const Page: React.FC = () => {
                           <div>
                             <span className="font-light">Po Date:</span>{' '}
                             <span className="font-medium">
-                              {format(new Date(item.po_date), 'MMMM dd, yyyy')}
+                              {item.po_date &&
+                                format(new Date(item.po_date), 'MMMM dd, yyyy')}
                             </span>
                           </div>
                           <div>
@@ -213,17 +218,7 @@ const Page: React.FC = () => {
                               {item.description}
                             </span>
                           </div>
-
-                          <div className="md:hidden flex items-center">
-                            <span className="font-light">
-                              Added/Updated By:
-                            </span>
-                            <UserBlock user={item.ddm_user} />
-                          </div>
                         </div>
-                      </td>
-                      <td className="hidden md:table-cell app__td">
-                        <UserBlock user={item.ddm_user} />
                       </td>
                       <td className="app__td">
                         <div className="flex space-x-2 items-center">
