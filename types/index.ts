@@ -123,6 +123,8 @@ export interface RisPoTypes {
   description: string
   created_by: string
   ddm_user: AccountTypes
+  ddm_ris: RisTypes[]
+  remaining_quantity?: number
 }
 
 export interface RisTypes {

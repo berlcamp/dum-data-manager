@@ -118,6 +118,25 @@ const Page: React.FC = () => {
     setSelectedItem(item)
   }
 
+  const countRemainingQuantity = (item: RisPoTypes) => {
+    const totalQuantityUsed = item.ddm_ris
+      ? item.ddm_ris.reduce(
+          (accumulator, ris) => accumulator + Number(ris.quantity),
+          0
+        )
+      : 0
+    const remainingQuantity = Number(item.quantity) - totalQuantityUsed
+    if (remainingQuantity < 100) {
+      return (
+        <span style={{ color: 'red', fontWeight: 'bold' }}>
+          {remainingQuantity}
+        </span>
+      )
+    } else {
+      return <span>{remainingQuantity}</span>
+    }
+  }
+
   // Update list whenever list in redux updates
   useEffect(() => {
     setList(globallist)
@@ -216,6 +235,14 @@ const Page: React.FC = () => {
                             <span className="font-light">Description:</span>{' '}
                             <span className="font-medium">
                               {item.description}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-light">
+                              Remaining Quantity (L):
+                            </span>{' '}
+                            <span className="font-medium">
+                              {countRemainingQuantity(item)}
                             </span>
                           </div>
                         </div>

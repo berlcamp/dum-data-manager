@@ -231,7 +231,7 @@ const Page: React.FC = () => {
                                 )}
                             </span>
                           </div>
-                          <div>
+                          <div className="flex items-start space-x-1">
                             <span className="font-light">Purpose:</span>{' '}
                             <span className="font-medium">{item.purpose}</span>
                           </div>

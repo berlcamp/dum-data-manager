@@ -236,8 +236,38 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
     // Fetch purchase orders
     ;(async () => {
-      const { data } = await supabase.from('ddm_ris_purchase_orders').select()
-      setPurchaseOrders(data)
+      const { data } = await supabase
+        .from('ddm_ris_purchase_orders')
+        .select('*, ddm_ris(quantity)')
+      // Mutate the data to get the remaining quantity
+      const updatedData: RisPoTypes[] = []
+      if (data) {
+        data.forEach((item: RisPoTypes) => {
+          const totalQuantityUsed = item.ddm_ris
+            ? item.ddm_ris.reduce(
+                (accumulator, ris) => accumulator + Number(ris.quantity),
+                0
+              )
+            : 0
+          const remainingQuantity = Number(item.quantity) - totalQuantityUsed
+
+          // Exclude on list if remain quantity is 0
+          if (!editData) {
+            if (remainingQuantity > 0) {
+              updatedData.push({
+                ...item,
+                remaining_quantity: remainingQuantity,
+              })
+            }
+          } else {
+            updatedData.push({
+              ...item,
+              remaining_quantity: remainingQuantity,
+            })
+          }
+        })
+      }
+      setPurchaseOrders(updatedData)
     })()
   }, [])
 
@@ -356,7 +386,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                 <SelectItem
                                   key={idx}
                                   value={po.id.toString()}>
-                                  PO-{po.po_number}-{po.type}
+                                  PO-{po.po_number}-{po.type} ( Available:{' '}
+                                  {po.remaining_quantity} Liters)
                                 </SelectItem>
                               ))}
                             </SelectContent>

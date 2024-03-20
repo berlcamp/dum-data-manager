@@ -68,7 +68,7 @@ export async function fetchPurchaseOrders (filters: {
   try {
     let query = supabase
       .from('ddm_ris_purchase_orders')
-      .select('*, ddm_user:created_by(*)', { count: 'exact' })
+      .select('*, ddm_user:created_by(*), ddm_ris(quantity)', { count: 'exact' })
 
       // Full text search
     if (typeof filters.filterKeyword !== 'undefined' && filters.filterKeyword.trim() !== '') {
@@ -115,7 +115,7 @@ export async function fetchRis (filters: {
 
       // Full text search
     if (typeof filters.filterKeyword !== 'undefined' && filters.filterKeyword.trim() !== '') {
-      query = query.or(`ris_number.ilike.%${filters.filterKeyword}%,requester.ilike.%${filters.filterKeyword}%`)
+      query = query.or(`id.eq.${Number(filters.filterKeyword) || 0},requester.ilike.%${filters.filterKeyword}%`)
     }
 
     // Perform count before paginations
