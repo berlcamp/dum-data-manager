@@ -53,11 +53,17 @@ const RisToPrint: React.FC<ChildProps> = ({ forwardedRef, ris }) => {
           <tr>
             <td
               colSpan={5}
-              className="border border-gray-700">
+              className="border px-1 border-gray-700">
               <span className="font-bold">TYPE OF VEHICLE:</span>{' '}
-              <span>
-                {ris.vehicle?.name} {ris.vehicle?.plate_number}
-              </span>
+              <span>{ris.vehicle?.name}</span>
+            </td>
+          </tr>
+          <tr>
+            <td
+              colSpan={5}
+              className="border px-1 border-gray-700">
+              <span className="font-bold">PLATE NUMBER:</span>{' '}
+              <span>{ris.vehicle?.plate_number}</span>
             </td>
           </tr>
           <tr>
