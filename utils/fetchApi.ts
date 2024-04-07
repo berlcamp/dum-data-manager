@@ -4,26 +4,75 @@ import { format } from 'date-fns'
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
-export interface DocumentFilterTypes {
-  filterDate?: Date | undefined
+interface DocumentFilterTypes {
   filterTypes?: any[]
   filterKeyword?: string
+  filterAgency?: string
+  filterStatus?: string
+  filterCurrentRoute?: string
+  filterRoute?: string
+  filterDateForwardedFrom?: Date | undefined
+  filterDateForwardedTo?: Date | undefined
 }
 
 export async function fetchDocuments (filters: DocumentFilterTypes, perPageCount: number, rangeFrom: number) {
   try {
+    // Advance filters
+    const trackerIds: string[] = []
+    if (filters.filterDateForwardedFrom || filters.filterDateForwardedTo) {
+      let query1 = supabase.from('ddm_tracker_routes')
+        .select('tracker_id')
+        .limit(900)
+
+      if(filters.filterRoute && filters.filterRoute !== '') {
+        query1 = query1.eq('title', filters.filterRoute)
+      }
+      if(filters.filterDateForwardedFrom) {
+        query1 = query1.gte('date', format(new Date(filters.filterDateForwardedFrom), 'yyyy-MM-dd'))
+      }
+      if(filters.filterDateForwardedTo) {
+        query1 = query1.lte('date', format(new Date(filters.filterDateForwardedTo), 'yyyy-MM-dd'))
+      }
+
+      const { data: data1 } = await query1
+
+      if (data1) {
+        if(data1.length > 0) {
+        data1.forEach(d => trackerIds.push(d.tracker_id))
+        } else {
+          trackerIds.push('99999999')
+        }
+      }
+    }
+
     let query = supabase
-      .from('ddm_letter_trackers')
-      .select('*, ddm_letter_tracker_stickies(*), ddm_users:user_id(*)', { count: 'exact' })
+      .from('ddm_trackers')
+      .select('*', { count: 'exact' })
+      .eq('archived', false)
 
       // Full text search
     if (typeof filters.filterKeyword !== 'undefined' && filters.filterKeyword.trim() !== '') {
-      query = query.or(`particulars.ilike.%${filters.filterKeyword}%`)
+      query = query.or(`routing_slip_no.ilike.%${filters.filterKeyword}%,particulars.ilike.%${filters.filterKeyword}%,agency.ilike.%${filters.filterKeyword}%,requester.ilike.%${filters.filterKeyword}%,amount.ilike.%${filters.filterKeyword}%,cheque_no.ilike.%${filters.filterKeyword}%`)
     }
 
-    // Filter Date
-    if (typeof filters.filterDate !== 'undefined') {
-      query = query.gte('date_received', format(new Date(filters.filterDate), 'yyyy-MM-dd'))
+    // Filter Current Location
+    if (filters.filterCurrentRoute && filters.filterCurrentRoute.trim() !== '') {
+      query = query.eq('location', filters.filterCurrentRoute)
+    }
+
+    // Filter Agency
+    if (filters.filterAgency && filters.filterAgency.trim() !== '') {
+      query = query.or(`agency.ilike.%${filters.filterAgency}%`)
+    }
+
+    // Filter status
+    if (filters.filterStatus && filters.filterStatus.trim() !== '') {
+      query = query.eq('status', filters.filterStatus)
+    }
+
+    // Advance Filters
+    if (trackerIds.length > 0) {
+      query = query.in('id', trackerIds)
     }
 
     // Filter type
@@ -46,7 +95,7 @@ export async function fetchDocuments (filters: DocumentFilterTypes, perPageCount
     query = query.range(from, to)
 
     // Order By
-    query = query.order('id', { ascending: false })
+    query = query.order('created_at', { ascending: false })
 
     const { data, count, error } = await query
 
@@ -56,7 +105,7 @@ export async function fetchDocuments (filters: DocumentFilterTypes, perPageCount
 
     return { data, count }
   } catch (error) {
-    console.error('fetch error xx', error)
+    console.error('fetch tracker error', error)
     return { data: [], count: 0 }
   }
 }
@@ -224,12 +273,12 @@ export async function fetchRisDepartments (filters: {
 export async function fetchActivities (today: string, endDate: Date) {
   try {
     const { data, count, error } = await supabase
-      .from('ddm_letter_trackers')
+      .from('ddm_trackers')
       .select('*', { count: 'exact' })
       .gte('activity_date', today)
       .lt('activity_date', endDate.toISOString())
       .order('activity_date', { ascending: true })
-      .limit(30)
+      .limit(100)
 
     if (error) {
       throw new Error(error.message)

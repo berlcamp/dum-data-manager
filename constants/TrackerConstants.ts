@@ -9,13 +9,23 @@ export const docTypes = [
 ]
 
 export const docRouting = [
-  'Forwarded to Accounting',
-  'Forwarded to Budget',
-  'Forwarded to GSO',
-  'Forwarded to Admin',
-  'Forwarded to Mayors Office',
   'Received at Admin',
   'Received at Mayors Office',
+  'Forwarded to Accounting',
+  'Forwarded to Admin',
+  'Forwarded to Agriculture',
+  'Forwarded to Assesors',
+  'Forwarded to BAC',
+  'Forwarded to Budget',
+  'Forwarded to COA',,
+  'Forwarded to Engineering',
+  'Forwarded to GSO',
+  'Forwarded to HR',
+  'Forwarded to MDRRMO',
+  'Forwarded to Mayors Office',
+  'Forwarded to Permit Div',
+  'Forwarded to Tourism',
+  'Forwarded to Treasurers',
 ]
 
 export const documentTypes = [
@@ -59,6 +69,7 @@ export const documentTypes = [
 export const statusList = [
   { status: 'Disapproved', color: '#e02626' },
   { status: 'For Further Instruction', color: '#997c00' },
+  { status: 'For File', color: '#997c00' },
   { status: 'Resolved', color: '#a44508' },
   { status: 'Open', color: '#2154db' },
   { status: 'Approved', color: '#287f00' }

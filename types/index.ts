@@ -66,20 +66,46 @@ export interface StickiesTypes {
   tracker: DocumentTypes
 }
 
+export interface DocumentRemarksTypes {
+  id?: string
+  user_id: string
+  timestamp: string
+  user: string
+  remarks: string
+  tracker_id: string
+}
+export interface DocumentFlowchartTypes {
+  id: string
+  date: string
+  time: string
+  user: string
+  user_id: string
+  title: string
+  message: string
+  tracker_id: string
+}
 export interface DocumentTypes {
   id: string
   type: string
   specify: string
+  agency: string
   location: string
   requester: string
   activity_date: string
+  contact_number: string
   status: string
+  cheque_no: string
   particulars: string
   date_received: string
   user_id: string
+  recent_remarks: DocumentRemarksTypes
   ddm_user: AccountTypes
-  tracker_stickies: StickiesTypes[]
   attachments: { name: string}[]
+  amount: string
+  received_from: string
+  routing_no: number
+  routing_slip_no: string
+  received_by: string
 }
 
 export interface AccountTypes {

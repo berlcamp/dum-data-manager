@@ -22,14 +22,12 @@ export default function AddStickyModal({ item, hideModal }: ModalProps) {
   const handleAdd = async () => {
     if (!item) return
 
-    const { error } = await supabase
-      .from('ddm_letter_tracker_stickies')
-      .insert({
-        tracker_id: item.id,
-        color,
-        note,
-        user_id: session.user.id,
-      })
+    const { error } = await supabase.from('ddm_tracker_stickies').insert({
+      tracker_id: item.id,
+      color,
+      note,
+      user_id: session.user.id,
+    })
 
     if (error) {
       console.error(error)

@@ -37,9 +37,15 @@ import { useDropzone, type FileWithPath } from 'react-dropzone'
 // Redux imports
 import { useDispatch, useSelector } from 'react-redux'
 
+import { updateRoutesList } from '@/GlobalRedux/Features/routesSlice'
 import { Input } from '@/components/ui/input'
-import { docRouting, documentTypes } from '@/constants/TrackerConstants'
+import {
+  docRouting,
+  documentTypes,
+  statusList,
+} from '@/constants/TrackerConstants'
 import type { AccountTypes, AttachmentTypes, DocumentTypes } from '@/types'
+import { generateRandomNumber } from '@/utils/text-helper'
 import { XMarkIcon } from '@heroicons/react/20/solid'
 import { format } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
@@ -52,13 +58,20 @@ const FormSchema = z.object({
   location: z.string().min(1, {
     message: 'Current Location is required.',
   }),
-  requester: z.string().min(1, {
-    message: 'Requester is required.',
+  status: z.string().min(1, {
+    message: 'Status is required.',
+  }),
+  requester: z.string().optional(),
+  amount: z.string().optional(),
+  agency: z.string().min(1, {
+    message: 'Requesting department/agency is required.',
   }),
   particulars: z.string().min(1, {
     message: 'Particulars is required.',
   }),
+  contact_number: z.string().optional(),
   specify: z.string().optional(),
+  cheque_no: z.string().optional(),
   date_received: z.date({
     required_error: 'Date Received is required.',
   }),
@@ -70,7 +83,7 @@ interface ModalProps {
   editData: DocumentTypes | null
 }
 
-export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
+export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const { setToast } = useFilter()
   const { supabase, session, systemUsers } = useSupabase()
 
@@ -78,11 +91,13 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
   const [saving, setSaving] = useState(false)
 
   const [showSpecify, setShowSpecify] = useState(
-    editData
-      ? editData.type === 'Others' || editData.type === 'Medical Assistance'
-        ? true
-        : false
-      : false
+    editData ? (editData.type === 'Other Documents' ? true : false) : false
+  )
+  const [showCheckNo, setShowCheckNo] = useState(
+    editData ? (editData.type === 'Disbursement Voucher' ? true : false) : false
+  )
+  const [showActivityDate, setShowActivityDate] = useState(
+    editData ? (editData.type === 'Letters' ? true : false) : false
   )
   const [specifyLabel, setSpecifyLabel] = useState('')
 
@@ -96,6 +111,7 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
 
   // Redux staff
   const globallist = useSelector((state: any) => state.list.value)
+  const globalRoutesList = useSelector((state: any) => state.routes.value)
   const dispatch = useDispatch()
 
   const onDrop = useCallback((acceptedFiles: FileWithPath[]) => {
@@ -125,12 +141,19 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
     defaultValues: {
       type: editData ? editData.type : '',
       location: editData ? editData.location : 'Received at Mayors Office',
-      specify: editData ? editData.specify : '',
-      requester: editData ? editData.requester : '',
+      status: editData ? editData.status : 'Open',
+      specify: editData ? editData.specify || '' : '',
+      requester: editData ? editData.requester || '' : '',
+      contact_number: editData ? editData.contact_number || '' : '',
+      cheque_no: editData ? editData.cheque_no || '' : '',
+      agency: editData ? editData.agency || '' : '',
+      amount: editData ? editData.amount || '' : '',
       particulars: editData ? editData.particulars : '',
       date_received: editData ? new Date(editData.date_received) : new Date(),
       activity_date: editData
-        ? new Date(editData.activity_date) || undefined
+        ? editData.activity_date
+          ? new Date(editData.activity_date)
+          : undefined
         : undefined,
     },
   })
@@ -148,12 +171,25 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
   const handleCreate = async (formdata: z.infer<typeof FormSchema>) => {
     setSaving(true)
 
+    const type = documentTypes.find((t) => t.type === formdata.type)?.shortcut
+    const routingNo = await getLatestRoutingNo(formdata.type)
+    const routingSlipNo = `${type || 'DOC'}-${routingNo}`
+
     try {
       const newData = {
-        status: 'Open',
+        routing_no: routingNo,
+        routing_slip_no: routingSlipNo,
         type: formdata.type,
         location: formdata.location,
+        status: formdata.status,
+        received_by: `${user.firstname} ${user.middlename || ''} ${
+          user.lastname || ''
+        }`,
+        contact_number: formdata.contact_number,
+        cheque_no: formdata.cheque_no,
+        agency: formdata.agency,
         specify: formdata.specify,
+        amount: formdata.amount,
         date_received: format(new Date(formdata.date_received), 'yyyy-MM-dd'),
         activity_date: formdata.activity_date
           ? format(new Date(formdata.activity_date), 'yyyy-MM-dd')
@@ -164,23 +200,39 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
       }
 
       const { data, error } = await supabase
-        .from('ddm_letter_trackers')
+        .from('ddm_trackers')
         .insert(newData)
         .select()
 
       if (error) throw new Error(error.message)
 
+      // Add tracker route logs
+      const trackerRoutes = {
+        tracker_id: data[0].id,
+        date: format(new Date(), 'yyyy-MM-dd'),
+        time: format(new Date(), 'h:mm a'),
+        user_id: session.user.id,
+        user: `${user.firstname} ${user.middlename || ''} ${
+          user.lastname || ''
+        }`,
+        title: formdata.location,
+        message: '',
+      }
+      await supabase.from('ddm_tracker_routes').insert(trackerRoutes)
+
+      // Upload files
+      const uploadedFiles = await handleUploadFiles(data[0].id)
+
       // Append new data in redux
       const updatedData = {
         ...newData,
+        ddm_user: user,
         id: data[0].id,
+        attachments: uploadedFiles,
         date_received: data[0].date_received,
         activity_date: data[0].activity_date || null,
       }
       dispatch(updateList([updatedData, ...globallist]))
-
-      // Upload files
-      await handleUploadFiles(data[0].id)
 
       // pop up the success message
       setToast('success', 'Successfully saved.')
@@ -188,6 +240,8 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
       // hide the modal
       hideModal()
     } catch (error) {
+      // pop up the error message
+      setToast('error', JSON.stringify(error))
       console.error('error', error)
     }
 
@@ -196,13 +250,31 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
 
   const handleUpdate = async (formdata: z.infer<typeof FormSchema>) => {
     if (!editData) return
-    console.log(formdata)
-    setSaving(true)
+
+    const type = documentTypes.find((t) => t.type === formdata.type)?.shortcut
+
+    let routingNo = 1
+    let routingSlipNo = ''
+
+    if (editData.type !== formdata.type) {
+      routingNo = await getLatestRoutingNo(formdata.type)
+      routingSlipNo = `${type || 'DOC'}-${routingNo}`
+    } else {
+      routingNo = editData.routing_no
+      routingSlipNo = `${type || 'DOC'}-${routingNo}`
+    }
 
     try {
       const newData = {
+        routing_no: routingNo,
+        routing_slip_no: routingSlipNo,
+        status: formdata.status,
         type: formdata.type,
         specify: formdata.specify,
+        amount: formdata.amount,
+        contact_number: formdata.contact_number,
+        cheque_no: formdata.cheque_no,
+        agency: formdata.agency,
         location: formdata.location,
         date_received: format(new Date(formdata.date_received), 'yyyy-MM-dd'),
         activity_date: formdata.activity_date
@@ -210,15 +282,36 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
           : null,
         particulars: formdata.particulars,
         requester: formdata.requester,
-        user_id: session.user.id,
       }
 
-      const { data, error } = await supabase
-        .from('ddm_letter_trackers')
+      const { error } = await supabase
+        .from('ddm_trackers')
         .update(newData)
         .eq('id', editData.id)
 
       if (error) throw new Error(error.message)
+
+      // Add tracker route logs if route is changed
+      const trackerRoutes = {
+        tracker_id: editData.id,
+        date: format(new Date(), 'yyyy-MM-dd'),
+        time: format(new Date(), 'h:mm a'),
+        user_id: session.user.id,
+        user: `${user.firstname} ${user.middlename || ''} ${
+          user.lastname || ''
+        }`,
+        title: formdata.location,
+        message: '',
+      }
+      if (formdata.location !== editData.location) {
+        await supabase.from('ddm_tracker_routes').insert(trackerRoutes)
+
+        // Append routes to redux
+        dispatch(updateRoutesList([...globalRoutesList, trackerRoutes]))
+      }
+
+      // Upload files
+      const uploadedFiles = await handleUploadFiles(editData.id)
 
       // Append new data in redux
       const items = [...globallist]
@@ -231,11 +324,17 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
           : null,
       }
       const foundIndex = items.findIndex((x) => x.id === updatedData.id)
-      items[foundIndex] = { ...items[foundIndex], ...updatedData }
+      // append uploaded files to attachments column
+      const updatedAttachments = [
+        ...(items[foundIndex].attachments || []),
+        ...uploadedFiles,
+      ]
+      items[foundIndex] = {
+        ...items[foundIndex],
+        attachments: updatedAttachments,
+        ...updatedData,
+      }
       dispatch(updateList(items))
-
-      // Upload files
-      await handleUploadFiles(editData.id)
 
       // pop up the success message
       setToast('success', 'Successfully saved.')
@@ -243,10 +342,36 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
       // hide the modal
       hideModal()
     } catch (error) {
+      // pop up the error message
+      setToast('error', error)
       console.error('error', error)
     }
 
     setSaving(false)
+  }
+
+  const getLatestRoutingNo = async (type: string) => {
+    const { data, error } = await supabase
+      .from('ddm_trackers')
+      .select('routing_no')
+      .not('routing_no', 'is', null)
+      .eq('archived', false)
+      .eq('type', type)
+      .order('routing_no', { ascending: false })
+      .limit(1)
+
+    if (!error) {
+      if (data.length > 0) {
+        const rn = !isNaN(data[0].routing_no)
+          ? Number(data[0].routing_no) + 1
+          : 1
+        return rn
+      } else {
+        return 1
+      }
+    } else {
+      return 1
+    }
   }
 
   const handleUploadFiles = async (id: string) => {
@@ -255,23 +380,28 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
     // Upload attachments
     await Promise.all(
       selectedImages.map(async (file: File) => {
+        const fileName = `${generateRandomNumber(2)}_${file.name}`
         const { error } = await supabase.storage
           .from('ddm_documents')
-          .upload(`letter_tracker/${id}/${file.name}`, file)
+          .upload(`tracker/${id}/${fileName}`, file)
 
         if (error) {
           console.log(error)
         } else {
-          newAttachments.push({ name: file.name })
+          newAttachments.push({ name: fileName })
         }
       })
     )
 
     // Update attachments on database column
-    const { error } = await supabase
-      .from('ddm_letter_trackers')
-      .update({ attachments: newAttachments })
-      .eq('id', id)
+    if (newAttachments.length > 0) {
+      const { error } = await supabase
+        .from('ddm_trackers')
+        .update({ attachments: newAttachments })
+        .eq('id', id)
+    }
+
+    return newAttachments
   }
 
   const deleteFile = (file: FileWithPath) => {
@@ -298,7 +428,7 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
     const { data, error }: { data: AttachmentTypes[] | []; error: unknown } =
       await supabase.storage
         .from('ddm_documents')
-        .list(`letter_tracker/${editData.id}`, {
+        .list(`tracker/${editData.id}`, {
           limit: 100,
           offset: 0,
           sortBy: { column: 'name', order: 'asc' },
@@ -372,9 +502,18 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
                               form.setValue('type', value)
                               if (value === 'Other Documents') {
                                 setShowSpecify(true)
-                                setSpecifyLabel('Specify Type')
                               } else {
                                 setShowSpecify(false)
+                              }
+                              if (value === 'Cheque') {
+                                setShowCheckNo(true)
+                              } else {
+                                setShowCheckNo(false)
+                              }
+                              if (value === 'Letters') {
+                                setShowActivityDate(true)
+                              } else {
+                                setShowActivityDate(false)
                               }
                             }}
                             defaultValue={field.value}>
@@ -404,7 +543,7 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="app__form_label">
-                              {specifyLabel}
+                              Specify Type
                             </FormLabel>
                             <FormControl>
                               <Input
@@ -417,11 +556,77 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
                         )}
                       />
                     )}
+                    {showActivityDate && (
+                      <FormField
+                        control={form.control}
+                        name="activity_date"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col space-y-3">
+                            <FormLabel className="app__form_label">
+                              Activity Date
+                            </FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant={'outline'}
+                                    className={cn(
+                                      'pl-3 text-left font-normal',
+                                      !field.value && 'text-muted-foreground'
+                                    )}>
+                                    {field.value ? (
+                                      format(field.value, 'PPP')
+                                    ) : (
+                                      <span>Pick a date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent
+                                className="w-auto p-0"
+                                align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  disabled={(date) =>
+                                    date < new Date('1900-01-01')
+                                  }
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    {showCheckNo && (
+                      <FormField
+                        control={form.control}
+                        name="cheque_no"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="app__form_label">
+                              Cheque No.
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Cheque No"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                     <FormField
                       control={form.control}
                       name="date_received"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col">
+                        <FormItem className="flex flex-col space-y-3">
                           <FormLabel className="app__form_label">
                             Date Received
                           </FormLabel>
@@ -461,50 +666,64 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
                         </FormItem>
                       )}
                     />
+
                     <FormField
                       control={form.control}
-                      name="activity_date"
+                      name="agency"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col">
+                        <FormItem>
                           <FormLabel className="app__form_label">
-                            Activity Date
+                            Requesting Department/Agency
                           </FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={'outline'}
-                                  className={cn(
-                                    'pl-3 text-left font-normal',
-                                    !field.value && 'text-muted-foreground'
-                                  )}>
-                                  {field.value ? (
-                                    format(field.value, 'PPP')
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) =>
-                                  date < new Date('1900-01-01')
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
+                          <FormControl>
+                            <Input
+                              placeholder="Department/Agency"
+                              {...field}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    <FormField
+                      control={form.control}
+                      name="contact_number"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Contact Number
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Contact Number"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="particulars"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Particulars
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Particulars"
+                              className="resize-none h-24"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="space-y-6">
                     <FormField
                       control={form.control}
                       name="location"
@@ -525,8 +744,38 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
                               {docRouting.map((route, index) => (
                                 <SelectItem
                                   key={index}
-                                  value={route}>
+                                  value={route!}>
                                   {route}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Status
+                          </FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choose" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {statusList.map((s, index) => (
+                                <SelectItem
+                                  key={index}
+                                  value={s.status}>
+                                  {s.status}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -541,11 +790,11 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="app__form_label">
-                            Requester
+                            Name / Payee
                           </FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="Requesting Department / Requester Name"
+                              placeholder="Requester/Payee Name"
                               {...field}
                             />
                           </FormControl>
@@ -555,16 +804,17 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
                     />
                     <FormField
                       control={form.control}
-                      name="particulars"
+                      name="amount"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="app__form_label">
-                            Particulars
+                            Amount
                           </FormLabel>
                           <FormControl>
-                            <Textarea
-                              placeholder="Particulars"
-                              className="resize-none"
+                            <Input
+                              type="number"
+                              step="any"
+                              placeholder="Amount"
                               {...field}
                             />
                           </FormControl>
@@ -572,8 +822,9 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
                         </FormItem>
                       )}
                     />
-                  </div>
-                  <div className="w-full mt-6 md:mt-0">
+
+                    <div className="app__form_label">Attachments:</div>
+
                     {editData && (
                       <div className="mb-2">
                         {attachments?.length === 0 ? (
@@ -595,11 +846,9 @@ export default function AddDocumentModal({ hideModal, editData }: ModalProps) {
                     )}
                     <div
                       {...getRootProps()}
-                      className="cursor-pointer border-2 border-dashed border-gray-300 bg-gray-100 text-gray-600 px-4 py-10">
+                      className="w-1/2 cursor-pointer border-2 border-dashed border-gray-300 bg-gray-100 text-gray-600 px-4 py-2">
                       <input {...getInputProps()} />
-                      <p className="text-xs">
-                        Drag and drop some files here, or click to select files
-                      </p>
+                      <p className="text-xs">Click here to attach files</p>
                     </div>
                     {fileRejections.length === 0 &&
                       selectedImages.length > 0 && (

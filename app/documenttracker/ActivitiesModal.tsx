@@ -62,7 +62,11 @@ export default function ActivitiesModal({
                 <tbody>
                   {activitiesData?.length === 0 && (
                     <tr className="bg-gray-50 text-xs border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-amber-50 dark:hover:bg-gray-600">
-                      <td className="py-2 pl-4">No records found.</td>
+                      <td
+                        colSpan={3}
+                        className="py-2 pl-4">
+                        No records found.
+                      </td>
                     </tr>
                   )}
                   {activitiesData?.map((item, index) => (

@@ -2,14 +2,14 @@
 
 import { configureStore } from '@reduxjs/toolkit'
 import listReducer from './Features/listSlice'
-import remarksReducer from './Features/remarksSlice'
-import resultsReducer from './Features/resultsCounterSlice'
 import recountReducer from './Features/recountSlice'
+import resultsReducer from './Features/resultsCounterSlice'
+import routesReducer from './Features/routesSlice'
 
 export const store = configureStore({
   reducer: {
     list: listReducer,
-    remarks: remarksReducer,
+    routes: routesReducer,
     results: resultsReducer,
     recount: recountReducer
   }

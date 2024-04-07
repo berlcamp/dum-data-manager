@@ -13,7 +13,7 @@ export default function Attachment({ id, file }: { id: string; file: string }) {
 
     const { data, error } = await supabase.storage
       .from('ddm_documents')
-      .download(`letter_tracker/${id}/${file}`)
+      .download(`tracker/${id}/${file}`)
 
     if (error) console.error(error)
 

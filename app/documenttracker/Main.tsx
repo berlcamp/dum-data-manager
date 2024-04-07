@@ -1,8 +1,8 @@
 'use client'
 
 import {
+  ArchiveModal,
   CustomButton,
-  DeleteModal,
   PerPage,
   ShowMore,
   Sidebar,
@@ -17,12 +17,13 @@ import { Menu, Transition } from '@headlessui/react'
 import {
   CalendarDaysIcon,
   ChevronDownIcon,
+  PencilIcon,
   StarIcon,
 } from '@heroicons/react/20/solid'
 import { format } from 'date-fns'
 import React, { Fragment, useEffect, useState } from 'react'
 import ActivitiesModal from './ActivitiesModal'
-import AddDocumentModal from './AddDocumentModal'
+import AddEditModal from './AddEditModal'
 import Filters from './Filters'
 
 // Types
@@ -37,40 +38,50 @@ import {
 } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
-import { CheckIcon } from 'lucide-react'
-import { useSearchParams } from 'next/navigation'
+import { CheckIcon, ChevronDown, PrinterIcon, Trash2 } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Tooltip } from 'react-tooltip'
 import AddStickyModal from './AddStickyModal'
-import Attachment from './Attachment'
+import DownloadExcelButton from './DownloadExcel'
+import PrintButton from './PrintButton'
 import StickiesModal from './StickiesModal'
+import TrackerModal from './TrackerModal'
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showPrintSlipModal, setShowPrintSlipModal] = useState(false)
+  const [showArchiveModal, setShowArchiveModal] = useState(false)
   const [showStickiesModal, setShowStickiesModal] = useState(false)
   const [showAddStickyModal, setShowAddStickyModal] = useState(false)
-
   const [viewActivity, setViewActivity] = useState(false)
+  const [viewTrackerModal, setViewTrackerModal] = useState(false)
+
   const [selectedId, setSelectedId] = useState<string>('')
   const [selectedItem, setSelectedItem] = useState<DocumentTypes | null>(null)
   const [activitiesData, setActivitiesData] = useState<DocumentTypes[]>([])
 
   // Filters
   const [filterTypes, setFilterTypes] = useState<any[] | []>([])
-  const [filterDate, setFilterDate] = useState<Date | undefined>(undefined)
+  const [filterStatus, setFilterStatus] = useState('')
   const [filterKeyword, setFilterKeyword] = useState('')
+  const [filterAgency, setFilterAgency] = useState('')
+  const [filterCurrentRoute, setFilterCurrentRoute] = useState('')
+  const [filterRoute, setFilterRoute] = useState('')
+  const [filterDateForwardedFrom, setFilterDateForwardedFrom] = useState<
+    Date | undefined
+  >(undefined)
+  const [filterDateForwardedTo, setFilterDateForwardedTo] = useState<
+    Date | undefined
+  >(undefined)
 
   // List
   const [list, setList] = useState<DocumentTypes[]>([])
   const [perPageCount, setPerPageCount] = useState<number>(10)
   const [showingCount, setShowingCount] = useState<number>(0)
   const [resultsCount, setResultsCount] = useState<number>(0)
-
-  const searchParams = useSearchParams()
 
   const { supabase, session, systemUsers } = useSupabase()
   const { hasAccess, setToast } = useFilter()
@@ -89,19 +100,25 @@ const Page: React.FC = () => {
     try {
       const result = await fetchDocuments(
         {
-          filterDate,
           filterTypes,
           filterKeyword,
+          filterAgency,
+          filterStatus,
+          filterCurrentRoute,
+          filterRoute,
+          filterDateForwardedFrom,
+          filterDateForwardedTo,
         },
         perPageCount,
         0
       )
-
       // update the list in redux
       dispatch(updateList(result.data))
-
       setResultsCount(result.count ? result.count : 0)
       setShowingCount(result.data.length)
+      // dispatch(updateList([]))
+      // setResultsCount(0)
+      // setShowingCount(0)
     } catch (e) {
       console.error(e)
     } finally {
@@ -116,9 +133,14 @@ const Page: React.FC = () => {
     try {
       const result = await fetchDocuments(
         {
-          filterDate,
           filterTypes,
           filterKeyword,
+          filterAgency,
+          filterStatus,
+          filterCurrentRoute,
+          filterRoute,
+          filterDateForwardedFrom,
+          filterDateForwardedTo,
         },
         perPageCount,
         list.length
@@ -142,14 +164,14 @@ const Page: React.FC = () => {
     setSelectedItem(null)
   }
 
-  const handleDelete = (id: string) => {
+  const handleArchive = (id: string) => {
     setSelectedId(id)
-    setShowDeleteModal(true)
+    setShowArchiveModal(true)
   }
 
   const handleChangeStatus = async (id: string, status: string) => {
     const { error } = await supabase
-      .from('ddm_letter_trackers')
+      .from('ddm_trackers')
       .update({ status })
       .eq('id', id)
 
@@ -166,24 +188,52 @@ const Page: React.FC = () => {
     // pop up the success message
     setToast('success', 'Successfully Saved.')
   }
-  const handleChangeLocation = async (id: string, location: string) => {
-    const { error } = await supabase
-      .from('ddm_letter_trackers')
-      .update({ location })
-      .eq('id', id)
-
-    // Append new data in redux
-    const items = [...globallist]
-    const updatedData = {
-      location,
-      id,
+  const handleChangeLocation = async (
+    item: DocumentTypes,
+    location: string
+  ) => {
+    if (item.location === location) {
+      return
     }
-    const foundIndex = items.findIndex((x) => x.id === updatedData.id)
-    items[foundIndex] = { ...items[foundIndex], ...updatedData }
-    dispatch(updateList(items))
 
-    // pop up the success message
-    setToast('success', 'Successfully Saved.')
+    try {
+      const { error } = await supabase
+        .from('ddm_trackers')
+        .update({ location })
+        .eq('id', item.id)
+
+      if (error) throw new Error(error.message)
+
+      // Append new data in redux
+      const items = [...globallist]
+      const updatedData = {
+        id: item.id,
+        location,
+      }
+      const foundIndex = items.findIndex((x) => x.id === updatedData.id)
+      items[foundIndex] = { ...items[foundIndex], ...updatedData }
+      dispatch(updateList(items))
+
+      // Add tracker route logs if route is changed
+      const trackerRoutes = {
+        tracker_id: item.id,
+        date: format(new Date(), 'yyyy-MM-dd'),
+        time: format(new Date(), 'h:mm a'),
+        user_id: session.user.id,
+        user: `${user.firstname} ${user.middlename || ''} ${
+          user.lastname || ''
+        }`,
+        title: location,
+        message: '',
+      }
+
+      await supabase.from('ddm_tracker_routes').insert(trackerRoutes)
+
+      // pop up the success message
+      setToast('success', 'Successfully Saved.')
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   const handleEdit = (item: DocumentTypes) => {
@@ -192,6 +242,7 @@ const Page: React.FC = () => {
   }
 
   const handleViewActivities = () => {
+    void fetchActivitiesData()
     setViewActivity(true)
   }
 
@@ -226,17 +277,23 @@ const Page: React.FC = () => {
     setList([])
     void fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterDate, filterKeyword, filterTypes, perPageCount])
-
-  useEffect(() => {
-    void fetchActivitiesData()
-  }, [])
+  }, [
+    filterKeyword,
+    filterAgency,
+    filterStatus,
+    filterTypes,
+    filterCurrentRoute,
+    filterRoute,
+    filterDateForwardedFrom,
+    filterDateForwardedTo,
+    perPageCount,
+  ])
 
   const isDataEmpty = !Array.isArray(list) || list.length < 1 || !list
   const email: string = session.user.email
 
   // Check access from permission settings or Super Admins
-  if (!hasAccess('request_tracker') && !superAdmins.includes(email))
+  if (!hasAccess('tracker') && !superAdmins.includes(email))
     return <Unauthorized />
 
   return (
@@ -250,6 +307,22 @@ const Page: React.FC = () => {
           <TopBar />
           <div className="app__title">
             <Title title="Document Tracker" />
+            {/* Download Excel */}
+            {!isDataEmpty && (
+              <div className="hidden md:flex items-center">
+                <DownloadExcelButton
+                  filters={{
+                    filterKeyword,
+                    filterStatus,
+                    filterTypes,
+                    filterCurrentRoute,
+                    filterRoute,
+                    filterDateForwardedFrom,
+                    filterDateForwardedTo,
+                  }}
+                />
+              </div>
+            )}
             <StarIcon
               onClick={() => setShowStickiesModal(true)}
               className="cursor-pointer w-7 h-7 text-yellow-500"
@@ -281,9 +354,14 @@ const Page: React.FC = () => {
           {/* Filters */}
           <div className="app__filters">
             <Filters
-              setFilterDate={setFilterDate}
               setFilterTypes={setFilterTypes}
+              setFilterStatus={setFilterStatus}
               setFilterKeyword={setFilterKeyword}
+              setFilterCurrentRoute={setFilterCurrentRoute}
+              setFilterRoute={setFilterRoute}
+              setFilterAgency={setFilterAgency}
+              setFilterDateForwardedFrom={setFilterDateForwardedFrom}
+              setFilterDateForwardedTo={setFilterDateForwardedTo}
             />
           </div>
 
@@ -300,12 +378,20 @@ const Page: React.FC = () => {
             <table className="app__table">
               <thead className="app__thead">
                 <tr>
-                  <th className="app__th">Details</th>
+                  <th className="app__th w-10"></th>
+                  <th className="app__th">Routing No</th>
                   <th className="hidden md:table-cell app__th">
                     Current Location
                   </th>
                   <th className="hidden md:table-cell app__th">Status</th>
-                  <th className="app__th"></th>
+                  <th className="hidden md:table-cell app__th">Requester</th>
+                  <th className="app__th">Particulars</th>
+                  <th className="hidden md:table-cell app__th">
+                    Recent Remarks
+                  </th>
+                  <th className="hidden md:table-cell app__th">
+                    Date Received
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -315,77 +401,101 @@ const Page: React.FC = () => {
                       key={index}
                       className="app__tr">
                       <td className="app__td">
+                        <Menu
+                          as="div"
+                          className="app__menu_container font-normal text-gray-600">
+                          <div>
+                            <Menu.Button className="app__dropdown_btn">
+                              <ChevronDown
+                                className="h-5 w-5"
+                                aria-hidden="true"
+                              />
+                            </Menu.Button>
+                          </div>
+
+                          <Transition
+                            as={Fragment}
+                            enter="transition ease-out duration-100"
+                            enterFrom="transform opacity-0 scale-95"
+                            enterTo="transform opacity-100 scale-100"
+                            leave="transition ease-in duration-75"
+                            leaveFrom="transform opacity-100 scale-100"
+                            leaveTo="transform opacity-0 scale-95">
+                            <Menu.Items className="absolute left-0 z-30 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                              <div className="py-1">
+                                <Menu.Item>
+                                  <div
+                                    onClick={() => {
+                                      setShowPrintSlipModal(true)
+                                      setSelectedItem(item)
+                                    }}
+                                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
+                                    <PrinterIcon className="cursor-pointer outline-none w-6 h-6 text-blue-500" />
+                                    <span>Print Slip</span>
+                                  </div>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <div
+                                    onClick={() => {
+                                      setShowAddStickyModal(true)
+                                      setSelectedItem(item)
+                                    }}
+                                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
+                                    <StarIcon className="cursor-pointer outline-none w-6 h-6 text-yellow-500" />
+                                    <span>Add to Starred</span>
+                                  </div>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <div
+                                    onClick={() => handleEdit(item)}
+                                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
+                                    <PencilIcon className="cursor-pointer outline-none w-6 h-6 text-green-500" />
+                                    <span>Edit Details</span>
+                                  </div>
+                                </Menu.Item>
+                                <Menu.Item>
+                                  <div
+                                    onClick={() => handleArchive(item.id)}
+                                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
+                                    <Trash2 className="cursor-pointer outline-none w-6 h-6 text-red-500" />
+                                    <span>Move To Archive</span>
+                                  </div>
+                                </Menu.Item>
+                              </div>
+                            </Menu.Items>
+                          </Transition>
+                        </Menu>
+                      </td>
+                      <td className="app__td">
                         <div className="space-y-2">
                           <div>
-                            <span className="font-light">Type:</span>{' '}
-                            <span className="font-medium">{item.type}</span>
-                            {item.type === 'Other Documents' && (
-                              <span className="font-medium mt-1">
-                                {item.specify}
-                              </span>
-                            )}
-                          </div>
-                          <div>
-                            <span className="font-light">Requester:</span>{' '}
-                            <span className="font-medium">
-                              {item.requester}
+                            <span className="font-bold">
+                              {item.routing_slip_no}
                             </span>
                           </div>
-                          <div>
-                            <span className="font-light">Received:</span>{' '}
-                            <span className="font-medium">
-                              {format(
-                                new Date(item.date_received),
-                                'MMMM dd, yyyy'
-                              )}
-                            </span>
+                          <div className="flex items-center space-x-1">
+                            <CustomButton
+                              containerStyles="app__btn_green_xs"
+                              title="View&nbsp;Details"
+                              btnType="button"
+                              handleClick={() => {
+                                setSelectedItem(item)
+                                setViewTrackerModal(true)
+                              }}
+                            />
                           </div>
-                          {item.activity_date && (
-                            <div>
-                              <span className="font-light">Activity Date:</span>{' '}
-                              <span className="font-medium">
-                                {format(
-                                  new Date(item.activity_date),
-                                  'MMMM dd, yyyy'
-                                )}
-                              </span>
-                            </div>
-                          )}
-                          <div>
-                            <span className="font-light">Particulars:</span>{' '}
-                            <span className="font-medium">
-                              {item.particulars}
-                            </span>
-                          </div>
-                          {item.attachments && (
-                            <div>
-                              {item.attachments?.length === 0 && (
-                                <span className="font-medium">
-                                  No attachments
-                                </span>
-                              )}
-                              {item.attachments?.map((file, index) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center space-x-2 justify-start">
-                                  <Attachment
-                                    file={file.name}
-                                    id={item.id}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
                         </div>
                       </td>
                       <td className="hidden md:table-cell app__td">
                         <div className="flex items-center">
-                          <span className="font-bold">{item.location}</span>
                           <Menu
                             as="div"
                             className="app__menu_container font-normal text-gray-600">
                             <div>
                               <Menu.Button className="app__dropdown_btn">
+                                <span className="font-bold">
+                                  {item.location}
+                                </span>
                                 <ChevronDownIcon
                                   className="h-5 w-5"
                                   aria-hidden="true"
@@ -407,7 +517,7 @@ const Page: React.FC = () => {
                                     <Menu.Item key={idx}>
                                       <div
                                         onClick={() =>
-                                          handleChangeLocation(item.id, route)
+                                          handleChangeLocation(item, route!)
                                         }
                                         className="flex items-center justify-between space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
                                         <span>{route}</span>
@@ -425,16 +535,18 @@ const Page: React.FC = () => {
                       </td>
                       <td className="hidden md:table-cell app__td">
                         <div className="flex items-center">
-                          <span
-                            className="font-bold"
-                            style={{ color: getStatusColor(item.status) }}>
-                            {item.status}
-                          </span>
                           <Menu
                             as="div"
                             className="app__menu_container font-normal text-gray-600">
                             <div>
                               <Menu.Button className="app__dropdown_btn">
+                                <span
+                                  className="font-bold"
+                                  style={{
+                                    color: getStatusColor(item.status),
+                                  }}>
+                                  {item.status}
+                                </span>
                                 <ChevronDownIcon
                                   className="h-5 w-5"
                                   aria-hidden="true"
@@ -472,40 +584,92 @@ const Page: React.FC = () => {
                           </Menu>
                         </div>
                       </td>
-                      <td className="app__td">
-                        <div className="flex space-x-2 items-center">
+                      <td className="hidden md:table-cell app__td max-w-[150px]">
+                        <div className="space-y-1">
                           <div>
-                            <StarIcon
-                              onClick={() => {
-                                setShowAddStickyModal(true)
-                                setSelectedItem(item)
-                              }}
-                              className="cursor-pointer outline-none w-6 h-6 text-yellow-500"
-                              data-tooltip-id="add-sticky-tooltip"
-                              data-tooltip-content="Add to Starred"
-                            />
-                            <Tooltip
-                              id="add-sticky-tooltip"
-                              place="bottom-end"
-                            />
+                            <span className="font-medium">
+                              {item.requester}
+                            </span>
                           </div>
-                          <button
-                            onClick={() => handleEdit(item)}
-                            className="app__btn_green_xs">
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="app__btn_red_xs">
-                            Delete
-                          </button>
+                          <div>
+                            <span className="font-medium">{item.agency}</span>
+                          </div>
+                          <div>
+                            <span className="font-bold">{item.amount}</span>
+                          </div>
                         </div>
+                      </td>
+                      <td className="app__td max-w-[300px]">
+                        <div className="space-y-2">
+                          <div>
+                            <span className="font-medium">
+                              {item.particulars.length > 100 ? (
+                                <span>
+                                  {item.particulars.substring(0, 100 - 3)}...
+                                  <span
+                                    className="cursor-pointer text-blue-500"
+                                    onClick={() => {
+                                      setSelectedItem(item)
+                                      setViewTrackerModal(true)
+                                    }}>
+                                    See&nbsp;More
+                                  </span>
+                                </span>
+                              ) : (
+                                <span>{item.particulars}</span>
+                              )}
+                            </span>
+                          </div>
+                          {item.attachments?.length > 0 && (
+                            <div>
+                              <span className="font-medium">
+                                {item.attachments.length} File/s Attached
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="hidden md:table-cell app__td">
+                        <div className="w-full">
+                          {item.recent_remarks && (
+                            <>
+                              <div className="w-full">
+                                <div className="flex items-center space-x-2">
+                                  <div className="flex flex-1 items-center space-x-2">
+                                    <div className="flex items-center space-x-1">
+                                      <div className="font-bold">
+                                        <span>{item.recent_remarks.user} </span>
+                                      </div>
+                                      <div className="text-gray-500  focus:ring-0 focus:outline-none text-xs text-left inline-flex items-center">
+                                        {item.recent_remarks.timestamp &&
+                                          format(
+                                            new Date(
+                                              item.recent_remarks.timestamp
+                                            ),
+                                            'MMM dd h:mm'
+                                          )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Message */}
+                                <div className="mt-1">
+                                  <div>{item.recent_remarks.remarks}</div>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                      <td className="hidden md:table-cell app__td">
+                        {format(new Date(item.date_received), 'MMM dd, yyyy')}
                       </td>
                     </tr>
                   ))}
                 {loading && (
                   <TableRowLoading
-                    cols={4}
+                    cols={8}
                     rows={2}
                   />
                 )}
@@ -521,24 +685,16 @@ const Page: React.FC = () => {
             <ShowMore handleShowMore={handleShowMore} />
           )}
 
-          {/* Add Document Modal */}
-          {showAddModal && (
-            <AddDocumentModal
-              editData={selectedItem}
-              hideModal={() => setShowAddModal(false)}
-            />
-          )}
-
-          {/* Confirm Delete Modal */}
-          {showDeleteModal && (
-            <DeleteModal
-              table="ddm_letter_trackers"
+          {/* Confirm Move to Archive Modal */}
+          {showArchiveModal && (
+            <ArchiveModal
+              table="ddm_trackers"
               selectedId={selectedId}
               showingCount={showingCount}
               setShowingCount={setShowingCount}
               resultsCount={resultsCount}
               setResultsCount={setResultsCount}
-              hideModal={() => setShowDeleteModal(false)}
+              hideModal={() => setShowArchiveModal(false)}
             />
           )}
 
@@ -549,15 +705,41 @@ const Page: React.FC = () => {
               hideModal={() => setViewActivity(false)}
             />
           )}
+
+          {/* Tracker Modal */}
+          {viewTrackerModal && selectedItem && (
+            <TrackerModal
+              handleEdit={handleEdit}
+              documentDataProp={selectedItem}
+              hideModal={() => setViewTrackerModal(false)}
+            />
+          )}
+
           {/* Stickies Modal */}
           {showStickiesModal && (
             <StickiesModal hideModal={() => setShowStickiesModal(false)} />
           )}
+
+          {/* Print Slip Modal */}
+          {showPrintSlipModal && selectedItem && (
+            <PrintButton
+              document={selectedItem}
+              hideModal={() => setShowPrintSlipModal(false)}
+            />
+          )}
+
           {/* Add to Sticky Modal */}
           {showAddStickyModal && (
             <AddStickyModal
               item={selectedItem}
               hideModal={() => setShowAddStickyModal(false)}
+            />
+          )}
+          {/* Add Document Modal */}
+          {showAddModal && (
+            <AddEditModal
+              editData={selectedItem}
+              hideModal={() => setShowAddModal(false)}
             />
           )}
         </div>

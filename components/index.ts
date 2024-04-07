@@ -1,4 +1,5 @@
 import AccountDetails from './AccountDetails'
+import ArchiveModal from './ArchiveModal'
 import ConfirmModal from './ConfirmModal'
 import CustomButton from './CustomButton'
 import DeleteModal from './DeleteModal'
@@ -26,7 +27,7 @@ import Unauthorized from './Unauthorized'
 import UserBlock from './UserBlock'
 
 export {
-    AccountDetails, ConfirmModal, CustomButton, DeleteModal, FilterDateRange, Jobs, LandingPage, Login,
+    AccountDetails, ArchiveModal, ConfirmModal, CustomButton, DeleteModal, FilterDateRange, Jobs, LandingPage, Login,
     LoginBox, MainMenu, OfflinePage, OneColLayoutLoading, PerPage, RisSidebar, SettingsSideBar, ShowMore, Sidebar, TableRowLoading, ThreeColTableLoading, Title,
     TopBar, TopBarDark, TrackerSideBar, TwoColTableLoading, Unauthorized, UserBlock
 }

@@ -24,7 +24,7 @@ export default function StickiesModal({ hideModal }: ModalProps) {
 
   const handleNoteChange = async (value: string, id: string, index: number) => {
     const { error } = await supabase
-      .from('ddm_letter_tracker_stickies')
+      .from('ddm_tracker_stickies')
       .update({
         note: value,
       })
@@ -56,7 +56,7 @@ export default function StickiesModal({ hideModal }: ModalProps) {
   const handleDeleteReply = async () => {
     try {
       const { error }: { error: { message: string } } = await supabase
-        .from('ddm_letter_tracker_stickies')
+        .from('ddm_tracker_stickies')
         .delete()
         .eq('id', selectedId)
 
@@ -74,7 +74,7 @@ export default function StickiesModal({ hideModal }: ModalProps) {
   const fetchData = async () => {
     setLoading(true)
     const { data } = await supabase
-      .from('ddm_letter_tracker_stickies')
+      .from('ddm_tracker_stickies')
       .select('*, tracker:tracker_id(*)')
       .eq('user_id', session.user.id)
       .order('id', { ascending: true })
