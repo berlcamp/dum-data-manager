@@ -1,7 +1,7 @@
 'use client'
+import { useSupabase } from '@/context/SupabaseProvider'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { useSupabase } from '@/context/SupabaseProvider'
 
 // this component handles refreshing server data when the user logs in or out
 // this method avoids the need to pass a session down to child components
@@ -22,6 +22,8 @@ export default function SupabaseListener ({ serverAccessToken }) {
         router.refresh()
       }
     })
+
+    console.log('token refreshed')
 
     return () => {
       subscription.unsubscribe()
