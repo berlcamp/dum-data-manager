@@ -1,6 +1,7 @@
 import type { AccountTypes } from '@/types'
 import { createBrowserClient } from '@supabase/ssr'
 import { format } from 'date-fns'
+import { fullTextQuery } from './text-helper'
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
@@ -13,6 +14,12 @@ interface DocumentFilterTypes {
   filterRoute?: string
   filterDateForwardedFrom?: Date | undefined
   filterDateForwardedTo?: Date | undefined
+}
+
+interface FilterProfileTypes {
+  filterKeyword?: string
+  filterBarangay?: string
+  filterCategory?: string
 }
 
 export async function fetchDocuments (filters: DocumentFilterTypes, perPageCount: number, rangeFrom: number) {
@@ -106,6 +113,55 @@ export async function fetchDocuments (filters: DocumentFilterTypes, perPageCount
     return { data, count }
   } catch (error) {
     console.error('fetch tracker error', error)
+    return { data: [], count: 0 }
+  }
+}
+
+export async function fetchProfiles (filters: FilterProfileTypes, perPageCount: number, rangeFrom: number) {
+  try {
+    let query = supabase
+      .from('ddm_profiles')
+      .select('*', { count: 'exact' })
+
+      // Full text search
+    if (filters.filterKeyword && filters.filterKeyword.trim() !== '') {
+      query = query.textSearch('fts', fullTextQuery(filters.filterKeyword), {
+        config: 'english'
+      })
+      // query = query.or(`fullname.ilike.%${filters.filterKeyword}%`)
+    }
+
+    // Filter Address
+    if (filters.filterBarangay && filters.filterBarangay.trim() !== '') {
+      query = query.eq('address', filters.filterBarangay)
+    }
+
+    // Filter Category
+    if (filters.filterCategory && filters.filterCategory.trim() !== '') {
+      query = query.eq('category', filters.filterCategory)
+    }
+
+    // Perform count before paginations
+    // const { count } = await query
+
+    // Per Page from context
+    const from = rangeFrom
+    const to = from + (perPageCount - 1)
+    // Per Page from context
+    query = query.range(from, to)
+
+    // Order By
+    query = query.order('id', { ascending: true })
+
+    const { data, count, error } = await query
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return { data, count }
+  } catch (error) {
+    console.error('fetch profiles error', error)
     return { data: [], count: 0 }
   }
 }

@@ -54,20 +54,26 @@ const Page: React.FC = () => {
             <Title title="System Permissions" />
           </div>
 
-          <div className="app__content pb-20 md:w-4/5">
+          <div className="app__content pb-20 space-y-4 md:w-4/5">
             {loadedSettings && (
               <>
                 <ChooseUsers
                   multiple={true}
-                  type="request_tracker"
+                  type="tracker"
                   users={users}
-                  title="Who can access requests tracker"
+                  title="Who can access Document Tracker"
                 />
                 <ChooseUsers
                   multiple={true}
                   type="ris"
                   users={users}
                   title="Who can access R.I.S."
+                />
+                <ChooseUsers
+                  multiple={true}
+                  type="profiling"
+                  users={users}
+                  title="Who can access Profiling"
                 />
               </>
             )}

@@ -87,3 +87,21 @@ export const risOffices = [
   'GSO',
   'DILG',
 ]
+
+export const profileCategories = [
+  'A',
+  'B',
+  'C',
+]
+
+export const profilePositions = [
+  'Barangay Charman',
+  'Barangay Councilor',
+  'Barangay Secretary',
+  'Barangay Treasurer',
+  'BHW',
+  'BPAT',
+  'Government Employee',
+  'LGU Employee',
+  'Undefined',
+]

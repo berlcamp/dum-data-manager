@@ -28,7 +28,7 @@ export default function SupabaseListener ({ serverAccessToken }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [serverAccessToken, router, supabase])
+  }, [router, supabase])
 
   return null
 }

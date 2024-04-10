@@ -181,3 +181,27 @@ export interface RisDepartmentTypes {
   name: string
   office: string
 }
+
+export interface ProfileTypes {
+  id: string
+  fullname: string
+  address: string
+  category: string
+  position: string
+  precinct: string
+}
+export interface ProfileRemarksTypes {
+  id?: string
+  user_id: string
+  timestamp: string
+  user: string
+  remarks: string
+  profile_id: string
+  type: string
+}
+
+export interface ChartDataSetTypes {
+  label: string
+  data: number[]
+  bgColor: string
+}

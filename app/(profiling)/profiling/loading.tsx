@@ -1,5 +1,5 @@
 import LoadingLayout from '@/components/LoadingLayout'
 
 export default function Loading() {
-  return <LoadingLayout title="Document Tracker" />
+  return <LoadingLayout title="Profiling" />
 }
