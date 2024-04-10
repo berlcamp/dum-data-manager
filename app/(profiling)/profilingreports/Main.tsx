@@ -147,8 +147,6 @@ const Page: React.FC = () => {
       setDataSets(dataSetsData)
       setPositionsDataSets(positionsDataSetsData)
 
-      console.log(positionsDataLabels, positionsDataSetsData)
-
       setLoading(false)
     } catch (e) {
       console.error(e)
