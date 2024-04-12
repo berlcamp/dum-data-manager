@@ -27,6 +27,7 @@ import { useSupabase } from '@/context/SupabaseProvider'
 import { format } from 'date-fns'
 import { useDispatch, useSelector } from 'react-redux'
 import AddEditModal from './AddEditModal'
+import PriceSettings from './PriceSettings'
 import PrintButton from './PrintButton'
 
 const Page: React.FC = () => {
@@ -34,9 +35,16 @@ const Page: React.FC = () => {
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
+  const [viewPriceModal, setViewPriceModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RisTypes | null>(null)
 
+  // Price
+  const [dieselPrice, setDieselPrice] = useState(0)
+  const [gasolinePrice, setGasolinePrice] = useState(0)
+  const [refetchPrice, setRefetchPrice] = useState(false)
+
   // Filters
+  const [filterType, setFilterType] = useState('All')
   const [filterKeyword, setFilterKeyword] = useState('')
 
   // List
@@ -63,6 +71,7 @@ const Page: React.FC = () => {
       const result = await fetchRis(
         {
           filterKeyword,
+          filterType,
         },
         perPageCount,
         0
@@ -88,6 +97,7 @@ const Page: React.FC = () => {
       const result = await fetchRis(
         {
           filterKeyword,
+          filterType,
         },
         perPageCount,
         list.length
@@ -116,16 +126,43 @@ const Page: React.FC = () => {
     setSelectedItem(item)
   }
 
+  // Update price
+  useEffect(() => {
+    ;(async () => {
+      const { data } = await supabase
+        .from('ddm_ris_prices')
+        .select()
+        .limit(2)
+        .order('id', { ascending: false })
+      if (data && data.length > 0) {
+        setDieselPrice(data[0].diesel)
+        setGasolinePrice(data[0].gasoline)
+      }
+    })()
+  }, [refetchPrice])
+
   // Update list whenever list in redux updates
   useEffect(() => {
     setList(globallist)
+
+    // Update types
+    ;(async () => {
+      const { data } = await supabase
+        .from('ddm_ris')
+        .select('*, purchase_order:po_id(type)')
+      const upsertArr: any = []
+      data.forEach((d: RisTypes) => {
+        upsertArr.push({ id: d.id, type: d.purchase_order.type })
+      })
+      await supabase.from('ddm_ris').upsert(upsertArr)
+    })()
   }, [globallist])
 
   // Featch data
   useEffect(() => {
     setList([])
     void fetchData()
-  }, [filterKeyword, perPageCount])
+  }, [filterKeyword, filterType, perPageCount])
 
   const isDataEmpty = !Array.isArray(list) || list.length < 1 || !list
   const email: string = session.user.email
@@ -154,7 +191,30 @@ const Page: React.FC = () => {
 
           {/* Filters */}
           <div className="app__filters">
-            <Filters setFilterKeyword={setFilterKeyword} />
+            <Filters
+              setFilterKeyword={setFilterKeyword}
+              setFilterType={setFilterType}
+            />
+          </div>
+
+          {/* Current Price */}
+          <div className="flex items-center justify-end space-x-4 my-2 mx-4">
+            <div className="border text-center bg-gray-100 py-px px-4 space-x-2">
+              <span className="text-xs">Gasoline:</span>
+              <span className="text-green-800 font-bold">{gasolinePrice}</span>
+              <span className="text-xs">/Liter</span>
+            </div>
+            <div className="border text-center bg-gray-100 py-px px-4 space-x-2">
+              <span className="text-xs">Diesel:</span>
+              <span className="text-green-800 font-bold">{dieselPrice}</span>
+              <span className="text-xs">/Liter</span>
+            </div>
+            <CustomButton
+              containerStyles="app__btn_blue"
+              title="Update Price"
+              btnType="button"
+              handleClick={() => setViewPriceModal(true)}
+            />
           </div>
 
           {/* Per Page */}
@@ -191,10 +251,13 @@ const Page: React.FC = () => {
                             <span className="font-medium">{item.id}</span>
                           </div>
                           <div>
+                            <span className="font-light">Type:</span>{' '}
+                            <span className="font-medium">{item.type}</span>
+                          </div>
+                          <div>
                             <span className="font-light">PO No:</span>{' '}
                             <span className="font-medium">
-                              PO-{item.purchase_order?.po_number}-
-                              {item.purchase_order?.type}
+                              PO-{item.purchase_order?.po_number}
                             </span>
                           </div>
                           <div>
@@ -206,6 +269,10 @@ const Page: React.FC = () => {
                             <span className="font-medium">
                               {item.requester}
                             </span>
+                          </div>
+                          <div>
+                            <span className="font-light">Price /L:</span>{' '}
+                            <span className="font-medium">{item.price}</span>
                           </div>
                           <div>
                             <span className="font-light">Vehicle:</span>{' '}
@@ -271,7 +338,17 @@ const Page: React.FC = () => {
           {showAddModal && (
             <AddEditModal
               editData={selectedItem}
+              gasolinePrice={gasolinePrice}
+              dieselPrice={dieselPrice}
               hideModal={() => setShowAddModal(false)}
+            />
+          )}
+
+          {/* View Price Modal */}
+          {viewPriceModal && (
+            <PriceSettings
+              hideModal={() => setViewPriceModal(false)}
+              refetchPrice={() => setRefetchPrice(!refetchPrice)}
             />
           )}
         </div>

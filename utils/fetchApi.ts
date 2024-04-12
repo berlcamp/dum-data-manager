@@ -210,8 +210,53 @@ export async function fetchPurchaseOrders (filters: {
   }
 }
 
+export async function fetchPriceControl (filters: {
+  filterType?: string
+  filterDate?: Date | undefined
+}, perPageCount: number, rangeFrom: number) {
+  try {
+    let query = supabase
+      .from('ddm_ris_prices')
+      .select('*', { count: 'exact' })
+
+      // Full text search
+    if (filters.filterType && filters.filterType.trim() !== '') {
+      query = query.eq('type', filters.filterType)
+    }
+
+    // Filter type
+    if (filters.filterDate) {
+      query = query.eq('date', format(new Date(filters.filterDate), 'yyyy-MM-dd'))
+    }
+
+    // Perform count before paginations
+    // const { count } = await query
+
+    // Per Page from context
+    const from = rangeFrom
+    const to = from + (perPageCount - 1)
+    // Per Page from context
+    query = query.range(from, to)
+
+    // Order By
+    query = query.order('id', { ascending: false })
+
+    const { data, count, error } = await query
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return { data, count }
+  } catch (error) {
+    console.error('fetch error price', error)
+    return { data: [], count: 0 }
+  }
+}
+
 export async function fetchRis (filters: {
   filterKeyword?: string
+  filterType?: string
 }, perPageCount: number, rangeFrom: number) {
   try {
     let query = supabase
@@ -220,7 +265,12 @@ export async function fetchRis (filters: {
 
       // Full text search
     if (typeof filters.filterKeyword !== 'undefined' && filters.filterKeyword.trim() !== '') {
-      query = query.or(`id.eq.${Number(filters.filterKeyword) || 0},requester.ilike.%${filters.filterKeyword}%`)
+      query = query.or(`id.eq.${Number(filters.filterKeyword) || 0},requester.ilike.%${filters.filterKeyword}%,purpose.ilike.%${filters.filterKeyword}%`)
+    }
+
+    // Filter type
+    if (typeof filters.filterType !== 'undefined' && filters.filterType.trim() !== 'All') {
+      query = query.eq('type', filters.filterType)
     }
 
     // Perform count before paginations

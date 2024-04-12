@@ -297,6 +297,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             <SelectContent>
                               <SelectItem value="Gasoline">Gasoline</SelectItem>
                               <SelectItem value="Diesel">Diesel</SelectItem>
+                              <SelectItem value="Fuel">Fuel</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />

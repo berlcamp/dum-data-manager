@@ -58,7 +58,10 @@ const FormSchema = z.object({
     message: 'PO is required.',
   }),
   vehicle_id: z.coerce.string().min(1, {
-    message: 'Vehicle is required, you can vehicles under "Vehicles" menu.',
+    message: 'Vehicle is required.',
+  }),
+  type: z.string().min(1, {
+    message: 'Type is required',
   }),
   quantity: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
     .number({
@@ -67,6 +70,14 @@ const FormSchema = z.object({
     })
     .gte(1, {
       message: 'Quantity (L) is required...',
+    }),
+  price: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
+    .number({
+      required_error: 'Price is required.',
+      invalid_type_error: 'Price is required..',
+    })
+    .gte(1, {
+      message: 'Price is required...',
     }),
   purpose: z.string().min(1, {
     message: 'Purpose is required.',
@@ -79,15 +90,26 @@ const FormSchema = z.object({
 interface ModalProps {
   hideModal: () => void
   editData: RisTypes | null
+  gasolinePrice: number
+  dieselPrice: number
 }
 
-export default function AddEditModal({ hideModal, editData }: ModalProps) {
+export default function AddEditModal({
+  hideModal,
+  editData,
+  gasolinePrice,
+  dieselPrice,
+}: ModalProps) {
   const { setToast } = useFilter()
   const { supabase, session, systemUsers } = useSupabase()
 
   const [vehicles, setVehicles] = useState<RisVehicleTypes[] | []>([])
   const [departments, setDepartments] = useState<RisDepartmentTypes[] | []>([])
   const [purchaseOrders, setPurchaseOrders] = useState<RisPoTypes[] | []>([])
+
+  const [totalAmount, setTotalAmount] = useState(
+    editData ? editData.total_amount || 0 : 0
+  )
 
   const user: AccountTypes = systemUsers.find(
     (user: AccountTypes) => user.id === session.user.id
@@ -105,8 +127,10 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       requester: editData ? editData.requester : '',
       department_id: editData ? editData.department_id : '',
       vehicle_id: editData ? editData.vehicle_id : '',
+      type: editData ? editData.type : '',
       po_id: editData ? editData.po_id : '',
       quantity: editData ? editData.quantity : 0,
+      price: editData ? editData.price || 0 : 0,
       purpose: editData ? editData.purpose : '',
       date_requested: editData ? new Date(editData.date_requested) : new Date(),
     },
@@ -127,7 +151,10 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         department_id: formdata.department_id,
         po_id: formdata.po_id,
         vehicle_id: formdata.vehicle_id,
+        type: formdata.type,
         quantity: formdata.quantity,
+        price: formdata.price,
+        total_amount: totalAmount,
         purpose: formdata.purpose,
         date_requested: format(new Date(formdata.date_requested), 'yyyy-MM-dd'),
         created_by: session.user.id,
@@ -175,7 +202,10 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         department_id: formdata.department_id,
         po_id: formdata.po_id,
         vehicle_id: formdata.vehicle_id,
+        type: formdata.type,
         quantity: formdata.quantity,
+        price: formdata.price,
+        total_amount: totalAmount,
         purpose: formdata.purpose,
         date_requested: format(new Date(formdata.date_requested), 'yyyy-MM-dd'),
       }
@@ -224,7 +254,10 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   useEffect(() => {
     // Fetch vehicles
     ;(async () => {
-      const { data } = await supabase.from('ddm_ris_vehicles').select()
+      const { data } = await supabase
+        .from('ddm_ris_vehicles')
+        .select()
+        .order('name', { ascending: true })
       setVehicles(data)
     })()
 
@@ -282,7 +315,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     <div
       ref={wrapperRef}
       className="app__modal_wrapper">
-      <div className="app__modal_wrapper2">
+      <div className="app__modal_wrapper2_large">
         <div className="app__modal_wrapper3">
           <div className="app__modal_header">
             <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
@@ -299,209 +332,280 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           <div className="app__modal_body">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
-                <div className="md:grid md:grid-cols-1 md:gap-4">
-                  <div className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="date_requested"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel className="app__form_label">
-                            Date Requested
-                          </FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={'outline'}
-                                  className={cn(
-                                    'pl-3 text-left font-normal',
-                                    !field.value && 'text-muted-foreground'
-                                  )}>
-                                  {field.value ? (
-                                    format(field.value, 'PPP')
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) =>
-                                  date < new Date('1900-01-01')
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="requester"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Requester
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Requester Name"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="po_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Purchase Order
-                          </FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={
-                              editData ? editData.po_id.toString() : field.value
-                            }>
+                <div className="md:grid md:grid-cols-2 md:gap-4">
+                  <FormField
+                    control={form.control}
+                    name="date_requested"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className="app__form_label">
+                          Date Requested
+                        </FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Choose P.O." />
-                              </SelectTrigger>
+                              <Button
+                                variant={'outline'}
+                                className={cn(
+                                  'pl-3 text-left font-normal',
+                                  !field.value && 'text-muted-foreground'
+                                )}>
+                                {field.value ? (
+                                  format(field.value, 'PPP')
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
                             </FormControl>
-                            <SelectContent>
-                              {purchaseOrders?.map((po, idx) => (
-                                <SelectItem
-                                  key={idx}
-                                  value={po.id.toString()}>
-                                  PO-{po.po_number}-{po.type} ( Available:{' '}
-                                  {po.remaining_quantity} Liters)
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="department_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Department
-                          </FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={
-                              editData
-                                ? editData.department_id.toString()
-                                : field.value
-                            }>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Choose Department" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {departments?.map((department, idx) => (
-                                <SelectItem
-                                  key={idx}
-                                  value={department.id.toString()}>
-                                  {department.name} - {department.office}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="vehicle_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Vehicle
-                          </FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={
-                              editData
-                                ? editData.vehicle_id.toString()
-                                : field.value
-                            }>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Choose Vehicle" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {vehicles?.map((vehicle, idx) => (
-                                <SelectItem
-                                  key={idx}
-                                  value={vehicle.id.toString()}>
-                                  {vehicle.name} - {vehicle.plate_number}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="quantity"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Quantity (Liters)
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="Quantity"
-                              {...field}
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-auto p-0"
+                            align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) => date < new Date('1900-01-01')}
+                              initialFocus
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="purpose"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Purpose
-                          </FormLabel>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="requester"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Requester
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Requester Name"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="po_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Purchase Order
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={
+                            editData ? editData.po_id.toString() : field.value
+                          }>
                           <FormControl>
-                            <Textarea
-                              placeholder="Purpose"
-                              className="resize-none"
-                              {...field}
-                            />
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose P.O." />
+                            </SelectTrigger>
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                          <SelectContent>
+                            {purchaseOrders?.map((po, idx) => (
+                              <SelectItem
+                                key={idx}
+                                value={po.id.toString()}>
+                                PO-{po.po_number}-{po.type} ( Available:{' '}
+                                {po.remaining_quantity} Liters)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="department_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Department
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={
+                            editData
+                              ? editData.department_id.toString()
+                              : field.value
+                          }>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose Department" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {departments?.map((department, idx) => (
+                              <SelectItem
+                                key={idx}
+                                value={department.id.toString()}>
+                                {department.name} - {department.office}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="vehicle_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Vehicle
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={
+                            editData
+                              ? editData.vehicle_id.toString()
+                              : field.value
+                          }>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose Vehicle" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {vehicles?.map((vehicle, idx) => (
+                              <SelectItem
+                                key={idx}
+                                value={vehicle.id.toString()}>
+                                {vehicle.name} - {vehicle.plate_number}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">Type</FormLabel>
+                        <Select
+                          onValueChange={(value) => {
+                            form.setValue('type', value)
+                            if (value === 'Diesel') {
+                              const q = form.getValues('quantity')
+                              const p = dieselPrice
+                              form.setValue('price', p)
+                              setTotalAmount(q * p)
+                            }
+                            if (value === 'Gasoline') {
+                              const q = form.getValues('quantity')
+                              const p = gasolinePrice
+                              form.setValue('price', p)
+                              setTotalAmount(q * p)
+                            }
+                          }}
+                          defaultValue={
+                            editData ? editData.type.toString() : field.value
+                          }>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose Type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Diesel">Diesel</SelectItem>
+                            <SelectItem value="Gasoline">Gasoline</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="quantity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Quantity (Liters)
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Quantity"
+                            {...field}
+                            onChange={(e) => {
+                              const q = Number(e.target.value)
+                              const p = form.getValues('price')
+                              form.setValue('quantity', q)
+                              setTotalAmount(q * p)
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Price per Liter
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="any"
+                            placeholder="Price per Liter"
+                            {...field}
+                            onChange={(e) => {
+                              const p = Number(e.target.value)
+                              const q = form.getValues('quantity')
+                              form.setValue('price', p)
+                              setTotalAmount(p * q)
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="purpose"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Purpose
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Purpose"
+                            className="resize-none"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="pt-6">
+                    <span>Total Amount: </span>
+                    <span className="font-bold text-xl">{totalAmount}</span>
                   </div>
                 </div>
                 <hr className="my-4" />

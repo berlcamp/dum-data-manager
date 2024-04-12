@@ -161,13 +161,23 @@ export interface RisTypes {
   date_requested: string
   department_id: string
   quantity: number
+  price: number
+  total_amount: number
   purpose: string
+  type: string
   created_by: string
   vehicle_id: string
   ddm_user: AccountTypes
   vehicle: RisVehicleTypes
   purchase_order: RisPoTypes
   department: RisDepartmentTypes
+}
+
+export interface RisPriceTypes {
+  id: string
+  diesel: number
+  gasoline: number
+  date: string
 }
 
 export interface RisVehicleTypes {

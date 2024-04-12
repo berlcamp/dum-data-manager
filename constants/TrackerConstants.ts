@@ -95,7 +95,7 @@ export const profileCategories = [
 ]
 
 export const profilePositions = [
-  'Barangay Charman',
+  'Barangay Chairman',
   'Barangay Councilor',
   'Barangay Secretary',
   'Barangay Treasurer',
