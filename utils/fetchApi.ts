@@ -256,7 +256,10 @@ export async function fetchPriceControl (filters: {
 
 export async function fetchRis (filters: {
   filterKeyword?: string
+  filterDepartment?: string
   filterType?: string
+  filterDateFrom?: Date | undefined
+  filterDateTo?: Date | undefined
 }, perPageCount: number, rangeFrom: number) {
   try {
     let query = supabase
@@ -271,6 +274,21 @@ export async function fetchRis (filters: {
     // Filter type
     if (typeof filters.filterType !== 'undefined' && filters.filterType.trim() !== 'All') {
       query = query.eq('type', filters.filterType)
+    }
+
+    // Filter Department
+    if (typeof filters.filterDepartment !== 'undefined' && filters.filterDepartment.trim() !== 'All') {
+      query = query.eq('department_id', filters.filterDepartment)
+    }
+
+    // Filter date from
+    if (typeof filters.filterDateFrom !== 'undefined') {
+        query = query.gte('date_requested', format(new Date(filters.filterDateFrom), 'yyyy-MM-dd'))
+    }
+
+    // Filter date to
+    if (typeof filters.filterDateTo !== 'undefined') {
+        query = query.lte('date_requested', format(new Date(filters.filterDateTo), 'yyyy-MM-dd'))
     }
 
     // Perform count before paginations

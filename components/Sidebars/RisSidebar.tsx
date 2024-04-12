@@ -39,6 +39,20 @@ export default function RisSidebar() {
         </li>
         <li>
           <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2">
+            <span>Reports</span>
+          </div>
+        </li>
+        <li>
+          <Link
+            href="/risreports"
+            className={`app__menu_link ${
+              currentRoute === '/risreports' ? 'app_menu_link_active' : ''
+            }`}>
+            <span className="flex-1 ml-3 whitespace-nowrap">Summary</span>
+          </Link>
+        </li>
+        <li>
+          <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2">
             <Cog8ToothIcon className="w-4 h-4" />
             <span>Settings</span>
           </div>
