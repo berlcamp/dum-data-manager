@@ -92,6 +92,7 @@ export const profileCategories = [
   'A',
   'B',
   'C',
+  'UC',
 ]
 
 export const profilePositions = [

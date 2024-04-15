@@ -156,7 +156,6 @@ const Page: React.FC = () => {
                 <tr>
                   <th className="app__th">Fullname</th>
                   <th className="app__th">Category</th>
-                  <th className="app__th">Position</th>
                   <th className="app__th">Address</th>
                 </tr>
               </thead>
@@ -177,8 +176,9 @@ const Page: React.FC = () => {
                         </span>
                       </td>
                       <td className="app__td text-sm">{item.category}</td>
-                      <td className="app__td text-sm">{item.position}</td>
-                      <td className="app__td text-sm">{item.address}</td>
+                      <td className="app__td text-sm">
+                        {item.address} - {item.purok}
+                      </td>
                     </tr>
                   ))}
                 {loading && (

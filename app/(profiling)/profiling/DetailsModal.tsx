@@ -545,7 +545,9 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                         Address:
                       </td>
                       <td>
-                        <span className="font-medium">{details.address}</span>
+                        <span className="font-medium">
+                          {details.purok}, {details.address}
+                        </span>
                       </td>
                     </tr>
                   </tbody>

@@ -201,6 +201,7 @@ export interface ProfileTypes {
   category: string
   position: string
   precinct: string
+  purok: string
 }
 export interface ProfileRemarksTypes {
   id?: string

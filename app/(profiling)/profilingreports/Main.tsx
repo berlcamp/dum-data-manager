@@ -16,11 +16,11 @@ import { saveAs } from 'file-saver'
 import Filters from './Filters'
 
 // Types
-import type { ChartDataSetTypes, ProfileTypes } from '@/types'
+import type { ProfileTypes } from '@/types'
 
 // Redux imports
 import ProfilingSidebar from '@/components/Sidebars/ProfilingSidebar'
-import { profilePositions, superAdmins } from '@/constants/TrackerConstants'
+import { superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import CategoriesChart from './CategoriesChart'
@@ -32,13 +32,13 @@ const Page: React.FC = () => {
   const [details, setDetails] = useState<ProfileTypes | null>(null)
 
   // Filters
-  const [filterCategory, setFilterCategory] = useState('')
   const [filterBarangay, setFilterBarangay] = useState('')
 
   // Summary Data
   const [totalA, setTotalA] = useState(0)
   const [totalB, setTotalB] = useState(0)
   const [totalC, setTotalC] = useState(0)
+  const [totalUC, setTotalUC] = useState(0)
 
   // Chart data
   const [dataSets, setDataSets] = useState([])
@@ -50,7 +50,7 @@ const Page: React.FC = () => {
   const [downloading, setDownloading] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const { session } = useSupabase()
+  const { supabase, session } = useSupabase()
   const { hasAccess, setToast } = useFilter()
 
   const colors = [
@@ -67,36 +67,35 @@ const Page: React.FC = () => {
     '#6dd6b5',
   ]
 
+  const query = async (category: string) => {
+    setLoading(true)
+
+    let query = supabase.from('ddm_profiles').select('id', { count: 'exact' })
+
+    // Filter Address
+    if (filterBarangay !== '') {
+      query = query.eq('address', filterBarangay)
+    }
+
+    // Filter Category
+    if (category !== '') {
+      query = query.eq('category', category)
+    }
+
+    const { count } = await query
+    return count
+  }
+
   const fetchData = async () => {
     setLoading(true)
 
     try {
-      const result = await fetchProfiles(
-        {
-          filterCategory,
-          filterBarangay,
-        },
-        9999,
-        0
-      )
-
       const dataSetsData: any = []
 
-      let countA = 0
-      let countB = 0
-      let countC = 0
-
-      result.data.forEach((item: ProfileTypes) => {
-        if (item.category === 'A') {
-          countA++
-        }
-        if (item.category === 'B') {
-          countB++
-        }
-        if (item.category === 'C') {
-          countC++
-        }
-      })
+      const countA = await query('A')
+      const countB = await query('B')
+      const countC = await query('C')
+      const countUC = await query('UC')
 
       dataSetsData.push(
         {
@@ -113,6 +112,11 @@ const Page: React.FC = () => {
           label: `C`,
           data: [countC],
           bgColor: colors[Math.floor(Math.random() * 11)],
+        },
+        {
+          label: `UC`,
+          data: [countUC],
+          bgColor: colors[Math.floor(Math.random() * 11)],
         }
       )
 
@@ -120,32 +124,11 @@ const Page: React.FC = () => {
       setTotalA(countA)
       setTotalB(countB)
       setTotalC(countC)
-
-      const positionsDataSetsData: any = []
-      const positionsDataLabels: any = []
-
-      profilePositions.forEach((profile) => {
-        const count = result.data.reduce((sum, f: ProfileTypes) => {
-          if (f.position.toString() === profile.toString()) {
-            return sum + 1
-          }
-          return sum
-        }, 0)
-
-        // Create datasets array
-        positionsDataSetsData.push({
-          label: `${profile}`,
-          data: [count],
-          bgColor: colors[Math.floor(Math.random() * 11)],
-        })
-
-        positionsDataLabels.push(profile)
-      })
+      setTotalUC(countUC)
 
       // Charts data
       setLabels(['Categories'])
       setDataSets(dataSetsData)
-      setPositionsDataSets(positionsDataSetsData)
 
       setLoading(false)
     } catch (e) {
@@ -178,7 +161,6 @@ const Page: React.FC = () => {
 
     const result = await fetchProfiles(
       {
-        filterCategory,
         filterBarangay,
       },
       99999,
@@ -215,7 +197,7 @@ const Page: React.FC = () => {
   // Featch data
   useEffect(() => {
     void fetchData()
-  }, [filterCategory, filterBarangay])
+  }, [filterBarangay])
 
   const email: string = session.user.email
 
@@ -238,10 +220,7 @@ const Page: React.FC = () => {
 
           {/* Filters */}
           <div className="app__filters">
-            <Filters
-              setFilterBarangay={setFilterBarangay}
-              setFilterCategory={setFilterCategory}
-            />
+            <Filters setFilterBarangay={setFilterBarangay} />
           </div>
 
           {loading && <TwoColTableLoading />}
@@ -283,33 +262,20 @@ const Page: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                  <div className="hover:bg-slate-200 text-gray-700">
+                    <div className="p-2">
+                      <div className="text-center font-extralight">UC</div>
+                      <div className="flex items-center justify-center">
+                        <span className="text-2xl">{totalUC}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div className="mt-10 p-2 mx-auto w-full md:w-1/2">
                   <CategoriesChart
                     labels={labels}
                     dataSets={dataSets}
                   />
-                </div>
-              </div>
-              <div className="mx-4 mt-10 text-lg">Positions Summary</div>
-              <div className="mx-4 mt-2 bg-slate-100">
-                <div className="p-2 mx-auto w-full">
-                  <div className="border-b grid grid-cols-4">
-                    {positionsDataSets.map((d: ChartDataSetTypes, idx) => (
-                      <div
-                        key={idx}
-                        className="hover:bg-slate-200 text-gray-700">
-                        <div className="p-2">
-                          <div className="text-center font-extralight">
-                            {d.label}
-                          </div>
-                          <div className="flex items-center justify-center">
-                            <span className="text-2xl">{d.data}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
             </>
