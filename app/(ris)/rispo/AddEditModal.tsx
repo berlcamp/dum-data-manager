@@ -48,6 +48,17 @@ const FormSchema = z.object({
   po_number: z.string().min(1, {
     message: 'PO No is required.',
   }),
+  appropriation: z.string().min(1, {
+    message: 'Appropriation No is required.',
+  }),
+  amount: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
+    .number({
+      required_error: 'Amount is required.',
+      invalid_type_error: 'Amount is required..',
+    })
+    .gte(1, {
+      message: 'Amount is required...',
+    }),
   quantity: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
     .number({
       required_error: 'Quantity (L) is required.',
@@ -88,6 +99,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     defaultValues: {
       type: editData ? editData.type : '',
       po_number: editData ? editData.po_number : '',
+      appropriation: editData ? editData.appropriation : '',
+      amount: editData ? editData.amount : 0,
       quantity: editData ? editData.quantity : 0,
       description: editData ? editData.description : '',
       po_date: editData ? new Date(editData.po_date) : new Date(),
@@ -108,6 +121,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         type: formdata.type,
         description: formdata.description,
         po_number: formdata.po_number,
+        appropriation: formdata.appropriation,
+        amount: formdata.amount,
         quantity: formdata.quantity,
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
         created_by: session.user.id,
@@ -147,6 +162,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         type: formdata.type,
         description: formdata.description,
         po_number: formdata.po_number,
+        appropriation: formdata.appropriation,
+        amount: formdata.amount,
         quantity: formdata.quantity,
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
         created_by: session.user.id,
@@ -218,24 +235,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                   <div className="space-y-6">
                     <FormField
                       control={form.control}
-                      name="po_number"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            P.O. Number
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="P.O. Number"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
                       name="po_date"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
@@ -280,6 +279,42 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                     />
                     <FormField
                       control={form.control}
+                      name="po_number"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            P.O. Number
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="P.O. Number"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="appropriation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Appropriation
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Appropriation"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
                       name="type"
                       render={({ field }) => (
                         <FormItem>
@@ -300,6 +335,25 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               <SelectItem value="Fuel">Fuel</SelectItem>
                             </SelectContent>
                           </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="amount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Total Amount
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="Amount"
+                              {...field}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}

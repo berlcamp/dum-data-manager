@@ -38,7 +38,7 @@ export default function RisSidebar() {
           </Link>
         </li>
         <li>
-          <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2">
+          <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2 mt-8">
             <span>Reports</span>
           </div>
         </li>
@@ -52,7 +52,7 @@ export default function RisSidebar() {
           </Link>
         </li>
         <li>
-          <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2">
+          <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2 mt-8">
             <Cog8ToothIcon className="w-4 h-4" />
             <span>Settings</span>
           </div>

@@ -143,8 +143,10 @@ export interface UserAccessTypes {
 export interface RisPoTypes {
   id: string
   po_number: string
+  appropriation: string
   type: string
   quantity: number
+  amount: number
   po_date: string
   description: string
   created_by: string

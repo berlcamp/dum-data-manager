@@ -232,6 +232,16 @@ const Page: React.FC = () => {
                             </span>
                           </div>
                           <div>
+                            <span className="font-light">Appropriation:</span>{' '}
+                            <span className="font-medium">
+                              {item.appropriation}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-light">Amount:</span>{' '}
+                            <span className="font-medium">{item.amount}</span>
+                          </div>
+                          <div>
                             <span className="font-light">Description:</span>{' '}
                             <span className="font-medium">
                               {item.description}
