@@ -20,58 +20,53 @@ const MainMenu: React.FC = () => {
         <div className="text-gray-700 text-xl font-semibold">Menu</div>
         <div className="lg:flex space-x-2">
           <div className="px-2 py-4 mt-2 lg:w-96 border text-gray-600 rounded-lg bg-white shadow-md flex flex-col space-y-2">
-            {hasAccess('ris') ||
-              (superAdmins.includes(email) && (
-                <Link href="/rispo">
-                  <div className="app__menu_item">
-                    <div className="pt-1">
-                      <FaGasPump className="w-8 h-6" />
+            {(hasAccess('ris') || superAdmins.includes(email)) && (
+              <Link href="/rispo">
+                <div className="app__menu_item">
+                  <div className="pt-1">
+                    <FaGasPump className="w-8 h-6" />
+                  </div>
+                  <div>
+                    <div className="app__menu_item_label">
+                      Fuel Requisition & Issue Slip
                     </div>
-                    <div>
-                      <div className="app__menu_item_label">
-                        Fuel Requisition & Issue Slip
-                      </div>
-                      <div className="app__menu_item_label_description">
-                        Fuel P.O. / Requisition & Issue Slip
-                      </div>
+                    <div className="app__menu_item_label_description">
+                      Fuel P.O. / Requisition & Issue Slip
                     </div>
                   </div>
-                </Link>
-              ))}
-            {hasAccess('profiling') ||
-              (superAdmins.includes(email) && (
-                <Link href="/profiling">
-                  <div className="app__menu_item">
-                    <div className="pt-1">
-                      <Users2Icon className="w-8 h-8" />
-                    </div>
-                    <div>
-                      <div className="app__menu_item_label">Profiling</div>
-                      <div className="app__menu_item_label_description">
-                        Profiling
-                      </div>
+                </div>
+              </Link>
+            )}
+            {(hasAccess('profiling') || superAdmins.includes(email)) && (
+              <Link href="/profiling">
+                <div className="app__menu_item">
+                  <div className="pt-1">
+                    <Users2Icon className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <div className="app__menu_item_label">Profiling</div>
+                    <div className="app__menu_item_label_description">
+                      Profiling
                     </div>
                   </div>
-                </Link>
-              ))}
-            {hasAccess('tracker') ||
-              (superAdmins.includes(email) && (
-                <Link href="/documenttracker">
-                  <div className="app__menu_item">
-                    <div className="pt-1">
-                      <DocumentDuplicateIcon className="w-8 h-8" />
-                    </div>
-                    <div>
-                      <div className="app__menu_item_label">
-                        Document Tracker
-                      </div>
-                      <div className="app__menu_item_label_description">
-                        Document Tracker
-                      </div>
+                </div>
+              </Link>
+            )}
+            {(hasAccess('tracker') || superAdmins.includes(email)) && (
+              <Link href="/documenttracker">
+                <div className="app__menu_item">
+                  <div className="pt-1">
+                    <DocumentDuplicateIcon className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <div className="app__menu_item_label">Document Tracker</div>
+                    <div className="app__menu_item_label_description">
+                      Document Tracker
                     </div>
                   </div>
-                </Link>
-              ))}
+                </div>
+              </Link>
+            )}
             {superAdmins.includes(email) && (
               <>
                 <Link href="/settings/system">
