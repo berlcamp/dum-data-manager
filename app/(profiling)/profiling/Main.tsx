@@ -171,7 +171,7 @@ const Page: React.FC = () => {
                             setViewDetailsModal(true)
                             setDetails(item)
                           }}
-                          className="cursor-pointer text-gray-700 font-medium">
+                          className="cursor-pointer text-emerald-800 font-semibold">
                           {item.fullname}
                         </span>
                       </td>

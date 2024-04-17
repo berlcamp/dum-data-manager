@@ -531,7 +531,7 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                     </tr>
                     <tr>
                       <td className="px-2 py-2 font-light text-right text-xs">
-                        Position:
+                        Gov&apos;t Position:
                       </td>
                       <td>
                         <Position
