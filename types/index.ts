@@ -147,6 +147,7 @@ export interface RisPoTypes {
   type: string
   quantity: number
   amount: number
+  price: number
   po_date: string
   description: string
   created_by: string
@@ -155,10 +156,23 @@ export interface RisPoTypes {
   remaining_quantity?: number
 }
 
+export interface RisCaTypes {
+  id: string
+  ca_number: string
+  amount: number
+  ca_date: string
+  description: string
+  created_by: string
+  ddm_user: AccountTypes
+  ddm_ris: RisTypes[]
+  remaining_amount?: number
+}
+
 export interface RisTypes {
   id: number
   ris_number: string
   po_id: string
+  ca_id: string
   requester: string
   date_requested: string
   department_id: string
@@ -166,13 +180,21 @@ export interface RisTypes {
   price: number
   total_amount: number
   purpose: string
+  transaction_type: string
   type: string
   created_by: string
   vehicle_id: string
   ddm_user: AccountTypes
   vehicle: RisVehicleTypes
   purchase_order: RisPoTypes
+  cash_advance: RisCaTypes
   department: RisDepartmentTypes
+}
+
+export interface RisVehicleTypes {
+  id: string
+  name: string
+  plate_number: string
 }
 
 export interface RisPriceTypes {
@@ -182,11 +204,7 @@ export interface RisPriceTypes {
   date: string
 }
 
-export interface RisVehicleTypes {
-  id: string
-  name: string
-  plate_number: string
-}
+
 
 export interface RisDepartmentTypes {
   id: string
@@ -217,4 +235,34 @@ export interface ChartDataSetTypes {
   label: string
   data: number[]
   bgColor: string
+}
+
+export interface ReservationTypes {
+  id: string
+  type: string
+  date: string
+  time: string
+  status: string
+  date_created: string
+  requester: string
+  department: string
+  purpose: string
+  vehicle_id: string
+  vehicle: ReservationVehicleTypes
+}
+
+export interface ReservationVehicleTypes {
+  id: string
+  name: string
+  plate_number: string
+}
+
+export interface HoursTypes {
+  hour: string
+  reservations: ReservationTypes[]
+}
+
+export interface ListTypes {
+  date: string
+  hours: HoursTypes[]
 }

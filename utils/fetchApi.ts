@@ -1,6 +1,6 @@
 import type { AccountTypes } from '@/types'
 import { createBrowserClient } from '@supabase/ssr'
-import { format } from 'date-fns'
+import { addDays, format, subDays } from 'date-fns'
 import { fullTextQuery } from './text-helper'
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
@@ -210,23 +210,17 @@ export async function fetchPurchaseOrders (filters: {
   }
 }
 
-export async function fetchPriceControl (filters: {
-  filterType?: string
-  filterDate?: Date | undefined
+export async function fetchCashAdvances (filters: {
+  filterKeyword?: string
 }, perPageCount: number, rangeFrom: number) {
   try {
     let query = supabase
-      .from('ddm_ris_prices')
-      .select('*', { count: 'exact' })
+      .from('ddm_ris_cash_advances')
+      .select('*, ddm_user:created_by(*), ddm_ris(total_amount)', { count: 'exact' })
 
       // Full text search
-    if (filters.filterType && filters.filterType.trim() !== '') {
-      query = query.eq('type', filters.filterType)
-    }
-
-    // Filter type
-    if (filters.filterDate) {
-      query = query.eq('date', format(new Date(filters.filterDate), 'yyyy-MM-dd'))
+    if (typeof filters.filterKeyword !== 'undefined' && filters.filterKeyword.trim() !== '') {
+      query = query.or(`ca_number.ilike.%${filters.filterKeyword}%`)
     }
 
     // Perform count before paginations
@@ -249,7 +243,7 @@ export async function fetchPriceControl (filters: {
 
     return { data, count }
   } catch (error) {
-    console.error('fetch error price', error)
+    console.error('fetch error xx', error)
     return { data: [], count: 0 }
   }
 }
@@ -264,7 +258,8 @@ export async function fetchRis (filters: {
   try {
     let query = supabase
       .from('ddm_ris')
-      .select('*, ddm_user:created_by(*), vehicle:vehicle_id(*), purchase_order:po_id(*), department:department_id(*)', { count: 'exact' })
+      .select('*, ddm_user:created_by(*), vehicle:vehicle_id(*), purchase_order:po_id(*),cash_advance:ca_id(*), department:department_id(*)', { count: 'exact' })
+      .eq('is_deleted', false)
 
       // Full text search
     if (typeof filters.filterKeyword !== 'undefined' && filters.filterKeyword.trim() !== '') {
@@ -323,6 +318,86 @@ export async function fetchRisVehicles (filters: {
   try {
     let query = supabase
       .from('ddm_ris_vehicles')
+      .select('*', { count: 'exact' })
+
+      // Full text search
+    if (typeof filters.filterKeyword !== 'undefined' && filters.filterKeyword.trim() !== '') {
+      query = query.or(`name.ilike.%${filters.filterKeyword}%,plate_number.ilike.%${filters.filterKeyword}%`)
+    }
+
+    // Perform count before paginations
+    // const { count } = await query
+
+    // Per Page from context
+    const from = rangeFrom
+    const to = from + (perPageCount - 1)
+    // Per Page from context
+    query = query.range(from, to)
+
+    // Order By
+    query = query.order('id', { ascending: false })
+
+    const { data, count, error } = await query
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return { data, count }
+  } catch (error) {
+    console.error('fetch error xx', error)
+    return { data: [], count: 0 }
+  }
+}
+
+export async function fetchVehicleReservations (filters: {
+  filterKeyword?: string
+  filterDate?: Date | undefined
+}) {
+  try {
+    let query = supabase
+      .from('ddm_reservations')
+      .select('*', { count: 'exact' })
+
+      // Full text search
+    if (typeof filters.filterKeyword !== 'undefined' && filters.filterKeyword.trim() !== '') {
+      query = query.or(`requester.ilike.%${filters.filterKeyword}%,department.ilike.%${filters.filterKeyword}%`)
+    }
+
+    // Filter date
+    if (typeof filters.filterDate !== 'undefined') {
+        query = query.eq('date', format(new Date(filters.filterDate), 'yyyy-MM-dd'))
+    } else {
+      const d = new Date()
+      const currentDate = subDays(d, 2)
+      const newDate = addDays(d, 5)
+      query = query.gte('date', format(currentDate, 'yyyy-MM-dd'))
+      query = query.lte('date', format(newDate, 'yyyy-MM-dd'))
+    }
+
+    // Order By
+    query = query.order('time', { ascending: true })
+
+    const { data, count, error } = await query
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return { data, count }
+  } catch (error) {
+    console.error('fetch error xx', error)
+    return { data: [], count: 0 }
+  }
+}
+
+export async function fetchReservationVehicles (filters: {
+
+  filterKeyword?: string
+}, perPageCount: number, rangeFrom: number) {
+  try {
+    let query = supabase
+      .from('ddm_reservation_vehicles')
       .select('*', { count: 'exact' })
 
       // Full text search

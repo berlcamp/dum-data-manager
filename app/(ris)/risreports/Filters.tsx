@@ -216,7 +216,6 @@ const Filters = ({
                         <SelectItem value="All">All</SelectItem>
                         <SelectItem value="Gasoline">Gasoline</SelectItem>
                         <SelectItem value="Diesel">Diesel</SelectItem>
-                        <SelectItem value="Fuel">Fuel</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormItem>

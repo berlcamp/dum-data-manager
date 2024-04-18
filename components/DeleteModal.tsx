@@ -42,7 +42,10 @@ export default function DeleteModal({
     setDeleting(true)
 
     try {
-      const { error } = await supabase.from(table).delete().eq('id', selectedId)
+      const { error } = await supabase
+        .from(table)
+        .update({ is_deleted: true })
+        .eq('id', selectedId)
 
       if (error) throw new Error(error.message)
     } catch (e) {
@@ -50,7 +53,9 @@ export default function DeleteModal({
     } finally {
       // Update data in redux
       const items = [...globallist]
-      const updatedList = items.filter((item) => item.id !== selectedId)
+      const updatedList = items.filter(
+        (item) => item.id.toString() !== selectedId.toString()
+      )
       dispatch(updateList(updatedList))
 
       // Updating showing text
@@ -88,7 +93,7 @@ export default function DeleteModal({
             <div className="grid grid-cols-1 gap-4 mb-4">
               <div className="w-full">
                 <div className="text-gray-600 font-medium text-sm mb-1 dark:text-gray-300">
-                  Please confirm this{' '}
+                  Are you sure you want to delete this?{' '}
                 </div>
               </div>
             </div>

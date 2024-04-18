@@ -67,13 +67,19 @@ const Page: React.FC = () => {
                   multiple={true}
                   type="ris"
                   users={users}
-                  title="Who can access R.I.S."
+                  title="Who can access R.I.S. System"
+                />
+                <ChooseUsers
+                  multiple={true}
+                  type="vehiclereservation"
+                  users={users}
+                  title="Who can access Vehicle Reservation System"
                 />
                 <ChooseUsers
                   multiple={true}
                   type="profiling"
                   users={users}
-                  title="Who can access Profiling"
+                  title="Who can access Profiling System"
                 />
               </>
             )}

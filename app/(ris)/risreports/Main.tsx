@@ -17,7 +17,13 @@ import { saveAs } from 'file-saver'
 import Filters from './Filters'
 
 // Types
-import type { ProfileTypes, RisDepartmentTypes, RisTypes } from '@/types'
+import type {
+  ProfileTypes,
+  RisCaTypes,
+  RisDepartmentTypes,
+  RisPoTypes,
+  RisTypes,
+} from '@/types'
 
 // Redux imports
 import { superAdmins } from '@/constants/TrackerConstants'
@@ -25,6 +31,22 @@ import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import CategoriesChart from './CategoriesChart'
 import DetailsModal from './DetailsModal'
+
+const findLowestAndHighestValues = (items: any, key: any) => {
+  return items.reduce(
+    (acc: any, item: any) => {
+      // Compare the value for the specified key and update the accumulator
+      if (item[key] < acc.lowest) {
+        acc.lowest = item[key]
+      }
+      if (item[key] > acc.highest) {
+        acc.highest = item[key]
+      }
+      return acc
+    },
+    { lowest: Infinity, highest: -Infinity }
+  )
+}
 
 const Page: React.FC = () => {
   // Modal
@@ -42,6 +64,8 @@ const Page: React.FC = () => {
   // Chart data
   const [dataSets, setDataSets] = useState([])
   const [departmentsDataSets, setDepartmentsDataSets] = useState([])
+  const [poDataSets, setPoDataSets] = useState([])
+  const [caDataSets, setCaDataSets] = useState([])
 
   // Loading
   const [downloading, setDownloading] = useState(false)
@@ -71,6 +95,16 @@ const Page: React.FC = () => {
       // Fetch departments
       const { data: departments } = await supabase
         .from('ddm_ris_departments')
+        .select()
+
+      // Fetch Purchase Orders
+      const { data: purchaseOrders } = await supabase
+        .from('ddm_ris_purchase_orders')
+        .select()
+
+      // Fetch Cash Advances
+      const { data: cashAdvances } = await supabase
+        .from('ddm_ris_cash_advances')
         .select()
 
       const result = await fetchRis(
@@ -118,6 +152,7 @@ const Page: React.FC = () => {
       // Charts data
       setDataSets(dataSetsData)
 
+      // Start Liters by department
       const departmentDataSetsData: any = []
 
       departments.forEach((department: RisDepartmentTypes) => {
@@ -138,22 +173,6 @@ const Page: React.FC = () => {
         })
       })
 
-      const findLowestAndHighestValues = (items: any, key: any) => {
-        return items.reduce(
-          (acc: any, item: any) => {
-            // Compare the value for the specified key and update the accumulator
-            if (item[key] < acc.lowest) {
-              acc.lowest = item[key]
-            }
-            if (item[key] > acc.highest) {
-              acc.highest = item[key]
-            }
-            return acc
-          },
-          { lowest: Infinity, highest: -Infinity }
-        )
-      }
-
       const highandlow = findLowestAndHighestValues(
         departmentDataSetsData,
         'count'
@@ -169,6 +188,78 @@ const Page: React.FC = () => {
       })
 
       setDepartmentsDataSets(newDepartmentArray)
+      // End Liters by department
+
+      // Start Liters by Purchase Order
+      const poDataSetsData: any = []
+
+      purchaseOrders.forEach((po: RisPoTypes) => {
+        const count = result.data.reduce((sum, f: RisTypes) => {
+          if (f.po_id.toString() === po.id.toString()) {
+            return sum + f.quantity
+          }
+          return sum
+        }, 0)
+
+        // Create datasets array
+        poDataSetsData.push({
+          label: `${po.po_number} (${
+            count % 1 !== 0 ? count.toFixed(2) : count
+          })`,
+          count: count,
+          bgColor: colors[Math.floor(Math.random() * 11)],
+        })
+      })
+
+      const pohighandlow = findLowestAndHighestValues(poDataSetsData, 'count')
+
+      const newPoArray = poDataSetsData.map((d: any) => {
+        // calculate the percentage
+        const percentage =
+          ((d.count - pohighandlow.lowest) /
+            (pohighandlow.highest - pohighandlow.lowest)) *
+          100
+        return { ...d, percentage: percentage < 2 ? 2 : Math.round(percentage) } // set starting 2%
+      })
+
+      setPoDataSets(newPoArray)
+      // End Liters by Purchase Order
+
+      // Start Liters by Cash Advance
+      const caDataSetsData: any = []
+
+      cashAdvances.forEach((po: RisCaTypes) => {
+        const count = result.data.reduce((sum, f: RisTypes) => {
+          if (f.po_id.toString() === po.id.toString()) {
+            return sum + f.quantity
+          }
+          return sum
+        }, 0)
+
+        // Create datasets array
+        caDataSetsData.push({
+          label: `${po.ca_number} (${
+            count % 1 !== 0 ? count.toFixed(2) : count
+          })`,
+          count: count,
+          bgColor: colors[Math.floor(Math.random() * 11)],
+        })
+      })
+
+      const cahighandlow = findLowestAndHighestValues(caDataSetsData, 'count')
+
+      const newCaArray = caDataSetsData.map((d: any) => {
+        // calculate the percentage
+        const percentage =
+          ((d.count - cahighandlow.lowest) /
+            (cahighandlow.highest - cahighandlow.lowest)) *
+          100
+        return { ...d, percentage: percentage < 2 ? 2 : Math.round(percentage) } // set starting 2%
+      })
+
+      setCaDataSets(newCaArray)
+      // End Liters by Cash Advance
+
       setLoading(false)
     } catch (e) {
       console.error(e)
@@ -301,6 +392,56 @@ const Page: React.FC = () => {
                   <div className="mx-4 mt-2 bg-slate-100">
                     <div className="p-4 mx-auto w-full border">
                       {departmentsDataSets.map((d: any, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center w-full my-1">
+                          <div
+                            className="border"
+                            style={{
+                              height: `15px`,
+                              width: `${d.percentage}%`,
+                              backgroundColor: `${d.bgColor}`,
+                            }}></div>
+                          <div className="whitespace-nowrap text-[11px] text-gray-500">
+                            {d.label}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div className="mx-4 mt-10 text-lg">
+                    Liters Consumed By P.O.
+                  </div>
+                  <div className="mx-4 mt-2 bg-slate-100">
+                    <div className="p-4 mx-auto w-full border">
+                      {poDataSets.map((d: any, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center w-full my-1">
+                          <div
+                            className="border"
+                            style={{
+                              height: `15px`,
+                              width: `${d.percentage}%`,
+                              backgroundColor: `${d.bgColor}`,
+                            }}></div>
+                          <div className="whitespace-nowrap text-[11px] text-gray-500">
+                            {d.label}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div className="mx-4 mt-10 text-lg">
+                    Liters Consumed By C.A.
+                  </div>
+                  <div className="mx-4 mt-2 bg-slate-100">
+                    <div className="p-4 mx-auto w-full border">
+                      {caDataSets.map((d: any, idx) => (
                         <div
                           key={idx}
                           className="flex items-center w-full my-1">

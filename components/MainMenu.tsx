@@ -5,7 +5,7 @@ import { FaGasPump } from 'react-icons/fa6'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { Cog6ToothIcon, DocumentDuplicateIcon } from '@heroicons/react/20/solid'
-import { Users2Icon } from 'lucide-react'
+import { CarIcon, Users2Icon } from 'lucide-react'
 import Link from 'next/link'
 
 const MainMenu: React.FC = () => {
@@ -32,6 +32,24 @@ const MainMenu: React.FC = () => {
                     </div>
                     <div className="app__menu_item_label_description">
                       Fuel P.O. / Requisition & Issue Slip
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            )}
+            {(hasAccess('vehiclereservation') ||
+              superAdmins.includes(email)) && (
+              <Link href="/vehiclereservation">
+                <div className="app__menu_item">
+                  <div className="pt-1">
+                    <CarIcon className="w-8 h-6" />
+                  </div>
+                  <div>
+                    <div className="app__menu_item_label">
+                      Vehicle Reservation
+                    </div>
+                    <div className="app__menu_item_label_description">
+                      Vehicle Reservation
                     </div>
                   </div>
                 </div>

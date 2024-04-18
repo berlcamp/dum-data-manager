@@ -1,47 +1,30 @@
 import { CustomButton } from '@/components/index'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from '@/components/ui/form'
+import { Form, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 interface FilterTypes {
-  setFilterType: (type: string) => void
   setFilterKeyword: (keyword: string) => void
 }
 
 const FormSchema = z.object({
   keyword: z.string().optional(),
-  type: z.string().optional(),
 })
 
-const Filters = ({ setFilterType, setFilterKeyword }: FilterTypes) => {
+const Filters = ({ setFilterKeyword }: FilterTypes) => {
   //
   const form = useForm<z.infer<typeof FormSchema>>({
-    defaultValues: { type: '', keyword: '' },
+    defaultValues: { keyword: '' },
   })
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-    setFilterType(data.type || 'All')
     setFilterKeyword(data.keyword || '')
   }
 
   // clear all filters
   const handleClear = () => {
     form.reset()
-    setFilterType('All')
     setFilterKeyword('')
   }
 
@@ -56,37 +39,14 @@ const Filters = ({ setFilterType, setFilterKeyword }: FilterTypes) => {
                 name="keyword"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel className="app__form_label">Search</FormLabel>
+                    <FormLabel className="app__form_label">
+                      Search Vehicle.
+                    </FormLabel>
                     <Input
-                      placeholder="RIS No / Requester / Purpose"
+                      placeholder="Search Vehicle Name or Plate Number"
                       className="w-[340px]"
                       {...field}
                     />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="app__form_label">Type</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose Type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="All">All</SelectItem>
-                        <SelectItem value="Gasoline">Gasoline</SelectItem>
-                        <SelectItem value="Diesel">Diesel</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </FormItem>
                 )}
               />

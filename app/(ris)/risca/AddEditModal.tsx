@@ -21,13 +21,6 @@ import { z } from 'zod'
 import { updateList } from '@/GlobalRedux/Features/listSlice'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useFilter } from '@/context/FilterContext'
 import { cn } from '@/lib/utils'
@@ -37,47 +30,33 @@ import { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { Input } from '@/components/ui/input'
-import type { AccountTypes, RisPoTypes } from '@/types'
+import type { AccountTypes, RisCaTypes } from '@/types'
 import { format } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
 
 const FormSchema = z.object({
-  type: z.string().min(1, {
-    message: 'Type is required.',
+  ca_number: z.string().min(1, {
+    message: 'CA No is required.',
   }),
-  po_number: z.string().min(1, {
-    message: 'PO No is required.',
-  }),
-  appropriation: z.string().min(1, {
-    message: 'Appropriation No is required.',
-  }),
-  price: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
+  amount: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
     .number({
-      required_error: 'Price per liter is required.',
-      invalid_type_error: 'Price per liter is required..',
+      required_error: 'Amount is required.',
+      invalid_type_error: 'Amount is required..',
     })
     .gte(1, {
-      message: 'Price per liter is required...',
-    }),
-  quantity: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
-    .number({
-      required_error: 'Quantity (L) is required.',
-      invalid_type_error: 'Quantity (L) is required..',
-    })
-    .gte(1, {
-      message: 'Quantity (L) is required...',
+      message: 'Amount is required...',
     }),
   description: z.string().min(1, {
     message: 'Description is required.',
   }),
-  po_date: z.date({
-    required_error: 'PO Date is required.',
+  ca_date: z.date({
+    required_error: 'CA Date is required.',
   }),
 })
 
 interface ModalProps {
   hideModal: () => void
-  editData: RisPoTypes | null
+  editData: RisCaTypes | null
 }
 
 export default function AddEditModal({ hideModal, editData }: ModalProps) {
@@ -97,13 +76,10 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      type: editData ? editData.type : '',
-      po_number: editData ? editData.po_number : '',
-      appropriation: editData ? editData.appropriation : '',
-      price: editData ? editData.price : 0,
-      quantity: editData ? editData.quantity : 0,
+      ca_number: editData ? editData.ca_number : '',
+      amount: editData ? editData.amount : 0,
       description: editData ? editData.description : '',
-      po_date: editData ? new Date(editData.po_date) : new Date(),
+      ca_date: editData ? new Date(editData.ca_date) : new Date(),
     },
   })
 
@@ -118,18 +94,15 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const handleCreate = async (formdata: z.infer<typeof FormSchema>) => {
     try {
       const newData = {
-        type: formdata.type,
         description: formdata.description,
-        po_number: formdata.po_number,
-        appropriation: formdata.appropriation,
-        price: formdata.price,
-        quantity: formdata.quantity,
-        po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
+        ca_number: formdata.ca_number,
+        amount: formdata.amount,
+        ca_date: format(new Date(formdata.ca_date), 'yyyy-MM-dd'),
         created_by: session.user.id,
       }
 
       const { data, error } = await supabase
-        .from('ddm_ris_purchase_orders')
+        .from('ddm_ris_cash_advances')
         .insert(newData)
         .select()
 
@@ -139,7 +112,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       const updatedData = {
         ...newData,
         id: data[0].id,
-        po_date: data[0].po_date,
+        ca_date: data[0].ca_date,
         ddm_user: user,
       }
       dispatch(updateList([updatedData, ...globallist]))
@@ -159,39 +132,26 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
     try {
       const newData = {
-        type: formdata.type,
         description: formdata.description,
-        po_number: formdata.po_number,
-        appropriation: formdata.appropriation,
-        price: formdata.price,
-        quantity: formdata.quantity,
-        po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
+        ca_number: formdata.ca_number,
+        amount: formdata.amount,
+        ca_date: format(new Date(formdata.ca_date), 'yyyy-MM-dd'),
         created_by: session.user.id,
       }
 
-      const { error } = await supabase
-        .from('ddm_ris_purchase_orders')
+      const { data, error } = await supabase
+        .from('ddm_ris_cash_advances')
         .update(newData)
         .eq('id', editData.id)
 
       if (error) throw new Error(error.message)
-
-      // update price per liter on all RIS if PO price has changed
-      if (editData.price !== formdata.price) {
-        await supabase
-          .from('ddm_ris')
-          .update({
-            price: formdata.price,
-          })
-          .eq('po_id', editData.id)
-      }
 
       // Append new data in redux
       const items = [...globallist]
       const updatedData = {
         ...newData,
         id: editData.id,
-        po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
+        ca_date: format(new Date(formdata.ca_date), 'yyyy-MM-dd'),
       }
       const foundIndex = items.findIndex((x) => x.id === updatedData.id)
       items[foundIndex] = { ...items[foundIndex], ...updatedData }
@@ -228,7 +188,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         <div className="app__modal_wrapper3">
           <div className="app__modal_header">
             <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
-              P.O. Details
+              C.A. Details
             </h5>
             <CustomButton
               containerStyles="app__btn_gray"
@@ -245,11 +205,11 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                   <div className="space-y-6">
                     <FormField
                       control={form.control}
-                      name="po_date"
+                      name="ca_date"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
                           <FormLabel className="app__form_label">
-                            P.O. Date
+                            C.A. Date
                           </FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
@@ -289,15 +249,15 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                     />
                     <FormField
                       control={form.control}
-                      name="po_number"
+                      name="ca_number"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="app__form_label">
-                            P.O. Number
+                            C.A. Number
                           </FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="P.O. Number"
+                              placeholder="C.A. Number"
                               {...field}
                             />
                           </FormControl>
@@ -307,78 +267,16 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                     />
                     <FormField
                       control={form.control}
-                      name="appropriation"
+                      name="amount"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="app__form_label">
-                            Appropriation
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Appropriation"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="type"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Type
-                          </FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Choose Type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Gasoline">Gasoline</SelectItem>
-                              <SelectItem value="Diesel">Diesel</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="price"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Price per Liter
+                            Total Amount
                           </FormLabel>
                           <FormControl>
                             <Input
                               type="number"
-                              placeholder="Price per Liter"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="quantity"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Quantity (Liters)
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="Quantity"
+                              placeholder="Amount"
                               {...field}
                             />
                           </FormControl>

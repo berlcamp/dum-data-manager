@@ -2,7 +2,6 @@
 
 import {
   CustomButton,
-  DeleteModal,
   PerPage,
   RisSidebar,
   ShowMore,
@@ -12,45 +11,45 @@ import {
   TopBar,
   Unauthorized,
 } from '@/components/index'
-import { fetchRis } from '@/utils/fetchApi'
+import { fetchCashAdvances } from '@/utils/fetchApi'
+import { format } from 'date-fns'
 import React, { useEffect, useState } from 'react'
 
 import Filters from './Filters'
 
 // Types
-import type { RisTypes } from '@/types'
+import type { AccountTypes, RisCaTypes } from '@/types'
 
 // Redux imports
 import { updateList } from '@/GlobalRedux/Features/listSlice'
 import { superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
-import { format } from 'date-fns'
 import { useDispatch, useSelector } from 'react-redux'
 import AddEditModal from './AddEditModal'
-import PrintButton from './PrintButton'
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<RisTypes | null>(null)
-  const [selectedId, setSelectedId] = useState<string>('')
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<RisCaTypes | null>(null)
 
   // Filters
-  const [filterType, setFilterType] = useState('All')
   const [filterKeyword, setFilterKeyword] = useState('')
 
   // List
-  const [list, setList] = useState<RisTypes[]>([])
+  const [list, setList] = useState<RisCaTypes[]>([])
   const [perPageCount, setPerPageCount] = useState<number>(10)
   const [showingCount, setShowingCount] = useState<number>(0)
   const [resultsCount, setResultsCount] = useState<number>(0)
 
-  const { supabase, session } = useSupabase()
-  const { hasAccess } = useFilter()
+  const { supabase, session, systemUsers } = useSupabase()
+  const { hasAccess, setToast } = useFilter()
+
+  const user: AccountTypes = systemUsers.find(
+    (user: AccountTypes) => user.id === session.user.id
+  )
 
   // Redux staff
   const globallist = useSelector((state: any) => state.list.value)
@@ -60,10 +59,9 @@ const Page: React.FC = () => {
     setLoading(true)
 
     try {
-      const result = await fetchRis(
+      const result = await fetchCashAdvances(
         {
           filterKeyword,
-          filterType,
         },
         perPageCount,
         0
@@ -86,10 +84,9 @@ const Page: React.FC = () => {
     setLoading(true)
 
     try {
-      const result = await fetchRis(
+      const result = await fetchCashAdvances(
         {
           filterKeyword,
-          filterType,
         },
         perPageCount,
         list.length
@@ -113,9 +110,31 @@ const Page: React.FC = () => {
     setSelectedItem(null)
   }
 
-  const handleEdit = (item: RisTypes) => {
+  const handleEdit = (item: RisCaTypes) => {
     setShowAddModal(true)
     setSelectedItem(item)
+  }
+
+  const countRemainingAmount = (item: RisCaTypes) => {
+    const totalAmountUsed = item.ddm_ris
+      ? item.ddm_ris.reduce(
+          (accumulator, ris) => accumulator + Number(ris.total_amount),
+          0
+        )
+      : 0
+    const remainingAmount = Number(item.amount) - totalAmountUsed
+
+    if (isNaN(remainingAmount)) return ''
+
+    if (remainingAmount < 1000) {
+      return (
+        <span style={{ color: 'red', fontWeight: 'bold' }}>
+          {remainingAmount}
+        </span>
+      )
+    } else {
+      return <span>{remainingAmount}</span>
+    }
   }
 
   // Update list whenever list in redux updates
@@ -127,7 +146,7 @@ const Page: React.FC = () => {
   useEffect(() => {
     setList([])
     void fetchData()
-  }, [filterKeyword, filterType, perPageCount])
+  }, [filterKeyword, perPageCount])
 
   const isDataEmpty = !Array.isArray(list) || list.length < 1 || !list
   const email: string = session.user.email
@@ -145,10 +164,10 @@ const Page: React.FC = () => {
           {/* Header */}
           <TopBar />
           <div className="app__title">
-            <Title title="Requisition & Issue Slip" />
+            <Title title="Cash Advances" />
             <CustomButton
               containerStyles="app__btn_green"
-              title="Add New RIS"
+              title="Add New CA"
               btnType="button"
               handleClick={handleAdd}
             />
@@ -156,10 +175,7 @@ const Page: React.FC = () => {
 
           {/* Filters */}
           <div className="app__filters">
-            <Filters
-              setFilterKeyword={setFilterKeyword}
-              setFilterType={setFilterType}
-            />
+            <Filters setFilterKeyword={setFilterKeyword} />
           </div>
 
           {/* Per Page */}
@@ -175,109 +191,61 @@ const Page: React.FC = () => {
             <table className="app__table">
               <thead className="app__thead">
                 <tr>
-                  <th className="hidden md:table-cell app__th">RIS #</th>
+                  <th className="hidden md:table-cell app__th">CA #</th>
                   <th className="app__th">Details</th>
                   <th className="app__th"></th>
                 </tr>
               </thead>
               <tbody>
                 {!isDataEmpty &&
-                  list.map((item: RisTypes, index: number) => (
+                  list.map((item: RisCaTypes, index: number) => (
                     <tr
                       key={index}
                       className="app__tr">
                       <td className="hidden md:table-cell app__td">
-                        <div className="font-medium">{item.id}</div>
+                        <div className="font-medium">{item.ca_number}</div>
                       </td>
                       <td className="app__td">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           <div className="md:hidden">
-                            <span className="font-light">RIS No:</span>{' '}
-                            <span className="font-medium">{item.id}</span>
+                            <span className="font-light">CA #:</span>{' '}
+                            <span className="font-medium">
+                              {item.ca_number}
+                            </span>
                           </div>
                           <div>
-                            <span className="font-light">Type:</span>{' '}
-                            <span className="font-medium">{item.type}</span>
+                            <span className="font-light">Amount:</span>{' '}
+                            <span className="font-medium">{item.amount}</span>
+                          </div>
+                          <div>
+                            <span className="font-light">CA Date:</span>{' '}
+                            <span className="font-medium">
+                              {item.ca_date &&
+                                format(new Date(item.ca_date), 'MMMM dd, yyyy')}
+                            </span>
                           </div>
                           <div>
                             <span className="font-light">
-                              Transaction Type:
+                              Remaining Amount:
                             </span>{' '}
                             <span className="font-medium">
-                              {item.transaction_type}
+                              {countRemainingAmount(item)}
                             </span>
-                            {' - '}
-                            {item.transaction_type === 'Cash Advance' && (
-                              <span className="font-medium">
-                                {item.cash_advance?.ca_number}
-                              </span>
-                            )}
-                            {item.transaction_type === 'Purchase Order' && (
-                              <span className="font-medium">
-                                {item.purchase_order?.po_number}
-                              </span>
-                            )}
-                          </div>
-
-                          <div>
-                            <span className="font-light">Quantity (L):</span>{' '}
-                            <span className="font-medium">{item.quantity}</span>
                           </div>
                           <div>
-                            <span className="font-light">Requester:</span>{' '}
+                            <span className="font-light">Description:</span>{' '}
                             <span className="font-medium">
-                              {item.requester}
+                              {item.description}
                             </span>
-                          </div>
-                          <div>
-                            <span className="font-light">Price /L:</span>{' '}
-                            <span className="font-medium">{item.price}</span>
-                          </div>
-                          <div>
-                            <span className="font-light">Vehicle:</span>{' '}
-                            <span className="font-medium">
-                              {item.vehicle?.name} -{' '}
-                              {item.vehicle?.plate_number}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-light">Department:</span>{' '}
-                            <span className="font-medium">
-                              {item.department?.name} -{' '}
-                              {item.department?.office}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-light">Date Requested:</span>{' '}
-                            <span className="font-medium">
-                              {item.date_requested &&
-                                format(
-                                  new Date(item.date_requested),
-                                  'MMMM dd, yyyy'
-                                )}
-                            </span>
-                          </div>
-                          <div className="flex items-start space-x-1">
-                            <span className="font-light">Purpose:</span>{' '}
-                            <span className="font-medium">{item.purpose}</span>
                           </div>
                         </div>
                       </td>
                       <td className="app__td">
                         <div className="flex space-x-2 items-center">
-                          <PrintButton ris={item} />
                           <button
                             onClick={() => handleEdit(item)}
                             className="app__btn_green_xs">
                             Edit
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedId(item.id.toString())
-                              setShowDeleteModal(true)
-                            }}
-                            className="app__btn_red_xs">
-                            Delete
                           </button>
                         </div>
                       </td>
@@ -285,7 +253,7 @@ const Page: React.FC = () => {
                   ))}
                 {loading && (
                   <TableRowLoading
-                    cols={3}
+                    cols={4}
                     rows={2}
                   />
                 )}
@@ -306,18 +274,6 @@ const Page: React.FC = () => {
             <AddEditModal
               editData={selectedItem}
               hideModal={() => setShowAddModal(false)}
-            />
-          )}
-          {/* Confirm Delete Modal */}
-          {showDeleteModal && (
-            <DeleteModal
-              table="ddm_ris"
-              selectedId={selectedId}
-              showingCount={showingCount}
-              setShowingCount={setShowingCount}
-              resultsCount={resultsCount}
-              setResultsCount={setResultsCount}
-              hideModal={() => setShowDeleteModal(false)}
             />
           )}
         </div>
