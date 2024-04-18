@@ -42,6 +42,7 @@ import type {
   ReservationTypes,
   ReservationVehicleTypes,
 } from '@/types'
+import { generateTimeArray } from '@/utils/text-helper'
 import { format } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
 
@@ -281,13 +282,26 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         <FormLabel className="app__form_label">
                           Departure Time
                         </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="time"
-                            placeholder="Time"
-                            {...field}
-                          />
-                        </FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={
+                            editData ? editData.time.toString() : field.value
+                          }>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {generateTimeArray(false)?.map((t, idx) => (
+                              <SelectItem
+                                key={idx}
+                                value={t}>
+                                {t}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}

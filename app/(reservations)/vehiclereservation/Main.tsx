@@ -13,16 +13,6 @@ import { superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { fetchVehicleReservations } from '@/utils/fetchApi'
-import {
-  addDays,
-  addHours,
-  format,
-  isAfter,
-  isBefore,
-  isEqual,
-  parse,
-  subDays,
-} from 'date-fns'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import AddEditModal from './AddEditModal'
@@ -32,8 +22,7 @@ import Filters from './Filters'
 import { updateList } from '@/GlobalRedux/Features/listSlice'
 
 // Types
-import type { HoursTypes, ListTypes, ReservationTypes } from '@/types'
-import { generateTimeArray } from '@/utils/text-helper'
+import type { ReservationTypes } from '@/types'
 import Week from './Week'
 
 const Page: React.FC = () => {
@@ -50,7 +39,7 @@ const Page: React.FC = () => {
   const [filterKeyword, setFilterKeyword] = useState('')
 
   // List
-  const [list, setList] = useState<ListTypes[] | []>([])
+  const [list, setList] = useState<ReservationTypes[] | []>([])
 
   const { session } = useSupabase()
   const { hasAccess } = useFilter()
@@ -89,51 +78,7 @@ const Page: React.FC = () => {
 
   // Update list whenever list in redux updates
   useEffect(() => {
-    // Create 7 days list
-    const d = new Date()
-    let currentDate = subDays(d, 2)
-    const newDate = addDays(d, 5)
-    const listArray: ListTypes[] = []
-    const hours = generateTimeArray(true)
-
-    while (currentDate < newDate) {
-      if (globallist && globallist.length > 0) {
-        const hoursArray: HoursTypes[] = []
-        hours.forEach((h) => {
-          const filtered = globallist.filter((i: ReservationTypes) => {
-            const time1 = parse(i.time, 'h:mm a', new Date('1970-01-01'))
-            const time2 = parse(h, 'h a', new Date('1970-01-01'))
-            const time3 = addHours(parse(h, 'h a', new Date('1970-01-01')), 1)
-
-            const areTimesEqual = isEqual(time1, time2) // Check if the times are equal
-            const isTime1AfterTime2 = isAfter(time1, time2) // Check if time1 is after time2
-            const isTime1BeforeTime3 = isBefore(time1, time3) // Check if time1 is before time3
-            if (
-              format(new Date(i.date), 'yyyy-MM-dd') ===
-                format(new Date(currentDate), 'yyyy-MM-dd') &&
-              (areTimesEqual || (isTime1AfterTime2 && isTime1BeforeTime3))
-            ) {
-              return true
-            } else {
-              return false
-            }
-          })
-          hoursArray.push({
-            hour: h,
-            reservations: filtered,
-          })
-        })
-
-        listArray.push({
-          date: format(new Date(currentDate), 'yyyy-MM-dd'),
-          hours: hoursArray,
-        })
-      }
-      currentDate = addDays(currentDate, 1)
-    }
-    setList(listArray)
-
-    console.log('data', listArray)
+    setList(globallist)
   }, [globallist])
 
   // Featch data
@@ -179,7 +124,7 @@ const Page: React.FC = () => {
           {/* Main Content */}
           <div>
             {loading && <TwoColTableLoading />}
-            {!isDataEmpty && <Week list={list} />}
+            {!isDataEmpty && <Week data={list} />}
 
             {!loading && isDataEmpty && (
               <div className="app__norecordsfound">No records found.</div>
