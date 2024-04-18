@@ -1,18 +1,13 @@
 'use client'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
-import Image from 'next/image'
-import { useEffect, useState, type ChangeEvent } from 'react'
-import Avatar from 'react-avatar'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import OneColLayoutLoading from './Loading/OneColLayoutLoading'
 
 // Redux imports
 import { updateList } from '@/GlobalRedux/Features/listSlice'
 import { useDispatch, useSelector } from 'react-redux'
-
-import { generateReferenceCode } from '@/utils/text-helper'
-import { useRouter } from 'next/navigation'
 
 interface ModalProps {
   hideModal: () => void
@@ -21,22 +16,19 @@ interface ModalProps {
 }
 
 interface FormTypes {
-  name: string
+  firstname: string
+  middlename: string
+  lastname: string
   password: string
   password2: string
 }
 
 const AccountDetails = ({ hideModal, shouldUpdateRedux, id }: ModalProps) => {
   const { setToast } = useFilter()
-  const { supabase, session } = useSupabase()
-
-  const router = useRouter()
+  const { supabase } = useSupabase()
 
   const [loading, setLoading] = useState(false)
-  const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [avatarUrl, setAvatarUrl] = useState('')
-  const [department, setDepartment] = useState('')
 
   // Redux staff
   const globallist = useSelector((state: any) => state.list.value)
@@ -61,11 +53,13 @@ const AccountDetails = ({ hideModal, shouldUpdateRedux, id }: ModalProps) => {
     setSaving(true)
 
     const newData = {
-      name: formdata.name,
+      firstname: formdata.firstname,
+      middlename: formdata.middlename,
+      lastname: formdata.lastname,
     }
     try {
       const { error } = await supabase
-        .from('dum_users')
+        .from('ddm_users')
         .update(newData)
         .eq('id', id)
 
@@ -93,99 +87,24 @@ const AccountDetails = ({ hideModal, shouldUpdateRedux, id }: ModalProps) => {
     }
   }
 
-  const handleUploadPhoto = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      try {
-        setUploading(true)
-
-        // delete the existing user avatar on supabase storage
-        const { data: files, error: error3 } = await supabase.storage
-          .from('dum')
-          .list(`user_avatar/${id}`)
-
-        if (error3) throw new Error(error3.message)
-        if (files.length > 0) {
-          const filesToRemove = files.map(
-            (x: { name: string }) => `user_avatar/${id}/${x.name}`
-          )
-          const { error: error4 } = await supabase.storage
-            .from('dum')
-            .remove(filesToRemove)
-
-          if (error4) throw new Error(error4.message)
-        }
-
-        // upload the new avatar
-        const file = e.target.files?.[0]
-        const newFileName = generateReferenceCode()
-
-        const customFilePath =
-          `user_avatar/${id}/${newFileName}.` +
-          (file.name.split('.').pop() as string)
-        const { error } = await supabase.storage
-          .from('dum')
-          .upload(`${customFilePath}`, file, {
-            cacheControl: '3600',
-            upsert: true,
-          })
-
-        if (error) throw new Error(error.message)
-
-        // get the newly uploaded file public path
-        await handleFetchAvatar(customFilePath)
-      } catch (error) {
-        console.error('Error uploading file:', error)
-      } finally {
-        router.refresh()
-        setUploading(false)
-      }
-    }
-  }
-
-  const handleFetchAvatar = async (path: string) => {
-    try {
-      // get the public avatar url
-      const { data, error } = await supabase.storage
-        .from('dum')
-        .getPublicUrl(`${path}`)
-
-      if (error) throw new Error(error.message)
-
-      // update avatar url on dum_users table
-      const { error2 } = await supabase
-        .from('dum_users')
-        .update({ avatar_url: data.publicUrl })
-        .eq('id', id)
-
-      if (error2) throw new Error(error2.message)
-
-      setAvatarUrl(data.publicUrl)
-    } catch (error) {
-      console.error('Error fetching avatar:', error)
-    }
-  }
-
   // manually set the defaultValues of use-form-hook whenever the component receives new props.
   useEffect(() => {
     const fetchAccountDetails = async () => {
       setLoading(true)
       try {
         const { data, error } = await supabase
-          .from('dum_users')
-          .select('*, dum_departments:department_id(id,name)', {
-            count: 'exact',
-          })
+          .from('ddm_users')
+          .select()
           .eq('id', id)
           .limit(1)
           .maybeSingle()
 
         if (error) throw new Error(error.message)
 
-        setAvatarUrl(data.avatar_url)
-        setDepartment(data.dum_departments.name)
-
         reset({
-          name: data ? data.name : '',
+          firstname: data ? data.firstname : '',
+          middlename: data ? data.middlename : '',
+          lastname: data ? data.lastname : '',
         })
       } catch (e) {
         console.error('fetch error: ', e)
@@ -221,55 +140,18 @@ const AccountDetails = ({ hideModal, shouldUpdateRedux, id }: ModalProps) => {
                 <form
                   onSubmit={handleSubmit(onSubmit)}
                   className="">
-                  <div className="text-center">
-                    {avatarUrl && avatarUrl !== '' ? (
-                      <Image
-                        src={avatarUrl}
-                        width={60}
-                        height={60}
-                        alt="alt"
-                        className="mx-auto"
-                      />
-                    ) : (
-                      <Avatar
-                        round={false}
-                        size="60"
-                        name={session.user.email.split('@')[0]}
-                      />
-                    )}
-                    <div className="relative">
-                      <input
-                        type="file"
-                        onChange={handleUploadPhoto}
-                        className="hidden"
-                        id="file-input"
-                        accept="image/*"
-                      />
-                      {!uploading ? (
-                        <label
-                          htmlFor="file-input"
-                          className="cursor-pointer py-px px-1 text-xs text-blue-600">
-                          Change Profile Photo
-                        </label>
-                      ) : (
-                        <span className="py-px px-1 text-xs text-blue-600">
-                          Uploading...
-                        </span>
-                      )}
-                    </div>
-                  </div>
                   <div className="app__form_field_container">
                     <div className="w-full">
-                      <div className="app__label_standard">Name:</div>
+                      <div className="app__label_standard">Firstname:</div>
                       <div>
                         <input
-                          {...register('name', { required: true })}
+                          {...register('firstname', { required: true })}
                           type="text"
                           className="app__input_standard"
                         />
-                        {errors.name && (
+                        {errors.firstname && (
                           <div className="app__error_message">
-                            Name is required
+                            Firstname is required
                           </div>
                         )}
                       </div>
@@ -277,8 +159,26 @@ const AccountDetails = ({ hideModal, shouldUpdateRedux, id }: ModalProps) => {
                   </div>
                   <div className="app__form_field_container">
                     <div className="w-full">
-                      <div className="app__label_standard">Department:</div>
-                      <div>{department}</div>
+                      <div className="app__label_standard">Middlename:</div>
+                      <div>
+                        <input
+                          {...register('middlename')}
+                          type="text"
+                          className="app__input_standard"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="app__form_field_container">
+                    <div className="w-full">
+                      <div className="app__label_standard">Lastname:</div>
+                      <div>
+                        <input
+                          {...register('lastname')}
+                          type="text"
+                          className="app__input_standard"
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="app__modal_footer">

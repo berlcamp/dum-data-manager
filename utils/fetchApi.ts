@@ -357,7 +357,7 @@ export async function fetchVehicleReservations (filters: {
   try {
     let query = supabase
       .from('ddm_reservations')
-      .select('*', { count: 'exact' })
+      .select('*, vehicle:vehicle_id(*)', { count: 'exact' })
 
       // Full text search
     if (typeof filters.filterKeyword !== 'undefined' && filters.filterKeyword.trim() !== '') {

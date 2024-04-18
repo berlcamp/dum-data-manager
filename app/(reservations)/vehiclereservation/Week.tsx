@@ -100,11 +100,25 @@ export default function Week({ data }: PageProps) {
             <div
               key={idx}
               className="h-20 border-b">
-              <div className="bg-green-100 text-xs">
-                {h.reservations.map((r, idx2) => (
-                  <div key={idx2}>{r.requester}</div>
-                ))}
-              </div>
+              {h.reservations.map((r, idx2) => (
+                <div
+                  key={idx2}
+                  className={`${
+                    idx2 > 2 ? 'hidden' : ''
+                  } bg-green-100 leading-none px-1 py-px mb-1`}>
+                  <div className="text-[11px]">
+                    {r.vehicle?.name} {r.vehicle?.plate_number}
+                  </div>
+                  <div className="text-[10px]">{r.time}</div>
+                  {idx2 === 2 && (
+                    <div className="text-center -mt-4">
+                      <span className="bg-blue-700 text-white rounded-sm px-1 text-[10px]">
+                        See All
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           ))}
         </div>

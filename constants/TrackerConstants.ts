@@ -77,7 +77,7 @@ export const statusList = [
 
 export const superAdmins = [
   'berlcamp@gmail.com',
-  'berlcampomanes@gmail.com',
+  'arfel@ddm.com',
 ]
 
 export const risOffices = [

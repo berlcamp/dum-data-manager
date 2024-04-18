@@ -54,6 +54,8 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
     try {
       const newData = {
         firstname: formdata.firstname,
+        middlename: formdata.middlename,
+        lastname: formdata.lastname,
         status: 'Active',
         email: formdata.email,
         temp_password: tempPassword.toString(),
@@ -117,6 +119,8 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
 
     const newData = {
       firstname: formdata.firstname,
+      middlename: formdata.middlename,
+      lastname: formdata.lastname,
     }
 
     try {
@@ -194,6 +198,30 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
                             First Name is required
                           </div>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="app__form_field_container">
+                    <div className="w-full">
+                      <div className="app__label_standard">Middlename</div>
+                      <div>
+                        <input
+                          {...register('middlename')}
+                          type="text"
+                          className="app__select_standard"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="app__form_field_container">
+                    <div className="w-full">
+                      <div className="app__label_standard">Lastname</div>
+                      <div>
+                        <input
+                          {...register('lastname')}
+                          type="text"
+                          className="app__select_standard"
+                        />
                       </div>
                     </div>
                   </div>
