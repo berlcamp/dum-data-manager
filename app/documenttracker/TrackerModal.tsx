@@ -181,7 +181,14 @@ export default function TrackerModal({
                             Amount:
                           </td>
                           <td className="text-sm font-medium">
-                            {documentData.amount}
+                            {documentData.amount &&
+                              Number(documentData.amount).toLocaleString(
+                                'en-US',
+                                {
+                                  minimumFractionDigits: 2, // Minimum number of decimal places
+                                  maximumFractionDigits: 2, // Maximum number of decimal places
+                                }
+                              )}
                           </td>
                         </tr>
                         <tr>

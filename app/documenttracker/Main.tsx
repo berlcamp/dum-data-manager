@@ -169,17 +169,33 @@ const Page: React.FC = () => {
     setShowArchiveModal(true)
   }
 
-  const handleChangeStatus = async (id: string, status: string) => {
+  const handleChangeStatus = async (item: DocumentTypes, status: string) => {
     const { error } = await supabase
       .from('ddm_trackers')
       .update({ status })
-      .eq('id', id)
+      .eq('id', item.id)
+
+    await supabase.from('ddm_tracker_routes').insert({
+      tracker_id: item.id,
+      date: format(new Date(), 'yyyy-MM-dd'),
+      time: format(new Date(), 'h:mm a'),
+      user_id: session.user.id,
+      user: `${user.firstname} ${user.middlename || ''} ${user.lastname || ''}`,
+      title: 'Details updated',
+      message: [
+        {
+          field: 'Status',
+          before: item.status,
+          after: status,
+        },
+      ],
+    })
 
     // Append new data in redux
     const items = [...globallist]
     const updatedData = {
       status,
-      id,
+      id: item.id,
     }
     const foundIndex = items.findIndex((x) => x.id === updatedData.id)
     items[foundIndex] = { ...items[foundIndex], ...updatedData }
@@ -568,7 +584,7 @@ const Page: React.FC = () => {
                                     <Menu.Item key={idx}>
                                       <div
                                         onClick={() =>
-                                          handleChangeStatus(item.id, i.status)
+                                          handleChangeStatus(item, i.status)
                                         }
                                         className="flex items-center justify-between space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
                                         <span>{i.status}</span>
@@ -595,7 +611,13 @@ const Page: React.FC = () => {
                             <span className="font-medium">{item.agency}</span>
                           </div>
                           <div>
-                            <span className="font-bold">{item.amount}</span>
+                            <span className="font-bold">
+                              {item.amount &&
+                                Number(item.amount).toLocaleString('en-US', {
+                                  minimumFractionDigits: 2, // Minimum number of decimal places
+                                  maximumFractionDigits: 2, // Maximum number of decimal places
+                                })}
+                            </span>
                           </div>
                         </div>
                       </td>

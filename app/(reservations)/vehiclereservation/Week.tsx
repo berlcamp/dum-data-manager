@@ -111,22 +111,22 @@ export default function Week({ data }: PageProps) {
           {item.hours.map((h, idx) => (
             <div
               key={idx}
-              className="h-20 border-b">
+              className="relative h-20 border-b">
               {h.reservations.map((r, idx2) => (
                 <div
                   key={idx2}
                   onClick={() => handleEdit(r)}
                   className={`${
-                    idx2 > 2 ? 'hidden' : ''
+                    idx2 > 1 ? 'hidden' : ''
                   } bg-green-100 leading-none px-1 py-px mb-1 cursor-pointer`}>
                   <div className="text-[11px] ">
                     {r.vehicle?.name} {r.vehicle?.plate_number}
                   </div>
                   <div className="text-[10px]">{r.time}</div>
-                  {idx2 === 2 && (
-                    <div className="text-center -mt-4">
-                      <span className="bg-blue-700 text-white rounded-sm px-1 text-[10px]">
-                        See All
+                  {h.reservations.length > 2 && idx2 === 1 && (
+                    <div className="absolute top-0 right-0">
+                      <span className="bg-blue-600 text-white rounded-sm px-1 font-semibold text-[9px]">
+                        See All ({h.reservations.length})
                       </span>
                     </div>
                   )}
