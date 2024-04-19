@@ -482,6 +482,7 @@ export async function fetchActivities (today: string, endDate: Date) {
       .select('*', { count: 'exact' })
       .gte('activity_date', today)
       .lt('activity_date', endDate.toISOString())
+      .eq('archived', false)
       .order('activity_date', { ascending: true })
       .limit(100)
 

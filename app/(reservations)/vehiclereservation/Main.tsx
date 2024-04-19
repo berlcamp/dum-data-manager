@@ -134,11 +134,6 @@ const Page: React.FC = () => {
 
           {/* Main Content */}
           <div>
-            <div className="relative h-64 bg-gray-200">
-              <div className="absolute inset-0 m-auto flex items-center justify-center">
-                x dsfasdf asdf
-              </div>
-            </div>
             {loading && <TwoColTableLoading />}
             {!isDataEmpty && !filterApplied && <Week data={list} />}
             {!isDataEmpty && filterApplied && <ListView data={list} />}
