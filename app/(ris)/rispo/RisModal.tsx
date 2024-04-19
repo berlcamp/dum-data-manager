@@ -94,6 +94,8 @@ export default function RisModal({ hideModal, po }: ModalProps) {
         .from('ddm_ris')
         .select('*, vehicle:vehicle_id(*), department:department_id(*)')
         .eq('po_id', po.id)
+        .eq('is_deleted', false)
+
       setList(data)
       setLoading(false)
     })()
