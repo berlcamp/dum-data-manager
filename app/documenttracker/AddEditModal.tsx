@@ -96,9 +96,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const [showCheckNo, setShowCheckNo] = useState(
     editData ? (editData.type === 'Disbursement Voucher' ? true : false) : false
   )
-  const [showActivityDate, setShowActivityDate] = useState(
-    editData ? (editData.type === 'Letters' ? true : false) : false
-  )
   const [specifyLabel, setSpecifyLabel] = useState('')
 
   const [attachments, setAttachments] = useState<AttachmentTypes[] | []>([])
@@ -510,11 +507,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               } else {
                                 setShowCheckNo(false)
                               }
-                              if (value === 'Letters') {
-                                setShowActivityDate(true)
-                              } else {
-                                setShowActivityDate(false)
-                              }
                             }}
                             defaultValue={field.value}>
                             <FormControl>
@@ -556,52 +548,50 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         )}
                       />
                     )}
-                    {showActivityDate && (
-                      <FormField
-                        control={form.control}
-                        name="activity_date"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col space-y-3">
-                            <FormLabel className="app__form_label">
-                              Activity Date
-                            </FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant={'outline'}
-                                    className={cn(
-                                      'pl-3 text-left font-normal',
-                                      !field.value && 'text-muted-foreground'
-                                    )}>
-                                    {field.value ? (
-                                      format(field.value, 'PPP')
-                                    ) : (
-                                      <span>Pick a date</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className="w-auto p-0"
-                                align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={field.onChange}
-                                  disabled={(date) =>
-                                    date < new Date('1900-01-01')
-                                  }
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
+                    <FormField
+                      control={form.control}
+                      name="activity_date"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col space-y-3">
+                          <FormLabel className="app__form_label">
+                            Activity Date
+                          </FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={'outline'}
+                                  className={cn(
+                                    'pl-3 text-left font-normal',
+                                    !field.value && 'text-muted-foreground'
+                                  )}>
+                                  {field.value ? (
+                                    format(field.value, 'PPP')
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-auto p-0"
+                              align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) =>
+                                  date < new Date('1900-01-01')
+                                }
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     {showCheckNo && (
                       <FormField
                         control={form.control}

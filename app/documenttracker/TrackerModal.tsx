@@ -133,20 +133,19 @@ export default function TrackerModal({
                               )}
                           </td>
                         </tr>
-                        {documentData.type === 'Letters' &&
-                          documentData.activity_date && (
-                            <tr>
-                              <td className="px-2 py-2 font-light text-right">
-                                Activity Date:
-                              </td>
-                              <td className="text-sm font-medium">
-                                {format(
-                                  new Date(documentData.activity_date),
-                                  'PPP'
-                                )}
-                              </td>
-                            </tr>
-                          )}
+                        {documentData.activity_date && (
+                          <tr>
+                            <td className="px-2 py-2 font-light text-right">
+                              Activity Date:
+                            </td>
+                            <td className="text-sm font-medium">
+                              {format(
+                                new Date(documentData.activity_date),
+                                'PPP'
+                              )}
+                            </td>
+                          </tr>
+                        )}
                         {documentData.agency && (
                           <tr>
                             <td className="px-2 py-2 font-light text-right">
