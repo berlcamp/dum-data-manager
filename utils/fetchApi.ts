@@ -484,7 +484,6 @@ export async function fetchActivities (today: string, endDate: Date) {
       .lt('activity_date', endDate.toISOString())
       .eq('archived', false)
       .order('activity_date', { ascending: true })
-      .limit(100)
 
     if (error) {
       throw new Error(error.message)
