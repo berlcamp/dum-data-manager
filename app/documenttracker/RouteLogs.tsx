@@ -19,7 +19,9 @@ export default function RouteLogs({
 
   const { supabase } = useSupabase()
 
+  // Redux staff
   const globalRoutesList = useSelector((state: any) => state.routes.value)
+  const reloadLogs = useSelector((state: any) => state.recount.value)
   const dispatch = useDispatch()
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export default function RouteLogs({
 
       setLoading(false)
     })()
-  }, [])
+  }, [reloadLogs])
 
   // Update list whenever list in redux updates
   useEffect(() => {
@@ -85,7 +87,20 @@ export default function RouteLogs({
                       : 'text-gray-700 font-bold'
                   } flex-1 ml-8 pb-4`}>
                   <div>{item.title}</div>
-                  <div>{item.message}</div>
+                  <div>
+                    {item.message &&
+                      Array.isArray(item.message) &&
+                      item.message.map((message: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="font-light">
+                          <span>{message.field} updated from </span>
+                          <span className="font-medium">{message.before}</span>
+                          <span> to </span>
+                          <span className="font-medium">{message.after}</span>
+                        </div>
+                      ))}
+                  </div>
                   <div className="font-medium">by {item.user}</div>
                 </div>
               </div>

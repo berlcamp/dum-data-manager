@@ -83,6 +83,8 @@ export interface DocumentFlowchartTypes {
   title: string
   message: string
   tracker_id: string
+  tracker_route_id: string
+  change_logs: DocumentFlowchartTypes[]
 }
 export interface DocumentTypes {
   id: string

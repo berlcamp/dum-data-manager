@@ -183,7 +183,7 @@ const RemarksList = ({
       </div>
       {showConfirmation && (
         <ConfirmModal
-          message="Are you sure you want to perform this action?"
+          message="Are you sure you want to delete this remarks?"
           header="Confirm delete"
           btnText="Confirm"
           onConfirm={handleConfirm}
