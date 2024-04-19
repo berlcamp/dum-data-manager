@@ -83,12 +83,13 @@ export const documentTypes = [
 ]
 
 export const statusList = [
+  { status: 'Approved', color: '#287f00' },
+  { status: 'Canceled', color: '#e02626' },
   { status: 'Disapproved', color: '#e02626' },
-  { status: 'For Further Instruction', color: '#997c00' },
   { status: 'For File', color: '#997c00' },
-  { status: 'Resolved', color: '#a44508' },
+  { status: 'For Further Instruction', color: '#997c00' },
   { status: 'Open', color: '#2154db' },
-  { status: 'Approved', color: '#287f00' }
+  { status: 'Resolved', color: '#a44508' },
 ]
 
 export const superAdmins = [
