@@ -289,22 +289,41 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       if (error) throw new Error(error.message)
 
       // Add tracker route logs if route is changed
-      const trackerRoutes = {
-        tracker_id: editData.id,
-        date: format(new Date(), 'yyyy-MM-dd'),
-        time: format(new Date(), 'h:mm a'),
-        user_id: session.user.id,
-        user: `${user.firstname} ${user.middlename || ''} ${
-          user.lastname || ''
-        }`,
-        title: formdata.location,
-        message: '',
+      const trackerRoutes = []
+
+      if (formdata.status !== editData.status) {
+        trackerRoutes.push({
+          tracker_id: editData.id,
+          date: format(new Date(), 'yyyy-MM-dd'),
+          time: format(new Date(), 'h:mm a'),
+          user_id: session.user.id,
+          user: `${user.firstname} ${user.middlename || ''} ${
+            user.lastname || ''
+          }`,
+          title: `Status: ${formdata.status}`,
+          message: '',
+        })
       }
+
       if (formdata.location !== editData.location) {
+        trackerRoutes.push({
+          tracker_id: editData.id,
+          date: format(new Date(), 'yyyy-MM-dd'),
+          time: format(new Date(), 'h:mm a'),
+          user_id: session.user.id,
+          user: `${user.firstname} ${user.middlename || ''} ${
+            user.lastname || ''
+          }`,
+          title: formdata.location,
+          message: '',
+        })
+      }
+
+      if (trackerRoutes.length > 0) {
         await supabase.from('ddm_tracker_routes').insert(trackerRoutes)
 
         // Append routes to redux
-        dispatch(updateRoutesList([...globalRoutesList, trackerRoutes]))
+        dispatch(updateRoutesList([...globalRoutesList, ...trackerRoutes]))
       }
 
       // Upload files
