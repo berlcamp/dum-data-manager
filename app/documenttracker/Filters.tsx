@@ -377,7 +377,7 @@ const Filters = ({
                 render={({ field }) => (
                   <FormItem className="w-[240px]">
                     <FormLabel className="app__form_label">
-                      Received/Forward To
+                      Route Action
                     </FormLabel>
                     <Select
                       onValueChange={field.onChange}
