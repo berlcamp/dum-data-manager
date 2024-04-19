@@ -49,11 +49,6 @@ const Filters = ({
   setFilterDateFrom,
   setFilterDateTo,
 }: FilterTypes) => {
-  //
-  const [selectedTypes, setSelectedTypes] = useState<string[] | []>([])
-
-  const [toggleAdvanceFilter, setToggleAdvanceFilter] = useState(false)
-
   const [departments, setDepartments] = useState<RisDepartmentTypes[] | []>([])
 
   const { supabase } = useSupabase()
@@ -81,12 +76,15 @@ const Filters = ({
     setFilterDepartment('All')
     setFilterDateFrom(undefined)
     setFilterDateTo(undefined)
-
-    setToggleAdvanceFilter(false)
   }
 
   useEffect(() => {
     // Fetch departments
+    ;(async () => {
+      const { data } = await supabase.from('ddm_ris_departments').select()
+      setDepartments(data)
+    })()
+    // Fetch POs
     ;(async () => {
       const { data } = await supabase.from('ddm_ris_departments').select()
       setDepartments(data)
@@ -111,7 +109,7 @@ const Filters = ({
                           <Button
                             variant={'outline'}
                             className={cn(
-                              'w-[240px] pl-3 text-left font-normal',
+                              'w-[140px] pl-3 text-left font-normal',
                               !field.value && 'text-muted-foreground'
                             )}>
                             {field.value ? (
@@ -152,7 +150,7 @@ const Filters = ({
                           <Button
                             variant={'outline'}
                             className={cn(
-                              'w-[240px] pl-3 text-left font-normal',
+                              'w-[140px] pl-3 text-left font-normal',
                               !field.value && 'text-muted-foreground'
                             )}>
                             {field.value ? (

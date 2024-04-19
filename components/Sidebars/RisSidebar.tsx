@@ -17,6 +17,17 @@ export default function RisSidebar() {
         </li>
         <li>
           <Link
+            href="/ris"
+            className={`app__menu_link ${
+              currentRoute === '/ris' ? 'app_menu_link_active' : ''
+            }`}>
+            <span className="flex-1 ml-3 whitespace-nowrap">
+              Requisition & Issue Slip
+            </span>
+          </Link>
+        </li>
+        <li>
+          <Link
             href="/rispo"
             className={`app__menu_link ${
               currentRoute === '/rispo' ? 'app_menu_link_active' : ''
@@ -35,17 +46,7 @@ export default function RisSidebar() {
             <span className="flex-1 ml-3 whitespace-nowrap">Cash Advances</span>
           </Link>
         </li>
-        <li>
-          <Link
-            href="/ris"
-            className={`app__menu_link ${
-              currentRoute === '/ris' ? 'app_menu_link_active' : ''
-            }`}>
-            <span className="flex-1 ml-3 whitespace-nowrap">
-              Requisition & Issue Slip
-            </span>
-          </Link>
-        </li>
+
         <li>
           <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2 mt-8">
             <span>Reports</span>

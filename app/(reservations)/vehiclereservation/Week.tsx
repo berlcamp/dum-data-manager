@@ -12,6 +12,7 @@ import {
 } from 'date-fns'
 import { useEffect, useState } from 'react'
 import AddEditModal from './AddEditModal'
+import ListModal from './ListModal'
 
 interface PageProps {
   data: ReservationTypes[]
@@ -22,9 +23,13 @@ export default function Week({ data }: PageProps) {
   const [list, setList] = useState<ListTypes[] | []>([])
 
   // Modals
+  const [showListModal, setShowListModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<ReservationTypes | null>(
     null
+  )
+  const [selectedItems, setSelectedItems] = useState<ReservationTypes[] | []>(
+    []
   )
 
   const handleEdit = (item: ReservationTypes) => {
@@ -86,7 +91,7 @@ export default function Week({ data }: PageProps) {
         {generateTimeArray(true).map((h) => (
           <div
             key={h}
-            className="h-20 border-r border-t">
+            className="h-24 pr-1 border-r border-t">
             {h}
           </div>
         ))}
@@ -111,27 +116,32 @@ export default function Week({ data }: PageProps) {
           {item.hours.map((h, idx) => (
             <div
               key={idx}
-              className="relative h-20 border-b">
+              className="relative h-24 border-b leading-none">
               {h.reservations.map((r, idx2) => (
                 <div
                   key={idx2}
                   onClick={() => handleEdit(r)}
                   className={`${
                     idx2 > 1 ? 'hidden' : ''
-                  } bg-green-100 leading-none px-1 py-px mb-1 cursor-pointer`}>
-                  <div className="text-[11px] ">
+                  } bg-green-100 leading-none px-1 mb-1 cursor-pointer`}>
+                  <div className="text-[10px] font-bold">{r.time}</div>
+                  <div className="text-[11px]">
                     {r.vehicle?.name} {r.vehicle?.plate_number}
                   </div>
-                  <div className="text-[10px]">{r.time}</div>
-                  {h.reservations.length > 2 && idx2 === 1 && (
-                    <div className="absolute top-0 right-0">
-                      <span className="bg-blue-600 text-white rounded-sm px-1 font-semibold text-[9px]">
-                        See All ({h.reservations.length})
-                      </span>
-                    </div>
-                  )}
                 </div>
               ))}
+              {h.reservations.length > 2 && (
+                <div className="text-center leading-none">
+                  <span
+                    onClick={() => {
+                      setShowListModal(true)
+                      setSelectedItems(h.reservations)
+                    }}
+                    className="bg-blue-600 cursor-pointer text-white leading-none rounded-sm px-1 font-semibold text-[9px]">
+                    See All ({h.reservations.length})
+                  </span>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -142,6 +152,13 @@ export default function Week({ data }: PageProps) {
         <AddEditModal
           editData={selectedItem}
           hideModal={() => setShowAddModal(false)}
+        />
+      )}
+      {/* Add/Edit Modal */}
+      {showListModal && (
+        <ListModal
+          data={selectedItems}
+          hideModal={() => setShowListModal(false)}
         />
       )}
     </div>

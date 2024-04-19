@@ -283,6 +283,8 @@ const Page: React.FC = () => {
       { header: 'Type', key: 'type', width: 20 },
       { header: 'Quantity', key: 'quantity', width: 20 },
       { header: 'Price', key: 'price', width: 20 },
+      { header: 'Vehicle', key: 'vehicle', width: 20 },
+      { header: 'Department', key: 'department', width: 20 },
       // Add more columns based on your data structure
     ]
 
@@ -309,6 +311,8 @@ const Page: React.FC = () => {
         type: `${item.type}`,
         quantity: `${item.quantity}`,
         price: `${item.price}`,
+        vehicle: `${item.vehicle.name}-${item.vehicle.plate_number}`,
+        department: `${item.department.name}`,
       })
     })
 

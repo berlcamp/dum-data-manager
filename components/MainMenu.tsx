@@ -21,7 +21,7 @@ const MainMenu: React.FC = () => {
         <div className="lg:flex space-x-2">
           <div className="px-2 py-4 mt-2 lg:w-96 border text-gray-600 rounded-lg bg-white shadow-md flex flex-col space-y-2">
             {(hasAccess('ris') || superAdmins.includes(email)) && (
-              <Link href="/rispo">
+              <Link href="/ris">
                 <div className="app__menu_item">
                   <div className="pt-1">
                     <FaGasPump className="w-8 h-6" />

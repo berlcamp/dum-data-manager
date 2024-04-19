@@ -27,12 +27,14 @@ import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { useDispatch, useSelector } from 'react-redux'
 import AddEditModal from './AddEditModal'
+import RisModal from './RisModal'
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showRisModal, setShowRisModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RisCaTypes | null>(null)
 
   // Filters
@@ -247,6 +249,14 @@ const Page: React.FC = () => {
                             className="app__btn_green_xs">
                             Edit
                           </button>
+                          <button
+                            onClick={() => {
+                              setSelectedItem(item)
+                              setShowRisModal(true)
+                            }}
+                            className="app__btn_blue_xs whitespace-nowrap">
+                            View R.I.S.
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -274,6 +284,13 @@ const Page: React.FC = () => {
             <AddEditModal
               editData={selectedItem}
               hideModal={() => setShowAddModal(false)}
+            />
+          )}
+          {/* RIS List Modal */}
+          {showRisModal && selectedItem && (
+            <RisModal
+              ca={selectedItem}
+              hideModal={() => setShowRisModal(false)}
             />
           )}
         </div>
