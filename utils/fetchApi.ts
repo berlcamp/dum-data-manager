@@ -352,6 +352,7 @@ export async function fetchRisVehicles (filters: {
 
 export async function fetchVehicleReservations (filters: {
   filterKeyword?: string
+  filterVehicle?: string
   filterDate?: Date | undefined
 }) {
   try {
@@ -374,6 +375,11 @@ export async function fetchVehicleReservations (filters: {
       query = query.gte('date', format(currentDate, 'yyyy-MM-dd'))
       query = query.lte('date', format(newDate, 'yyyy-MM-dd'))
     }
+
+    // Filter vehicle
+    if (filters.filterVehicle && filters.filterVehicle !== '') {
+      query = query.eq('vehicle_id', filters.filterVehicle)
+  }
 
     // Order By
     query = query.order('time', { ascending: true })

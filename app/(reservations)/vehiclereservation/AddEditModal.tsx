@@ -1,5 +1,5 @@
 'use client'
-import { CustomButton } from '@/components/index'
+import { ConfirmModal, CustomButton } from '@/components/index'
 import {
   Form,
   FormControl,
@@ -77,6 +77,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const { supabase, session, systemUsers } = useSupabase()
 
   const [vehicles, setVehicles] = useState<ReservationVehicleTypes[] | []>([])
+
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
 
   const user: AccountTypes = systemUsers.find(
     (user: AccountTypes) => user.id === session.user.id
@@ -186,6 +188,32 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     }
   }
 
+  const handleDelete = async () => {
+    if (!editData) return
+
+    try {
+      const { error } = await supabase
+        .from('ddm_reservations')
+        .delete()
+        .eq('id', editData.id)
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
+      // Remove data in redux
+      const items = [...globallist]
+      const updatedList = items.filter(
+        (item) => item.id.toString() !== editData.id.toString()
+      )
+      dispatch(updateList(updatedList))
+
+      setToast('success', 'Successfully deleted')
+      setShowConfirmDelete(false)
+      hideModal()
+    } catch (error) {}
+  }
+
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       hideModal()
@@ -220,12 +248,22 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
             <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
               Reservation Details
             </h5>
-            <CustomButton
-              containerStyles="app__btn_gray"
-              title="Close"
-              btnType="button"
-              handleClick={hideModal}
-            />
+            <div className="flex space-x-2">
+              {editData && (
+                <CustomButton
+                  containerStyles="app__btn_red"
+                  title="Delete"
+                  btnType="button"
+                  handleClick={() => setShowConfirmDelete(true)}
+                />
+              )}
+              <CustomButton
+                containerStyles="app__btn_gray"
+                title="Close"
+                btnType="button"
+                handleClick={hideModal}
+              />
+            </div>
           </div>
 
           <div className="app__modal_body">
@@ -417,6 +455,15 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           </div>
         </div>
       </div>
+      {showConfirmDelete && (
+        <ConfirmModal
+          onConfirm={handleDelete}
+          header="Confirm Delete"
+          btnText="Yes, Delete"
+          message="Are you sure you want to delete this?"
+          onCancel={() => setShowConfirmDelete(false)}
+        />
+      )}
     </div>
   )
 }

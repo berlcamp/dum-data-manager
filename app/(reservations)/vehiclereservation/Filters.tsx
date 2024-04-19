@@ -14,31 +14,57 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useSupabase } from '@/context/SupabaseProvider'
 import { cn } from '@/lib/utils'
+import { ReservationVehicleTypes } from '@/types'
 import { format } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 interface FilterTypes {
   setFilterDate: (date: Date | undefined) => void
   setFilterKeyword: (keyword: string) => void
+  setFilterVehicle: (vehicle: string) => void
 }
 
 const FormSchema = z.object({
   keyword: z.string().optional(),
   date: z.date().optional(),
+  vehicle: z.string().optional(),
 })
 
-const Filters = ({ setFilterDate, setFilterKeyword }: FilterTypes) => {
+const Filters = ({
+  setFilterDate,
+  setFilterKeyword,
+  setFilterVehicle,
+}: FilterTypes) => {
   //
+  const [vehicles, setVehicles] = useState<ReservationVehicleTypes[] | []>([])
+
+  const { supabase } = useSupabase()
+
   const form = useForm<z.infer<typeof FormSchema>>({
-    defaultValues: { date: undefined, keyword: '' },
+    defaultValues: { date: undefined, keyword: '', vehicle: '' },
   })
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     setFilterDate(data.date)
     setFilterKeyword(data.keyword || '')
+
+    const vehicleId = vehicles.find(
+      (v) => `${v.name}-${v.plate_number}` === data.vehicle
+    )?.id
+
+    setFilterVehicle(vehicleId || '')
   }
 
   // clear all filters
@@ -46,7 +72,19 @@ const Filters = ({ setFilterDate, setFilterKeyword }: FilterTypes) => {
     form.reset()
     setFilterDate(undefined)
     setFilterKeyword('')
+    setFilterVehicle('')
   }
+
+  useEffect(() => {
+    // Fetch vehicles
+    ;(async () => {
+      const { data } = await supabase
+        .from('ddm_reservation_vehicles')
+        .select()
+        .order('name', { ascending: true })
+      setVehicles(data)
+    })()
+  }, [])
 
   return (
     <div className="">
@@ -106,6 +144,36 @@ const Filters = ({ setFilterDate, setFilterKeyword }: FilterTypes) => {
                         />
                       </PopoverContent>
                     </Popover>
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="items-center inline-flex app__filter_field_container">
+              <FormField
+                control={form.control}
+                name="vehicle"
+                render={({ field }) => (
+                  <FormItem className="w-[240px]">
+                    <FormLabel className="app__form_label">Vehicle</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose Vehicle" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {vehicles?.map((v, index) => (
+                          <SelectItem
+                            key={index}
+                            value={`${v.name}-${v.plate_number}`}>
+                            {`${v.name}-${v.plate_number}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormItem>
                 )}
               />

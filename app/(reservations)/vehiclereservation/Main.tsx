@@ -23,6 +23,7 @@ import { updateList } from '@/GlobalRedux/Features/listSlice'
 
 // Types
 import type { ReservationTypes } from '@/types'
+import ListView from './ListView'
 import Week from './Week'
 
 const Page: React.FC = () => {
@@ -37,6 +38,8 @@ const Page: React.FC = () => {
   // Filters
   const [filterDate, setFilterDate] = useState<Date | undefined>(undefined)
   const [filterKeyword, setFilterKeyword] = useState('')
+  const [filterVehicle, setFilterVehicle] = useState('')
+  const [filterApplied, setFilterApplied] = useState(false)
 
   // List
   const [list, setList] = useState<ReservationTypes[] | []>([])
@@ -55,6 +58,7 @@ const Page: React.FC = () => {
       const result = await fetchVehicleReservations({
         filterKeyword,
         filterDate,
+        filterVehicle,
       })
 
       // update the list in redux
@@ -85,7 +89,13 @@ const Page: React.FC = () => {
   useEffect(() => {
     setList([])
     void fetchData()
-  }, [filterKeyword, filterDate])
+
+    if (filterKeyword !== '' || filterDate || filterVehicle !== '') {
+      setFilterApplied(true)
+    } else {
+      setFilterApplied(false)
+    }
+  }, [filterKeyword, filterDate, filterVehicle])
 
   const isDataEmpty = list.length < 1 || !list
   const email: string = session.user.email
@@ -118,13 +128,15 @@ const Page: React.FC = () => {
             <Filters
               setFilterKeyword={setFilterKeyword}
               setFilterDate={setFilterDate}
+              setFilterVehicle={setFilterVehicle}
             />
           </div>
 
           {/* Main Content */}
           <div>
             {loading && <TwoColTableLoading />}
-            {!isDataEmpty && <Week data={list} />}
+            {!isDataEmpty && !filterApplied && <Week data={list} />}
+            {!isDataEmpty && filterApplied && <ListView data={list} />}
 
             {!loading && isDataEmpty && (
               <div className="app__norecordsfound">No records found.</div>

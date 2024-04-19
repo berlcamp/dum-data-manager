@@ -11,6 +11,7 @@ import {
   subDays,
 } from 'date-fns'
 import { useEffect, useState } from 'react'
+import AddEditModal from './AddEditModal'
 
 interface PageProps {
   data: ReservationTypes[]
@@ -19,6 +20,17 @@ interface PageProps {
 export default function Week({ data }: PageProps) {
   // List
   const [list, setList] = useState<ListTypes[] | []>([])
+
+  // Modals
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<ReservationTypes | null>(
+    null
+  )
+
+  const handleEdit = (item: ReservationTypes) => {
+    setShowAddModal(true)
+    setSelectedItem(item)
+  }
 
   // Update list whenever list in redux updates
   useEffect(() => {
@@ -65,7 +77,7 @@ export default function Week({ data }: PageProps) {
       currentDate = addDays(currentDate, 1)
     }
     setList(listArray)
-  }, [])
+  }, [data])
 
   return (
     <div className="mx-4 grid grid-cols-8">
@@ -103,10 +115,11 @@ export default function Week({ data }: PageProps) {
               {h.reservations.map((r, idx2) => (
                 <div
                   key={idx2}
+                  onClick={() => handleEdit(r)}
                   className={`${
                     idx2 > 2 ? 'hidden' : ''
-                  } bg-green-100 leading-none px-1 py-px mb-1`}>
-                  <div className="text-[11px]">
+                  } bg-green-100 leading-none px-1 py-px mb-1 cursor-pointer`}>
+                  <div className="text-[11px] ">
                     {r.vehicle?.name} {r.vehicle?.plate_number}
                   </div>
                   <div className="text-[10px]">{r.time}</div>
@@ -123,6 +136,14 @@ export default function Week({ data }: PageProps) {
           ))}
         </div>
       ))}
+
+      {/* Add/Edit Modal */}
+      {showAddModal && (
+        <AddEditModal
+          editData={selectedItem}
+          hideModal={() => setShowAddModal(false)}
+        />
+      )}
     </div>
   )
 }
