@@ -31,13 +31,13 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useFilter } from '@/context/FilterContext'
 import { cn } from '@/lib/utils'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // Redux imports
 import { useDispatch, useSelector } from 'react-redux'
 
 import { Input } from '@/components/ui/input'
-import type { AccountTypes, RisPoTypes } from '@/types'
+import type { AccountTypes, RisAppropriationTypes, RisPoTypes } from '@/types'
 import { format } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
 
@@ -84,6 +84,10 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const { setToast } = useFilter()
   const { supabase, session, systemUsers } = useSupabase()
 
+  const [appropriations, setAppropriations] = useState<
+    RisAppropriationTypes[] | []
+  >([])
+
   const user: AccountTypes = systemUsers.find(
     (user: AccountTypes) => user.id === session.user.id
   )
@@ -99,7 +103,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     defaultValues: {
       type: editData ? editData.type : '',
       po_number: editData ? editData.po_number : '',
-      appropriation: editData ? editData.appropriation : '',
+      appropriation: editData ? editData.appropriation?.toString() || '' : '',
       price: editData ? editData.price : 0,
       quantity: editData ? editData.quantity : 0,
       description: editData ? editData.description : '',
@@ -124,6 +128,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         appropriation: formdata.appropriation,
         price: formdata.price,
         quantity: formdata.quantity,
+        amount: Number(formdata.quantity) * Number(formdata.price),
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
         created_by: session.user.id,
       }
@@ -141,6 +146,12 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         id: data[0].id,
         po_date: data[0].po_date,
         ddm_user: user,
+        ddm_ris_appropriation: {
+          id: formdata.appropriation,
+          name: appropriations.find(
+            (a) => a.id.toString() === formdata.appropriation.toString()
+          )?.name,
+        },
       }
       dispatch(updateList([updatedData, ...globallist]))
 
@@ -165,6 +176,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         appropriation: formdata.appropriation,
         price: formdata.price,
         quantity: formdata.quantity,
+        amount: Number(formdata.quantity) * Number(formdata.price),
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
         created_by: session.user.id,
       }
@@ -177,11 +189,16 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       if (error) throw new Error(error.message)
 
       // update price per liter on all RIS if PO price has changed
-      if (editData.price !== formdata.price) {
+      if (
+        editData.price !== formdata.price ||
+        editData.appropriation !== formdata.appropriation ||
+        editData.type !== formdata.type
+      ) {
         await supabase
           .from('ddm_ris')
           .update({
             price: formdata.price,
+            type: formdata.type,
           })
           .eq('po_id', editData.id)
       }
@@ -192,6 +209,12 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         ...newData,
         id: editData.id,
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
+        ddm_ris_appropriation: {
+          id: formdata.appropriation,
+          name: appropriations.find(
+            (a) => a.id.toString() === formdata.appropriation.toString()
+          )?.name,
+        },
       }
       const foundIndex = items.findIndex((x) => x.id === updatedData.id)
       items[foundIndex] = { ...items[foundIndex], ...updatedData }
@@ -212,6 +235,45 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       hideModal()
     }
   }
+
+  useEffect(() => {
+    ;(async () => {
+      // Fetch appropriations
+      const { data } = await supabase
+        .from('ddm_ris_appropriations')
+        .select('*,ddm_ris_purchase_orders(amount)')
+
+      // Mutate the data to get the available amount
+      const updatedData: RisAppropriationTypes[] = []
+      if (data) {
+        data.forEach((item: RisAppropriationTypes) => {
+          const totalUsed = item.ddm_ris_purchase_orders
+            ? item.ddm_ris_purchase_orders.reduce(
+                (accumulator, po) => accumulator + Number(po.amount),
+                0
+              )
+            : 0
+          const remainingAmount = Number(item.amount) - totalUsed
+
+          // Exclude on list if remain quantity is 0
+          if (!editData) {
+            if (remainingAmount > 0) {
+              updatedData.push({
+                ...item,
+                remaining_amount: remainingAmount,
+              })
+            }
+          } else {
+            updatedData.push({
+              ...item,
+              remaining_amount: remainingAmount,
+            })
+          }
+        })
+      }
+      setAppropriations(updatedData)
+    })()
+  }, [])
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown)
@@ -313,12 +375,33 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                           <FormLabel className="app__form_label">
                             Appropriation
                           </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Appropriation"
-                              {...field}
-                            />
-                          </FormControl>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value.toString()}
+                            defaultValue={field.value.toString()}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choose Appropriation" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {appropriations?.map((a, i) => (
+                                <SelectItem
+                                  key={i}
+                                  value={a.id.toString()}>
+                                  {a.name} ( Available Amount:{' '}
+                                  {Number(a.remaining_amount).toLocaleString(
+                                    'en-US',
+                                    {
+                                      minimumFractionDigits: 2, // Minimum number of decimal places
+                                      maximumFractionDigits: 2, // Maximum number of decimal places
+                                    }
+                                  )}
+                                  )
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}

@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/select'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { cn } from '@/lib/utils'
-import { RisDepartmentTypes } from '@/types'
+import { RisCaTypes, RisDepartmentTypes, RisPoTypes } from '@/types'
 import { format } from 'date-fns'
 import { Calendar as CalendarIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -30,8 +30,9 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 interface FilterTypes {
-  setFilterType: (type: string) => void
-  setFilterDepartment: (department: string) => void
+  setFilterAppropriation: (a: string) => void
+  setFilterCa: (ca: string) => void
+  setFilterPo: (po: string) => void
   setFilterDateFrom: (date: Date | undefined) => void
   setFilterDateTo: (date: Date | undefined) => void
 }
@@ -39,17 +40,23 @@ interface FilterTypes {
 const FormSchema = z.object({
   dateFrom: z.date().optional(),
   dateTo: z.date().optional(),
-  type: z.string().optional(),
-  department: z.string().optional(),
+  appropriation: z.string().optional(),
+  purchase_order: z.string().optional(),
+  cash_advance: z.string().optional(),
 })
 
 const Filters = ({
-  setFilterType,
-  setFilterDepartment,
+  setFilterCa,
+  setFilterPo,
+  setFilterAppropriation,
   setFilterDateFrom,
   setFilterDateTo,
 }: FilterTypes) => {
-  const [departments, setDepartments] = useState<RisDepartmentTypes[] | []>([])
+  const [appropriations, setAppropriations] = useState<
+    RisDepartmentTypes[] | []
+  >([])
+  const [purchaseOrders, setPurchaseOrders] = useState<RisPoTypes[] | []>([])
+  const [cashAdvances, setCashAdvances] = useState<RisCaTypes[] | []>([])
 
   const { supabase } = useSupabase()
 
@@ -57,14 +64,16 @@ const Filters = ({
     defaultValues: {
       dateFrom: undefined,
       dateTo: undefined,
-      type: '',
-      department: 'All',
+      appropriation: '',
+      purchase_order: '',
+      cash_advance: '',
     },
   })
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-    setFilterDepartment(data.department || 'All')
-    setFilterType(data.type || 'All')
+    setFilterCa(data.cash_advance || 'All')
+    setFilterPo(data.purchase_order || 'All')
+    setFilterAppropriation(data.appropriation || 'All')
     setFilterDateFrom(data.dateFrom)
     setFilterDateTo(data.dateTo)
   }
@@ -72,22 +81,37 @@ const Filters = ({
   // clear all filters
   const handleClear = () => {
     form.reset()
-    setFilterType('All')
-    setFilterDepartment('All')
+    setFilterPo('All')
+    setFilterCa('All')
+    setFilterAppropriation('All')
     setFilterDateFrom(undefined)
     setFilterDateTo(undefined)
   }
 
   useEffect(() => {
-    // Fetch departments
+    // Fetch Appropriations
     ;(async () => {
-      const { data } = await supabase.from('ddm_ris_departments').select()
-      setDepartments(data)
+      const { data } = await supabase
+        .from('ddm_ris_appropriations')
+        .select()
+        .order('name', { ascending: true })
+      setAppropriations(data)
     })()
     // Fetch POs
     ;(async () => {
-      const { data } = await supabase.from('ddm_ris_departments').select()
-      setDepartments(data)
+      const { data } = await supabase
+        .from('ddm_ris_purchase_orders')
+        .select()
+        .order('po_number', { ascending: true })
+      setPurchaseOrders(data)
+    })()
+    // Fetch CAa
+    ;(async () => {
+      const { data } = await supabase
+        .from('ddm_ris_cash_advances')
+        .select()
+        .order('ca_number', { ascending: true })
+      setCashAdvances(data)
     })()
   }, [])
 
@@ -179,41 +203,91 @@ const Filters = ({
               />
             </div>
             <div className="items-center inline-flex app__filter_field_container">
-              <FormItem className="flex flex-col">
-                <FormLabel className="app__form_label">Department</FormLabel>
-                <select
-                  {...form.register('department')}
-                  className="w-full text-sm py-2 px-2 text-gray-600 border border-gray-300 rounded-sm focus:ring-0 focus:outline-none dark:bg-gray-900 dark:text-gray-300">
-                  <option value="All">All</option>
-                  {departments?.map((item, idx) => (
-                    <option
-                      key={idx}
-                      value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </FormItem>
+              <FormField
+                control={form.control}
+                name="purchase_order"
+                render={({ field }) => (
+                  <FormItem className="w-[140px]">
+                    <FormLabel className="app__form_label">P.O.</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value?.toString()}
+                      defaultValue={field.value?.toString()}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {purchaseOrders?.map((a, i) => (
+                          <SelectItem
+                            key={i}
+                            value={a.id.toString()}>
+                            {a.po_number}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
             </div>
             <div className="items-center inline-flex app__filter_field_container">
               <FormField
                 control={form.control}
-                name="type"
+                name="cash_advance"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="app__form_label">Type</FormLabel>
+                  <FormItem className="w-[140px]">
+                    <FormLabel className="app__form_label">C.A.</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}>
+                      value={field.value?.toString()}
+                      defaultValue={field.value?.toString()}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Choose Type" />
+                          <SelectValue placeholder="All" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="All">All</SelectItem>
-                        <SelectItem value="Gasoline">Gasoline</SelectItem>
-                        <SelectItem value="Diesel">Diesel</SelectItem>
+                        {cashAdvances?.map((a, i) => (
+                          <SelectItem
+                            key={i}
+                            value={a.id.toString()}>
+                            {a.ca_number}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="items-center inline-flex app__filter_field_container">
+              <FormField
+                control={form.control}
+                name="appropriation"
+                render={({ field }) => (
+                  <FormItem className="w-[140px]">
+                    <FormLabel className="app__form_label">
+                      Appropriations
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value?.toString()}
+                      defaultValue={field.value?.toString()}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {appropriations?.map((item, idx) => (
+                          <SelectItem
+                            key={idx}
+                            value={item.id.toString()}>
+                            {item.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </FormItem>

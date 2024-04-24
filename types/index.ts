@@ -156,6 +156,7 @@ export interface RisPoTypes {
   ddm_user: AccountTypes
   ddm_ris: RisTypes[]
   remaining_quantity?: number
+  ddm_ris_appropriation: RisAppropriationTypes
 }
 
 export interface RisCaTypes {
@@ -178,6 +179,7 @@ export interface RisTypes {
   requester: string
   date_requested: string
   department_id: string
+  appropriation_id: string
   quantity: number
   price: number
   total_amount: number
@@ -206,12 +208,18 @@ export interface RisPriceTypes {
   date: string
 }
 
-
-
 export interface RisDepartmentTypes {
   id: string
   name: string
   office: string
+}
+
+export interface RisAppropriationTypes {
+  id: string
+  name: string
+  amount: number
+  ddm_ris_purchase_orders: RisPoTypes[]
+  remaining_amount?: number
 }
 
 export interface ProfileTypes {

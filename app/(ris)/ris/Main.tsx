@@ -13,6 +13,8 @@ import {
   Unauthorized,
 } from '@/components/index'
 import { fetchRis } from '@/utils/fetchApi'
+import Excel from 'exceljs'
+import { saveAs } from 'file-saver'
 import React, { useEffect, useState } from 'react'
 
 import Filters from './Filters'
@@ -32,6 +34,7 @@ import PrintButton from './PrintButton'
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
@@ -40,7 +43,13 @@ const Page: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   // Filters
-  const [filterType, setFilterType] = useState('All')
+  const [filterPo, setFilterPo] = useState('All')
+  const [filterCa, setFilterCa] = useState('All')
+  const [filterAppropriation, setFilterAppropriation] = useState('All')
+  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(
+    undefined
+  )
+  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined)
   const [filterKeyword, setFilterKeyword] = useState('')
 
   // List
@@ -63,7 +72,11 @@ const Page: React.FC = () => {
       const result = await fetchRis(
         {
           filterKeyword,
-          filterType,
+          filterAppropriation,
+          filterPo,
+          filterCa,
+          filterDateFrom,
+          filterDateTo,
         },
         perPageCount,
         0
@@ -89,7 +102,11 @@ const Page: React.FC = () => {
       const result = await fetchRis(
         {
           filterKeyword,
-          filterType,
+          filterAppropriation,
+          filterPo,
+          filterCa,
+          filterDateFrom,
+          filterDateTo,
         },
         perPageCount,
         list.length
@@ -118,6 +135,76 @@ const Page: React.FC = () => {
     setSelectedItem(item)
   }
 
+  const handleDownloadExcel = async () => {
+    setDownloading(true)
+
+    // Create a new workbook and add a worksheet
+    const workbook = new Excel.Workbook()
+    const worksheet = workbook.addWorksheet('Sheet 1')
+
+    // Add data to the worksheet
+    worksheet.columns = [
+      { header: '#', key: 'no', width: 20 },
+      { header: 'PO', key: 'po', width: 20 },
+      { header: 'CA', key: 'ca', width: 20 },
+      { header: 'Requester', key: 'requester', width: 20 },
+      { header: 'Type', key: 'type', width: 20 },
+      { header: 'Quantity', key: 'quantity', width: 20 },
+      { header: 'Price', key: 'price', width: 20 },
+      { header: 'Vehicle', key: 'vehicle', width: 20 },
+      { header: 'Department', key: 'department', width: 20 },
+      { header: 'Appropriation', key: 'appropriation', width: 20 },
+      // Add more columns based on your data structure
+    ]
+
+    const result = await fetchRis(
+      {
+        filterKeyword,
+        filterAppropriation,
+        filterPo,
+        filterCa,
+        filterDateFrom,
+        filterDateTo,
+      },
+      99999,
+      0
+    )
+
+    const risData: RisTypes[] = result.data
+
+    // Data for the Excel file
+    const data: any[] = []
+    risData.forEach((item, index) => {
+      data.push({
+        no: index + 1,
+        po: `${item.purchase_order?.po_number || ''}`,
+        ca: `${item.cash_advance?.ca_number || ''}`,
+        requester: `${item.requester}`,
+        type: `${item.type}`,
+        quantity: `${item.quantity}`,
+        price: `${item.price}`,
+        vehicle: `${item.vehicle.name}-${item.vehicle.plate_number}`,
+        department: `${item.department.name}`,
+        appropriation: `${
+          item.purchase_order?.ddm_ris_appropriation?.name || ''
+        }`,
+      })
+    })
+
+    data.forEach((item) => {
+      worksheet.addRow(item)
+    })
+
+    // Generate the Excel file
+    await workbook.xlsx.writeBuffer().then((buffer) => {
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      saveAs(blob, `Summary.xlsx`)
+    })
+    setDownloading(false)
+  }
+
   // Update list whenever list in redux updates
   useEffect(() => {
     setList(globallist)
@@ -127,7 +214,15 @@ const Page: React.FC = () => {
   useEffect(() => {
     setList([])
     void fetchData()
-  }, [filterKeyword, filterType, perPageCount])
+  }, [
+    filterKeyword,
+    filterAppropriation,
+    filterPo,
+    filterCa,
+    filterDateFrom,
+    filterDateTo,
+    perPageCount,
+  ])
 
   const isDataEmpty = !Array.isArray(list) || list.length < 1 || !list
   const email: string = session.user.email
@@ -158,7 +253,22 @@ const Page: React.FC = () => {
           <div className="app__filters">
             <Filters
               setFilterKeyword={setFilterKeyword}
-              setFilterType={setFilterType}
+              setFilterAppropriation={setFilterAppropriation}
+              setFilterPo={setFilterPo}
+              setFilterCa={setFilterCa}
+              setFilterDateFrom={setFilterDateFrom}
+              setFilterDateTo={setFilterDateTo}
+            />
+          </div>
+
+          {/* Export Button */}
+          <div className="mx-4 mb-4 flex justify-end">
+            <CustomButton
+              containerStyles="app__btn_blue"
+              isDisabled={downloading}
+              title={downloading ? 'Downloading...' : 'Export To Excel'}
+              btnType="submit"
+              handleClick={handleDownloadExcel}
             />
           </div>
 
@@ -271,14 +381,14 @@ const Page: React.FC = () => {
                             className="app__btn_green_xs">
                             Edit
                           </button>
-                          <button
+                          {/* <button
                             onClick={() => {
                               setSelectedId(item.id.toString())
                               setShowDeleteModal(true)
                             }}
                             className="app__btn_red_xs">
                             Delete
-                          </button>
+                          </button> */}
                         </div>
                       </td>
                     </tr>

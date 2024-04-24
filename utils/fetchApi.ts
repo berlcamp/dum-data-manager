@@ -173,7 +173,7 @@ export async function fetchPurchaseOrders (filters: {
   try {
     let query = supabase
       .from('ddm_ris_purchase_orders')
-      .select('*, ddm_user:created_by(*), ddm_ris(quantity)', { count: 'exact' })
+      .select('*, ddm_user:created_by(*), ddm_ris(quantity), ddm_ris_appropriation:appropriation(*)', { count: 'exact' })
 
       // Full text search
     if (typeof filters.filterKeyword !== 'undefined' && filters.filterKeyword.trim() !== '') {
@@ -216,7 +216,7 @@ export async function fetchCashAdvances (filters: {
   try {
     let query = supabase
       .from('ddm_ris_cash_advances')
-      .select('*, ddm_user:created_by(*), ddm_ris(total_amount)', { count: 'exact' })
+      .select('*, ddm_user:created_by(*), ddm_ris(price,quantity)', { count: 'exact' })
 
       // Full text search
     if (typeof filters.filterKeyword !== 'undefined' && filters.filterKeyword.trim() !== '') {
@@ -250,15 +250,35 @@ export async function fetchCashAdvances (filters: {
 
 export async function fetchRis (filters: {
   filterKeyword?: string
-  filterDepartment?: string
+  filterAppropriation?: string
+  filterCa?: string
+  filterPo?: string
   filterType?: string
   filterDateFrom?: Date | undefined
   filterDateTo?: Date | undefined
 }, perPageCount: number, rangeFrom: number) {
   try {
+    // Appropriation filters
+    const poIds: string[] = []
+    if (filters.filterAppropriation && filters.filterAppropriation !== 'All') {
+      let query1 = supabase.from('ddm_ris_purchase_orders')
+        .select('id')
+        .eq('appropriation', filters.filterAppropriation)
+        .limit(500)
+      const { data: data1 } = await query1
+
+      if (data1) {
+        if(data1.length > 0) {
+        data1.forEach(d => poIds.push(d.id))
+        } else {
+          poIds.push('99999999')
+        }
+      }
+    }
+
     let query = supabase
       .from('ddm_ris')
-      .select('*, ddm_user:created_by(*), vehicle:vehicle_id(*), purchase_order:po_id(*),cash_advance:ca_id(*), department:department_id(*)', { count: 'exact' })
+      .select('*, ddm_user:created_by(*), vehicle:vehicle_id(*), purchase_order:po_id(*, ddm_ris_appropriation:appropriation(name)),cash_advance:ca_id(*), department:department_id(*)', { count: 'exact' })
       .eq('is_deleted', false)
 
       // Full text search
@@ -266,14 +286,24 @@ export async function fetchRis (filters: {
       query = query.or(`id.eq.${Number(filters.filterKeyword) || 0},requester.ilike.%${filters.filterKeyword}%,purpose.ilike.%${filters.filterKeyword}%`)
     }
 
-    // Filter type
-    if (typeof filters.filterType !== 'undefined' && filters.filterType.trim() !== 'All') {
+    // P.O.
+    if (filters.filterPo && filters.filterPo !== 'All') {
+      query = query.eq('po_id', filters.filterPo)
+    }
+
+    // C.A.
+    if (filters.filterCa && filters.filterCa !== 'All') {
+      query = query.eq('ca_id', filters.filterCa)
+    }
+
+    // Type
+    if (filters.filterType && filters.filterType !== 'All') {
       query = query.eq('type', filters.filterType)
     }
 
-    // Filter Department
-    if (typeof filters.filterDepartment !== 'undefined' && filters.filterDepartment.trim() !== 'All') {
-      query = query.eq('department_id', filters.filterDepartment)
+    // From Appropriation filters
+    if (poIds.length > 0) {
+      query = query.in('po_id', poIds)
     }
 
     // Filter date from
@@ -306,7 +336,7 @@ export async function fetchRis (filters: {
 
     return { data, count }
   } catch (error) {
-    console.error('fetch error xx', error)
+    console.error('fetch ris error', error)
     return { data: [], count: 0 }
   }
 }
@@ -444,6 +474,45 @@ export async function fetchRisDepartments (filters: {
     let query = supabase
       .from('ddm_ris_departments')
       .select('*', { count: 'exact' })
+
+      // Full text search
+    if (typeof filters.filterKeyword !== 'undefined' && filters.filterKeyword.trim() !== '') {
+      query = query.or(`name.ilike.%${filters.filterKeyword}%`)
+    }
+
+    // Perform count before paginations
+    // const { count } = await query
+
+    // Per Page from context
+    const from = rangeFrom
+    const to = from + (perPageCount - 1)
+    // Per Page from context
+    query = query.range(from, to)
+
+    // Order By
+    query = query.order('id', { ascending: false })
+
+    const { data, count, error } = await query
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return { data, count }
+  } catch (error) {
+    console.error('fetch error xx', error)
+    return { data: [], count: 0 }
+  }
+}
+
+export async function fetchRisAppropriations (filters: {
+
+  filterKeyword?: string
+}, perPageCount: number, rangeFrom: number) {
+  try {
+    let query = supabase
+      .from('ddm_ris_appropriations')
+      .select('*,ddm_ris_purchase_orders(amount)', { count: 'exact' })
 
       // Full text search
     if (typeof filters.filterKeyword !== 'undefined' && filters.filterKeyword.trim() !== '') {

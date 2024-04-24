@@ -49,17 +49,24 @@ export default function RisSidebar() {
 
         <li>
           <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2 mt-8">
-            <span>Reports</span>
+            <span>Dashboard</span>
           </div>
         </li>
         <li>
           <Link
+            href="/rissummary"
+            className={`app__menu_link ${
+              currentRoute === '/rissummary' ? 'app_menu_link_active' : ''
+            }`}>
+            <span className="flex-1 ml-3 whitespace-nowrap">Summary</span>
+          </Link>
+          {/* <Link
             href="/risreports"
             className={`app__menu_link ${
               currentRoute === '/risreports' ? 'app_menu_link_active' : ''
             }`}>
             <span className="flex-1 ml-3 whitespace-nowrap">Summary</span>
-          </Link>
+          </Link> */}
         </li>
         <li>
           <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2 mt-8">
@@ -83,6 +90,19 @@ export default function RisSidebar() {
               currentRoute === '/risdepartments' ? 'app_menu_link_active' : ''
             }`}>
             <span className="flex-1 ml-3 whitespace-nowrap">Departments</span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/risappropriations"
+            className={`app__menu_link ${
+              currentRoute === '/risappropriations'
+                ? 'app_menu_link_active'
+                : ''
+            }`}>
+            <span className="flex-1 ml-3 whitespace-nowrap">
+              Appropriations
+            </span>
           </Link>
         </li>
       </ul>

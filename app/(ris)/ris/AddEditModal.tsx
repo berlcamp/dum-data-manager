@@ -53,7 +53,7 @@ const FormSchema = z.object({
     message: 'Requester is required.',
   }),
   department_id: z.coerce.string().min(1, {
-    message: 'Department is required.',
+    message: 'Requesting Department is required.',
   }),
   po_id: z.coerce.string().optional(),
   ca_id: z.coerce.string().optional(),
@@ -295,7 +295,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     ;(async () => {
       const { data } = await supabase
         .from('ddm_ris_purchase_orders')
-        .select('*, ddm_ris(quantity)')
+        .select('*, ddm_ris_appropriation:appropriation(*),ddm_ris(quantity)')
+        .order('po_number', { ascending: true })
+
       // Mutate the data to get the remaining quantity
       const updatedData: RisPoTypes[] = []
       if (data) {
@@ -332,6 +334,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       const { data } = await supabase
         .from('ddm_ris_cash_advances')
         .select('*, ddm_ris(total_amount)')
+        .order('ca_number', { ascending: true })
       // Mutate the data to get the remaining quantity
       const updatedData: RisCaTypes[] = []
       if (data) {
@@ -598,7 +601,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="app__form_label">
-                              Department
+                              Requesting Department
                             </FormLabel>
                             <Select
                               onValueChange={field.onChange}
@@ -617,7 +620,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                   <SelectItem
                                     key={idx}
                                     value={department.id.toString()}>
-                                    {department.name} - {department.office}
+                                    {department.name}
                                   </SelectItem>
                                 ))}
                               </SelectContent>

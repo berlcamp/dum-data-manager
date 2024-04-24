@@ -11,13 +11,13 @@ import {
   TopBar,
   Unauthorized,
 } from '@/components/index'
-import { fetchRisDepartments } from '@/utils/fetchApi'
+import { fetchRisAppropriations } from '@/utils/fetchApi'
 import React, { useEffect, useState } from 'react'
 
 import Filters from './Filters'
 
 // Types
-import type { RisDepartmentTypes } from '@/types'
+import type { RisAppropriationTypes } from '@/types'
 
 // Redux imports
 import { updateList } from '@/GlobalRedux/Features/listSlice'
@@ -32,15 +32,14 @@ const Page: React.FC = () => {
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<RisDepartmentTypes | null>(
-    null
-  )
+  const [selectedItem, setSelectedItem] =
+    useState<RisAppropriationTypes | null>(null)
 
   // Filters
   const [filterKeyword, setFilterKeyword] = useState('')
 
   // List
-  const [list, setList] = useState<RisDepartmentTypes[]>([])
+  const [list, setList] = useState<RisAppropriationTypes[]>([])
   const [perPageCount, setPerPageCount] = useState<number>(10)
   const [showingCount, setShowingCount] = useState<number>(0)
   const [resultsCount, setResultsCount] = useState<number>(0)
@@ -56,7 +55,7 @@ const Page: React.FC = () => {
     setLoading(true)
 
     try {
-      const result = await fetchRisDepartments(
+      const result = await fetchRisAppropriations(
         {
           filterKeyword,
         },
@@ -81,7 +80,7 @@ const Page: React.FC = () => {
     setLoading(true)
 
     try {
-      const result = await fetchRisDepartments(
+      const result = await fetchRisAppropriations(
         {
           filterKeyword,
         },
@@ -107,9 +106,41 @@ const Page: React.FC = () => {
     setSelectedItem(null)
   }
 
-  const handleEdit = (item: RisDepartmentTypes) => {
+  const handleEdit = (item: RisAppropriationTypes) => {
     setShowAddModal(true)
     setSelectedItem(item)
+  }
+
+  const countRemainingAmount = (item: RisAppropriationTypes) => {
+    const totalAmountUsed = item.ddm_ris_purchase_orders
+      ? item.ddm_ris_purchase_orders.reduce(
+          (accumulator, po) => accumulator + Number(po.amount),
+          0
+        )
+      : 0
+    const remainingAmount = Number(item.amount) - totalAmountUsed
+
+    if (isNaN(remainingAmount)) return ''
+
+    if (remainingAmount < 1000) {
+      return (
+        <span style={{ color: 'red', fontWeight: 'bold' }}>
+          {remainingAmount.toLocaleString('en-US', {
+            minimumFractionDigits: 2, // Minimum number of decimal places
+            maximumFractionDigits: 2, // Maximum number of decimal places
+          })}
+        </span>
+      )
+    } else {
+      return (
+        <span>
+          {remainingAmount.toLocaleString('en-US', {
+            minimumFractionDigits: 2, // Minimum number of decimal places
+            maximumFractionDigits: 2, // Maximum number of decimal places
+          })}
+        </span>
+      )
+    }
   }
 
   // Update list whenever list in redux updates
@@ -139,10 +170,10 @@ const Page: React.FC = () => {
           {/* Header */}
           <TopBar />
           <div className="app__title">
-            <Title title="Departments" />
+            <Title title="Appropriations" />
             <CustomButton
               containerStyles="app__btn_green"
-              title="Add New Department"
+              title="Add New Appropriation"
               btnType="button"
               handleClick={handleAdd}
             />
@@ -166,7 +197,9 @@ const Page: React.FC = () => {
             <table className="app__table">
               <thead className="app__thead">
                 <tr>
-                  <th className="app__th">Requesting Department</th>
+                  <th className="app__th">Appropriation</th>
+                  <th className="app__th">Allocated Amount</th>
+                  <th className="app__th">Remaining Amount</th>
                   <th className="app__th"></th>
                 </tr>
               </thead>
@@ -177,6 +210,13 @@ const Page: React.FC = () => {
                       key={index}
                       className="app__tr">
                       <td className="app__td">{item.name}</td>
+                      <td className="app__td">
+                        {Number(item.amount).toLocaleString('en-US', {
+                          minimumFractionDigits: 2, // Minimum number of decimal places
+                          maximumFractionDigits: 2, // Maximum number of decimal places
+                        })}
+                      </td>
+                      <td className="app__td">{countRemainingAmount(item)}</td>
                       <td className="app__td">
                         <div className="flex space-x-2 items-center">
                           <button
@@ -190,7 +230,7 @@ const Page: React.FC = () => {
                   ))}
                 {loading && (
                   <TableRowLoading
-                    cols={2}
+                    cols={3}
                     rows={2}
                   />
                 )}

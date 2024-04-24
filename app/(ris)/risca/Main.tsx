@@ -120,7 +120,8 @@ const Page: React.FC = () => {
   const countRemainingAmount = (item: RisCaTypes) => {
     const totalAmountUsed = item.ddm_ris
       ? item.ddm_ris.reduce(
-          (accumulator, ris) => accumulator + Number(ris.total_amount),
+          (accumulator, ris) =>
+            accumulator + Number(ris.quantity) * Number(ris.price),
           0
         )
       : 0

@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  CustomButton,
   RisSidebar,
   Sidebar,
   Title,
@@ -12,8 +11,6 @@ import {
 import { fetchRis } from '@/utils/fetchApi'
 import React, { useEffect, useState } from 'react'
 
-import Excel from 'exceljs'
-import { saveAs } from 'file-saver'
 import Filters from './Filters'
 
 // Types
@@ -54,8 +51,9 @@ const Page: React.FC = () => {
   const [details, setDetails] = useState<ProfileTypes | null>(null)
 
   // Filters
-  const [filterType, setFilterType] = useState('All')
-  const [filterDepartment, setFilterDepartment] = useState('All')
+  const [filterPo, setFilterPo] = useState('All')
+  const [filterCa, setFilterCa] = useState('All')
+  const [filterAppropriation, setFilterAppropriation] = useState('All')
   const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(
     undefined
   )
@@ -109,8 +107,9 @@ const Page: React.FC = () => {
 
       const result = await fetchRis(
         {
-          filterDepartment,
-          filterType,
+          filterAppropriation,
+          filterCa,
+          filterPo,
           filterDateFrom,
           filterDateTo,
         },
@@ -195,7 +194,7 @@ const Page: React.FC = () => {
 
       purchaseOrders.forEach((po: RisPoTypes) => {
         const count = result.data.reduce((sum, f: RisTypes) => {
-          if (f.po_id.toString() === po.id.toString()) {
+          if (f.po_id?.toString() === po.id.toString()) {
             return sum + f.quantity
           }
           return sum
@@ -230,7 +229,7 @@ const Page: React.FC = () => {
 
       cashAdvances.forEach((po: RisCaTypes) => {
         const count = result.data.reduce((sum, f: RisTypes) => {
-          if (f.po_id.toString() === po.id.toString()) {
+          if (f.po_id?.toString() === po.id.toString()) {
             return sum + f.quantity
           }
           return sum
@@ -268,72 +267,10 @@ const Page: React.FC = () => {
     }
   }
 
-  const handleDownloadExcel = async () => {
-    setDownloading(true)
-
-    // Create a new workbook and add a worksheet
-    const workbook = new Excel.Workbook()
-    const worksheet = workbook.addWorksheet('Sheet 1')
-
-    // Add data to the worksheet
-    worksheet.columns = [
-      { header: '#', key: 'no', width: 20 },
-      { header: 'PO', key: 'po', width: 20 },
-      { header: 'Requester', key: 'requester', width: 20 },
-      { header: 'Type', key: 'type', width: 20 },
-      { header: 'Quantity', key: 'quantity', width: 20 },
-      { header: 'Price', key: 'price', width: 20 },
-      { header: 'Vehicle', key: 'vehicle', width: 20 },
-      { header: 'Department', key: 'department', width: 20 },
-      // Add more columns based on your data structure
-    ]
-
-    const result = await fetchRis(
-      {
-        filterDepartment,
-        filterType,
-        filterDateFrom,
-        filterDateTo,
-      },
-      99999,
-      0
-    )
-
-    const risData: RisTypes[] = result.data
-
-    // Data for the Excel file
-    const data: any[] = []
-    risData.forEach((item, index) => {
-      data.push({
-        no: index + 1,
-        po: `${item.purchase_order.po_number}`,
-        requester: `${item.requester}`,
-        type: `${item.type}`,
-        quantity: `${item.quantity}`,
-        price: `${item.price}`,
-        vehicle: `${item.vehicle.name}-${item.vehicle.plate_number}`,
-        department: `${item.department.name}`,
-      })
-    })
-
-    data.forEach((item) => {
-      worksheet.addRow(item)
-    })
-
-    // Generate the Excel file
-    await workbook.xlsx.writeBuffer().then((buffer) => {
-      const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      })
-      saveAs(blob, `Summary.xlsx`)
-    })
-    setDownloading(false)
-  }
-
   // Featch data
   useEffect(() => {
     void fetchData()
-  }, [filterDepartment, filterType, filterDateFrom, filterDateTo])
+  }, [filterAppropriation, filterPo, filterCa, filterDateFrom, filterDateTo])
 
   const email: string = session.user.email
 
@@ -356,8 +293,9 @@ const Page: React.FC = () => {
           {/* Filters */}
           <div className="app__filters">
             <Filters
-              setFilterType={setFilterType}
-              setFilterDepartment={setFilterDepartment}
+              setFilterAppropriation={setFilterAppropriation}
+              setFilterPo={setFilterPo}
+              setFilterCa={setFilterCa}
               setFilterDateFrom={setFilterDateFrom}
               setFilterDateTo={setFilterDateTo}
             />
@@ -366,15 +304,6 @@ const Page: React.FC = () => {
           {loading && <TwoColTableLoading />}
           {!loading && (
             <>
-              <div className="mx-4 flex justify-end">
-                <CustomButton
-                  containerStyles="app__btn_blue"
-                  isDisabled={downloading}
-                  title={downloading ? 'Downloading...' : 'Export To Excel'}
-                  btnType="submit"
-                  handleClick={handleDownloadExcel}
-                />
-              </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <div className="mx-4 mt-10 text-lg">

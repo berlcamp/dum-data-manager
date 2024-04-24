@@ -21,20 +21,25 @@ import { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { Input } from '@/components/ui/input'
-import type { RisDepartmentTypes } from '@/types'
+import type { RisAppropriationTypes } from '@/types'
 
 const FormSchema = z.object({
-  department_name: z.string().min(1, {
-    message: 'Department is required.',
+  appropriation_name: z.string().min(1, {
+    message: 'Appropriation Name is required.',
   }),
-  office: z.string().min(1, {
-    message: 'Office is required.',
-  }),
+  amount: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
+    .number({
+      required_error: 'Amount is required.',
+      invalid_type_error: 'Amount is required..',
+    })
+    .gte(1, {
+      message: 'Amount is required...',
+    }),
 })
 
 interface ModalProps {
   hideModal: () => void
-  editData: RisDepartmentTypes | null
+  editData: RisAppropriationTypes | null
 }
 
 export default function AddEditModal({ hideModal, editData }: ModalProps) {
@@ -50,8 +55,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      department_name: editData ? editData.name : '',
-      office: editData ? editData.office : '',
+      appropriation_name: editData ? editData.name : '',
+      amount: editData ? editData.amount : 0,
     },
   })
 
@@ -66,11 +71,12 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const handleCreate = async (formdata: z.infer<typeof FormSchema>) => {
     try {
       const newData = {
-        name: formdata.department_name,
+        name: formdata.appropriation_name,
+        amount: formdata.amount,
       }
 
       const { data, error } = await supabase
-        .from('ddm_ris_departments')
+        .from('ddm_ris_appropriations')
         .insert(newData)
         .select()
 
@@ -98,11 +104,12 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
     try {
       const newData = {
-        name: formdata.department_name,
+        name: formdata.appropriation_name,
+        amount: formdata.amount,
       }
 
       const { data, error } = await supabase
-        .from('ddm_ris_departments')
+        .from('ddm_ris_appropriations')
         .update(newData)
         .eq('id', editData.id)
 
@@ -149,7 +156,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         <div className="app__modal_wrapper3">
           <div className="app__modal_header">
             <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
-              Department Details
+              Appropriation Details
             </h5>
             <CustomButton
               containerStyles="app__btn_gray"
@@ -166,15 +173,15 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                   <div className="space-y-6">
                     <FormField
                       control={form.control}
-                      name="department_name"
+                      name="appropriation_name"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="app__form_label">
-                            Requesting Department
+                            Appropriation Name
                           </FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="E.g. MMO"
+                              placeholder="Appropriation"
                               {...field}
                             />
                           </FormControl>
@@ -184,6 +191,23 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                     />
                   </div>
                 </div>
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="app__form_label">Amount</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Amount"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <hr className="my-4" />
                 <div className="app__modal_footer">
                   <CustomButton

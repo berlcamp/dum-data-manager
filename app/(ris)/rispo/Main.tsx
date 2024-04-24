@@ -71,6 +71,20 @@ const Page: React.FC = () => {
         0
       )
 
+      // Update amount (delete this)
+      // result.data.forEach(async (d: RisPoTypes) => {
+      //   if (d.price) {
+      //     const tempAmount = Number(d.quantity) * Number(d.price)
+      //     const amount =
+      //       tempAmount % 1 !== 0 ? tempAmount.toFixed(2) : tempAmount
+
+      //     await supabase
+      //       .from('ddm_ris_purchase_orders')
+      //       .update({ amount: amount })
+      //       .eq('id', d.id)
+      //   }
+      // })
+
       // update the list in redux
       dispatch(updateList(result.data))
 
@@ -136,28 +150,6 @@ const Page: React.FC = () => {
       )
     } else {
       return <span>{remainingQuantity}</span>
-    }
-  }
-
-  const countRemainingAmount = (item: RisPoTypes) => {
-    const totalAmountUsed = item.ddm_ris
-      ? item.ddm_ris.reduce(
-          (accumulator, ris) => accumulator + Number(ris.total_amount),
-          0
-        )
-      : 0
-    const remainingAmount = Number(item.amount) - totalAmountUsed
-
-    if (isNaN(remainingAmount)) return ''
-
-    if (remainingAmount < 1000) {
-      return (
-        <span style={{ color: 'red', fontWeight: 'bold' }}>
-          {remainingAmount}
-        </span>
-      )
-    } else {
-      return <span>{remainingAmount}</span>
     }
   }
 
@@ -258,7 +250,7 @@ const Page: React.FC = () => {
                           <div>
                             <span className="font-light">Appropriation:</span>{' '}
                             <span className="font-medium">
-                              {item.appropriation}
+                              {item.ddm_ris_appropriation?.name}
                             </span>
                           </div>
 
@@ -273,14 +265,6 @@ const Page: React.FC = () => {
                           <div>
                             <span className="font-light">Amount:</span>{' '}
                             <span className="font-medium">{item.amount}</span>
-                          </div>
-                          <div>
-                            <span className="font-light">
-                              Remaining Amount:
-                            </span>{' '}
-                            <span className="font-medium">
-                              {countRemainingAmount(item)}
-                            </span>
                           </div>
                           <div>
                             <span className="font-light">Description:</span>{' '}
