@@ -27,9 +27,6 @@ const FormSchema = z.object({
   department_name: z.string().min(1, {
     message: 'Department is required.',
   }),
-  office: z.string().min(1, {
-    message: 'Office is required.',
-  }),
 })
 
 interface ModalProps {
@@ -51,7 +48,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     resolver: zodResolver(FormSchema),
     defaultValues: {
       department_name: editData ? editData.name : '',
-      office: editData ? editData.office : '',
     },
   })
 
