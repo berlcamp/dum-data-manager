@@ -145,6 +145,7 @@ const Page: React.FC = () => {
     // Add data to the worksheet
     worksheet.columns = [
       { header: '#', key: 'no', width: 20 },
+      { header: 'Date Requested', key: 'date', width: 20 },
       { header: 'PO', key: 'po', width: 20 },
       { header: 'CA', key: 'ca', width: 20 },
       { header: 'Requester', key: 'requester', width: 20 },
@@ -177,6 +178,7 @@ const Page: React.FC = () => {
     risData.forEach((item, index) => {
       data.push({
         no: index + 1,
+        date: format(new Date(item.date_requested), 'MM/dd/yyyy'),
         po: `${item.purchase_order?.po_number || ''}`,
         ca: `${item.cash_advance?.ca_number || ''}`,
         requester: `${item.requester}`,
@@ -353,8 +355,7 @@ const Page: React.FC = () => {
                           <div>
                             <span className="font-light">Department:</span>{' '}
                             <span className="font-medium">
-                              {item.department?.name} -{' '}
-                              {item.department?.office}
+                              {item.department?.name}
                             </span>
                           </div>
                           <div>

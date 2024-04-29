@@ -32,6 +32,7 @@ export default function RisModal({ hideModal, po }: ModalProps) {
     // Add data to the worksheet
     worksheet.columns = [
       { header: '#', key: 'no', width: 20 },
+      { header: 'Date Requested', key: 'date', width: 20 },
       { header: 'PO', key: 'po', width: 20 },
       { header: 'Requester', key: 'requester', width: 20 },
       { header: 'Type', key: 'type', width: 20 },
@@ -49,6 +50,7 @@ export default function RisModal({ hideModal, po }: ModalProps) {
     risData.forEach((item, index) => {
       data.push({
         no: index + 1,
+        date: format(new Date(item.date_requested), 'MM/dd/yyyy'),
         po: `${po.po_number}`,
         requester: `${item.requester}`,
         type: `${item.type}`,
@@ -143,7 +145,7 @@ export default function RisModal({ hideModal, po }: ModalProps) {
                     <th className="app__th">Quantity</th>
                     <th className="app__th">Price</th>
                     <th className="app__th">Amount</th>
-                    <th className="app__th">Requester</th>
+                    <th className="app__th">Requester/Department</th>
                   </tr>
                 </thead>
                 <tbody>
