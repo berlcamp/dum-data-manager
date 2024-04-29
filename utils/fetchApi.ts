@@ -177,7 +177,7 @@ export async function fetchPurchaseOrders (filters: {
 
       // Full text search
     if (typeof filters.filterKeyword !== 'undefined' && filters.filterKeyword.trim() !== '') {
-      query = query.eq('po_number', filters.filterKeyword)
+      query = query.or(`po_number.ilike.%${filters.filterKeyword}%,description.ilike.%${filters.filterKeyword}%`)
     }
 
     // Filter type

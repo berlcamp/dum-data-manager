@@ -60,7 +60,7 @@ const Filters = ({ setFilterType, setFilterKeyword }: FilterTypes) => {
                       Search P.O.
                     </FormLabel>
                     <Input
-                      placeholder="P.O. Number"
+                      placeholder="P.O. Number / Description"
                       {...field}
                     />
                   </FormItem>
