@@ -169,6 +169,7 @@ export async function fetchProfiles (filters: FilterProfileTypes, perPageCount: 
 export async function fetchPurchaseOrders (filters: {
   filterType?: string
   filterKeyword?: string
+  filterAppropriation?: string
 }, perPageCount: number, rangeFrom: number) {
   try {
     let query = supabase
@@ -183,6 +184,10 @@ export async function fetchPurchaseOrders (filters: {
     // Filter type
     if (typeof filters.filterType !== 'undefined' && filters.filterType.trim() !== 'All') {
       query = query.eq('type', filters.filterType)
+    }
+    // Filter appropriation
+    if (filters.filterAppropriation && filters.filterAppropriation.trim() !== 'All') {
+      query = query.eq('appropriation', filters.filterAppropriation)
     }
 
     // Perform count before paginations
@@ -251,6 +256,7 @@ export async function fetchCashAdvances (filters: {
 export async function fetchRis (filters: {
   filterKeyword?: string
   filterAppropriation?: string
+  filterDepartment?: string
   filterCa?: string
   filterPo?: string
   filterType?: string
@@ -299,6 +305,11 @@ export async function fetchRis (filters: {
     // Type
     if (filters.filterType && filters.filterType !== 'All') {
       query = query.eq('type', filters.filterType)
+    }
+
+    // Department
+    if (filters.filterDepartment && filters.filterDepartment !== 'All') {
+      query = query.eq('department_id', filters.filterDepartment)
     }
 
     // From Appropriation filters

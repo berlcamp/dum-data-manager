@@ -23,7 +23,12 @@ import {
 } from '@/components/ui/select'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { cn } from '@/lib/utils'
-import { RisCaTypes, RisDepartmentTypes, RisPoTypes } from '@/types'
+import {
+  RisAppropriationTypes,
+  RisCaTypes,
+  RisDepartmentTypes,
+  RisPoTypes,
+} from '@/types'
 import { format } from 'date-fns'
 import { Calendar as CalendarIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -32,6 +37,7 @@ import { z } from 'zod'
 
 interface FilterTypes {
   setFilterAppropriation: (a: string) => void
+  setFilterDepartment: (d: string) => void
   setFilterCa: (ca: string) => void
   setFilterPo: (po: string) => void
   setFilterDateFrom: (date: Date | undefined) => void
@@ -44,6 +50,7 @@ const FormSchema = z.object({
   dateFrom: z.date().optional(),
   dateTo: z.date().optional(),
   appropriation: z.string().optional(),
+  department: z.string().optional(),
   purchase_order: z.string().optional(),
   cash_advance: z.string().optional(),
 })
@@ -52,13 +59,15 @@ const Filters = ({
   setFilterCa,
   setFilterPo,
   setFilterAppropriation,
+  setFilterDepartment,
   setFilterDateFrom,
   setFilterDateTo,
   setFilterKeyword,
 }: FilterTypes) => {
   const [appropriations, setAppropriations] = useState<
-    RisDepartmentTypes[] | []
+    RisAppropriationTypes[] | []
   >([])
+  const [departments, setDepartments] = useState<RisDepartmentTypes[] | []>([])
   const [purchaseOrders, setPurchaseOrders] = useState<RisPoTypes[] | []>([])
   const [cashAdvances, setCashAdvances] = useState<RisCaTypes[] | []>([])
 
@@ -69,6 +78,7 @@ const Filters = ({
       dateFrom: undefined,
       dateTo: undefined,
       appropriation: '',
+      department: '',
       purchase_order: '',
       cash_advance: '',
       keyword: '',
@@ -79,6 +89,7 @@ const Filters = ({
     setFilterCa(data.cash_advance || 'All')
     setFilterPo(data.purchase_order || 'All')
     setFilterAppropriation(data.appropriation || 'All')
+    setFilterDepartment(data.department || 'All')
     setFilterDateFrom(data.dateFrom)
     setFilterDateTo(data.dateTo)
     setFilterKeyword(data.keyword || '')
@@ -90,6 +101,7 @@ const Filters = ({
     setFilterPo('All')
     setFilterCa('All')
     setFilterAppropriation('All')
+    setFilterDepartment('All')
     setFilterDateFrom(undefined)
     setFilterDateTo(undefined)
     setFilterKeyword('')
@@ -103,6 +115,14 @@ const Filters = ({
         .select()
         .order('name', { ascending: true })
       setAppropriations(data)
+    })()
+    // Fetch Departments
+    ;(async () => {
+      const { data } = await supabase
+        .from('ddm_ris_departments')
+        .select()
+        .order('name', { ascending: true })
+      setDepartments(data)
     })()
     // Fetch POs
     ;(async () => {
@@ -120,6 +140,7 @@ const Filters = ({
         .order('ca_number', { ascending: true })
       setCashAdvances(data)
     })()
+    console.log('filter data fetched successfully')
   }, [])
 
   return (
@@ -288,11 +309,43 @@ const Filters = ({
             <div className="items-center inline-flex app__filter_field_container">
               <FormField
                 control={form.control}
+                name="department"
+                render={({ field }) => (
+                  <FormItem className="w-[140px]">
+                    <FormLabel className="app__form_label">
+                      Departments
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value?.toString()}
+                      defaultValue={field.value?.toString()}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {departments?.map((item, idx) => (
+                          <SelectItem
+                            key={idx}
+                            value={item.id.toString()}>
+                            {item.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="items-center inline-flex app__filter_field_container">
+              <FormField
+                control={form.control}
                 name="appropriation"
                 render={({ field }) => (
                   <FormItem className="w-[140px]">
                     <FormLabel className="app__form_label">
-                      Appropriations
+                      Appropriation
                     </FormLabel>
                     <Select
                       onValueChange={field.onChange}

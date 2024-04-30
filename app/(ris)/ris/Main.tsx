@@ -46,6 +46,7 @@ const Page: React.FC = () => {
   const [filterPo, setFilterPo] = useState('All')
   const [filterCa, setFilterCa] = useState('All')
   const [filterAppropriation, setFilterAppropriation] = useState('All')
+  const [filterDepartment, setFilterDepartment] = useState('All')
   const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(
     undefined
   )
@@ -73,6 +74,7 @@ const Page: React.FC = () => {
         {
           filterKeyword,
           filterAppropriation,
+          filterDepartment,
           filterPo,
           filterCa,
           filterDateFrom,
@@ -103,6 +105,7 @@ const Page: React.FC = () => {
         {
           filterKeyword,
           filterAppropriation,
+          filterDepartment,
           filterPo,
           filterCa,
           filterDateFrom,
@@ -219,6 +222,7 @@ const Page: React.FC = () => {
   }, [
     filterKeyword,
     filterAppropriation,
+    filterDepartment,
     filterPo,
     filterCa,
     filterDateFrom,
@@ -256,6 +260,7 @@ const Page: React.FC = () => {
             <Filters
               setFilterKeyword={setFilterKeyword}
               setFilterAppropriation={setFilterAppropriation}
+              setFilterDepartment={setFilterDepartment}
               setFilterPo={setFilterPo}
               setFilterCa={setFilterCa}
               setFilterDateFrom={setFilterDateFrom}

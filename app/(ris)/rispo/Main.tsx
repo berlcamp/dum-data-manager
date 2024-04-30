@@ -39,6 +39,7 @@ const Page: React.FC = () => {
 
   // Filters
   const [filterType, setFilterType] = useState('All')
+  const [filterAppropriation, setFilterAppropriation] = useState('All')
   const [filterKeyword, setFilterKeyword] = useState('')
 
   // List
@@ -66,6 +67,7 @@ const Page: React.FC = () => {
         {
           filterType,
           filterKeyword,
+          filterAppropriation,
         },
         perPageCount,
         0
@@ -106,6 +108,7 @@ const Page: React.FC = () => {
         {
           filterType,
           filterKeyword,
+          filterAppropriation,
         },
         perPageCount,
         list.length
@@ -162,7 +165,7 @@ const Page: React.FC = () => {
   useEffect(() => {
     setList([])
     void fetchData()
-  }, [filterKeyword, filterType, perPageCount])
+  }, [filterKeyword, filterAppropriation, filterType, perPageCount])
 
   const isDataEmpty = !Array.isArray(list) || list.length < 1 || !list
   const email: string = session.user.email
@@ -194,6 +197,7 @@ const Page: React.FC = () => {
             <Filters
               setFilterType={setFilterType}
               setFilterKeyword={setFilterKeyword}
+              setFilterAppropriation={setFilterAppropriation}
             />
           </div>
 
