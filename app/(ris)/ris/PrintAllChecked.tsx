@@ -3,7 +3,7 @@
 
 import { RisTypes } from '@/types'
 import React, { forwardRef, useRef } from 'react'
-import ReactToPrint, { useReactToPrint } from 'react-to-print'
+import ReactToPrint from 'react-to-print'
 import RisToPrint from './RisToPrint'
 
 interface ModalProps {
@@ -31,20 +31,13 @@ export default function PrintAllChecked({ selectedRis }: ModalProps) {
     )
   })
 
-  const print = useReactToPrint({
-    content: () => componentRef.current,
-    documentTitle: 'Print Selected RIS',
-  })
-
-  const handlePrint = () => {
-    print()
-  }
-
   return (
     <>
       <ReactToPrint
         trigger={() => (
-          <button className="app__btn_blue">Print Selected</button>
+          <button className="app__btn_blue">
+            Print Selected ({selectedRis.length})
+          </button>
         )}
         content={() => document.getElementById('print-container')}
       />

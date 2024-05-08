@@ -433,7 +433,6 @@ const Page: React.FC = () => {
                       </td>
                       <td className="app__td">
                         <div className="flex space-x-2 items-center">
-                          {/* <PrintButton ris={item} /> */}
                           <button
                             onClick={() => handleEdit(item)}
                             className="app__btn_green_xs">
