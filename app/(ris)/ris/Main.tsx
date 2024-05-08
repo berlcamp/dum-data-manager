@@ -30,6 +30,7 @@ import { useSupabase } from '@/context/SupabaseProvider'
 import { format } from 'date-fns'
 import { useDispatch, useSelector } from 'react-redux'
 import AddEditModal from './AddEditModal'
+import PrintAllChecked from './PrintAllChecked'
 import PrintButton from './PrintButton'
 
 const Page: React.FC = () => {
@@ -39,6 +40,7 @@ const Page: React.FC = () => {
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RisTypes | null>(null)
+  const [selectedItems, setSelectedItems] = useState<RisTypes[]>([])
   const [selectedId, setSelectedId] = useState<string>('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
@@ -58,6 +60,8 @@ const Page: React.FC = () => {
   const [perPageCount, setPerPageCount] = useState<number>(10)
   const [showingCount, setShowingCount] = useState<number>(0)
   const [resultsCount, setResultsCount] = useState<number>(0)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [checkAll, setCheckAll] = useState(false)
 
   const { supabase, session } = useSupabase()
   const { hasAccess } = useFilter()
@@ -210,6 +214,36 @@ const Page: React.FC = () => {
     setDownloading(false)
   }
 
+  // Function to handle checkbox change event
+  const handleCheckboxChange = (id: string) => {
+    if (selectedIds.length > 0 && selectedIds.includes(id)) {
+      // If item is already selected, remove it
+      const ids = selectedIds.filter((selectedId) => selectedId !== id)
+      setSelectedIds(ids)
+      const items = list.filter((item) => ids.includes(item.id.toString()))
+      setSelectedItems(items)
+    } else {
+      // If item is not selected, add it
+      const ids = [...selectedIds, id]
+      setSelectedIds(ids)
+      const items = list.filter((item) => ids.includes(item.id.toString()))
+      setSelectedItems(items)
+    }
+  }
+
+  const handleCheckAllChange = () => {
+    setCheckAll(!checkAll)
+    if (!checkAll) {
+      const ids = list.map((obj) => obj.id.toString())
+      setSelectedIds([...ids])
+      const items = list.filter((item) => ids.includes(item.id.toString()))
+      setSelectedItems(items)
+    } else {
+      setSelectedIds([])
+      setSelectedItems([])
+    }
+  }
+
   // Update list whenever list in redux updates
   useEffect(() => {
     setList(globallist)
@@ -269,12 +303,15 @@ const Page: React.FC = () => {
           </div>
 
           {/* Export Button */}
-          <div className="mx-4 mb-4 flex justify-end">
+          <div className="mx-4 mb-4 flex justify-end space-x-2">
+            {selectedItems.length > 0 && (
+              <PrintAllChecked selectedRis={selectedItems} />
+            )}
             <CustomButton
               containerStyles="app__btn_blue"
               isDisabled={downloading}
               title={downloading ? 'Downloading...' : 'Export To Excel'}
-              btnType="submit"
+              btnType="button"
               handleClick={handleDownloadExcel}
             />
           </div>
@@ -292,6 +329,13 @@ const Page: React.FC = () => {
             <table className="app__table">
               <thead className="app__thead">
                 <tr>
+                  <th className="hidden md:table-cell app__th">
+                    <input
+                      type="checkbox"
+                      checked={checkAll}
+                      onChange={handleCheckAllChange}
+                    />
+                  </th>
                   <th className="hidden md:table-cell app__th">RIS #</th>
                   <th className="app__th">Details</th>
                   <th className="app__th"></th>
@@ -302,7 +346,16 @@ const Page: React.FC = () => {
                   list.map((item: RisTypes, index: number) => (
                     <tr
                       key={index}
-                      className="app__tr">
+                      onClick={() => handleCheckboxChange(item.id.toString())}
+                      className="app__tr cursor-pointer">
+                      <td className="hidden md:table-cell app__td">
+                        <input
+                          type="checkbox"
+                          value={item.id.toString()}
+                          checked={selectedIds.includes(item.id.toString())}
+                          readOnly
+                        />
+                      </td>
                       <td className="hidden md:table-cell app__td">
                         <div className="font-medium">{item.id}</div>
                       </td>

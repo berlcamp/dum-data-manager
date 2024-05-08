@@ -38,7 +38,7 @@ const RisToPrint: React.FC<ChildProps> = ({ forwardedRef, ris }) => {
               colSpan={3}
               className="border px-1 border-gray-700">
               <span className="font-bold">OFFICE: </span>{' '}
-              <span>{ris.department?.office}</span>
+              <span>{ris.department?.name}</span>
             </td>
             <td
               colSpan={2}
