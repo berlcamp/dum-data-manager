@@ -31,7 +31,6 @@ import { format } from 'date-fns'
 import { useDispatch, useSelector } from 'react-redux'
 import AddEditModal from './AddEditModal'
 import PrintAllChecked from './PrintAllChecked'
-import PrintButton from './PrintButton'
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
@@ -434,7 +433,7 @@ const Page: React.FC = () => {
                       </td>
                       <td className="app__td">
                         <div className="flex space-x-2 items-center">
-                          <PrintButton ris={item} />
+                          {/* <PrintButton ris={item} /> */}
                           <button
                             onClick={() => handleEdit(item)}
                             className="app__btn_green_xs">
