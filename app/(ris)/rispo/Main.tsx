@@ -34,6 +34,7 @@ const Page: React.FC = () => {
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showAddVarious, setShowAddVarious] = useState(false)
   const [showRisModal, setShowRisModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RisPoTypes | null>(null)
 
@@ -240,10 +241,14 @@ const Page: React.FC = () => {
                             <span className="font-light">Type:</span>{' '}
                             <span className="font-medium">{item.type}</span>
                           </div>
-                          <div>
-                            <span className="font-light">Quantity (L):</span>{' '}
-                            <span className="font-medium">{item.quantity}</span>
-                          </div>
+                          {item.type !== 'Fuel' && (
+                            <div>
+                              <span className="font-light">Quantity (L):</span>{' '}
+                              <span className="font-medium">
+                                {item.quantity}
+                              </span>
+                            </div>
+                          )}
                           <div>
                             <span className="font-light">Po Date:</span>{' '}
                             <span className="font-medium">
@@ -257,15 +262,16 @@ const Page: React.FC = () => {
                               {item.ddm_ris_appropriation?.name}
                             </span>
                           </div>
-
-                          <div>
-                            <span className="font-light">
-                              Remaining Quantity (L):
-                            </span>{' '}
-                            <span className="font-medium">
-                              {countRemainingQuantity(item)}
-                            </span>
-                          </div>
+                          {item.type !== 'Fuel' && (
+                            <div>
+                              <span className="font-light">
+                                Remaining Quantity (L):
+                              </span>{' '}
+                              <span className="font-medium">
+                                {countRemainingQuantity(item)}
+                              </span>
+                            </div>
+                          )}
                           <div>
                             <span className="font-light">Amount:</span>{' '}
                             <span className="font-medium">{item.amount}</span>

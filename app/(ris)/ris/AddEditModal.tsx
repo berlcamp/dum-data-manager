@@ -100,6 +100,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const [cashAdvances, setCashAdvances] = useState<RisCaTypes[] | []>([])
 
   const [transactionType, setTransactionType] = useState('')
+  const [dieselPrice, setDieselPrice] = useState(0)
+  const [gasolinePrice, setGasolinePrice] = useState(0)
 
   // Error message
   const [errorMessage, setErrorMessage] = useState('')
@@ -168,6 +170,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         type: formdata.type,
         quantity: formdata.quantity,
         price: formdata.price,
+        status: 'Approved',
         purpose: formdata.purpose,
         date_requested: format(new Date(formdata.date_requested), 'yyyy-MM-dd'),
         created_by: session.user.id,
@@ -298,6 +301,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         .select('*, ddm_ris_appropriation:appropriation(*),ddm_ris(quantity)')
         .order('po_number', { ascending: true })
 
+      // setPurchaseOrders(data)
+
       // Mutate the data to get the remaining quantity
       const updatedData: RisPoTypes[] = []
       if (data) {
@@ -311,17 +316,19 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           const remainingQuantity = Number(item.quantity) - totalQuantityUsed
 
           // Exclude on list if remain quantity is 0
-          if (!editData) {
+          if (item.type !== 'Fuel') {
             if (remainingQuantity > 0) {
               updatedData.push({
                 ...item,
-                remaining_quantity: remainingQuantity,
+                remaining_quantity: ` (Available: ${remainingQuantity.toFixed(
+                  2
+                )} Liters)`,
               })
             }
           } else {
             updatedData.push({
               ...item,
-              remaining_quantity: remainingQuantity,
+              remaining_quantity: '',
             })
           }
         })
@@ -514,8 +521,13 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                     (po) => po.id.toString() === value
                                   )
                                   form.setValue('po_id', value)
-                                  form.setValue('price', po ? po.price || 0 : 0)
-                                  form.setValue('type', po ? po.type : '')
+                                  if (po) {
+                                    if (po.type !== 'Fuel') {
+                                      form.setValue('type', po.type)
+                                    }
+                                    setDieselPrice(po.diesel_price || 0)
+                                    setGasolinePrice(po.gasoline_price || 0)
+                                  }
                                 }}
                                 defaultValue={
                                   editData
@@ -534,8 +546,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                     <SelectItem
                                       key={idx}
                                       value={po.id.toString()}>
-                                      {po.po_number}-{po.type} ( Available:{' '}
-                                      {po.remaining_quantity} Liters)
+                                      {po.po_number}-{po.type}
+                                      {po.remaining_quantity}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -672,11 +684,15 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               Fuel Type
                             </FormLabel>
                             <Select
-                              disabled={
-                                form.getValues('transaction_type') ===
-                                'Purchase Order'
-                              }
-                              onValueChange={field.onChange}
+                              onValueChange={(value) => {
+                                form.setValue('type', value)
+                                if (value === 'Diesel') {
+                                  form.setValue('price', dieselPrice)
+                                }
+                                if (value === 'Gasoline') {
+                                  form.setValue('price', gasolinePrice)
+                                }
+                              }}
                               value={field.value}
                               defaultValue={
                                 editData
@@ -730,10 +746,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               <Input
                                 type="number"
                                 step="any"
-                                disabled={
-                                  form.getValues('transaction_type') ===
-                                  'Purchase Order'
-                                }
                                 placeholder="Price per Liter"
                                 {...field}
                               />

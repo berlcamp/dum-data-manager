@@ -47,6 +47,7 @@ const Page: React.FC = () => {
   const [filterPo, setFilterPo] = useState('All')
   const [filterCa, setFilterCa] = useState('All')
   const [filterAppropriation, setFilterAppropriation] = useState('All')
+  const [filterStatus, setFilterStatus] = useState('All')
   const [filterDepartment, setFilterDepartment] = useState('All')
   const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(
     undefined
@@ -63,7 +64,7 @@ const Page: React.FC = () => {
   const [checkAll, setCheckAll] = useState(false)
 
   const { supabase, session } = useSupabase()
-  const { hasAccess } = useFilter()
+  const { hasAccess, setToast } = useFilter()
 
   // Redux staff
   const globallist = useSelector((state: any) => state.list.value)
@@ -77,6 +78,7 @@ const Page: React.FC = () => {
         {
           filterKeyword,
           filterAppropriation,
+          filterStatus,
           filterDepartment,
           filterPo,
           filterCa,
@@ -108,6 +110,7 @@ const Page: React.FC = () => {
         {
           filterKeyword,
           filterAppropriation,
+          filterStatus,
           filterDepartment,
           filterPo,
           filterCa,
@@ -213,6 +216,59 @@ const Page: React.FC = () => {
     setDownloading(false)
   }
 
+  const handleApproveSelected = async () => {
+    const ids = selectedItems.map((obj) => obj.id)
+    try {
+      const { error } = await supabase
+        .from('ddm_ris')
+        .update({ status: 'Approved' })
+        .in('id', ids)
+
+      if (error) throw new Error(error.message)
+
+      // pop up the success message
+      setToast('success', 'Successfully saved')
+
+      // Append new data in redux
+      const items = [...globallist]
+      const updatedArray = items.map((obj: RisTypes) => {
+        if (selectedItems.find((o) => o.id.toString() === obj.id.toString()))
+          return { ...obj, status: 'Approved' }
+        else return obj
+      })
+      dispatch(updateList(updatedArray))
+    } catch (error) {
+      // pop up the error  message
+      setToast('error', 'Something went wrong')
+    }
+  }
+  const handlePendingSelected = async () => {
+    const ids = selectedItems.map((obj) => obj.id)
+    try {
+      const { error } = await supabase
+        .from('ddm_ris')
+        .update({ status: 'Pending' })
+        .in('id', ids)
+
+      if (error) throw new Error(error.message)
+
+      // pop up the success message
+      setToast('success', 'Successfully saved')
+
+      // Append new data in redux
+      const items = [...globallist]
+      const updatedArray = items.map((obj: RisTypes) => {
+        if (selectedItems.find((o) => o.id.toString() === obj.id.toString()))
+          return { ...obj, status: 'Pending' }
+        else return obj
+      })
+      dispatch(updateList(updatedArray))
+    } catch (error) {
+      // pop up the error  message
+      setToast('error', 'Something went wrong')
+    }
+  }
+
   // Function to handle checkbox change event
   const handleCheckboxChange = (id: string) => {
     if (selectedIds.length > 0 && selectedIds.includes(id)) {
@@ -255,6 +311,7 @@ const Page: React.FC = () => {
   }, [
     filterKeyword,
     filterAppropriation,
+    filterStatus,
     filterDepartment,
     filterPo,
     filterCa,
@@ -293,6 +350,7 @@ const Page: React.FC = () => {
             <Filters
               setFilterKeyword={setFilterKeyword}
               setFilterAppropriation={setFilterAppropriation}
+              setFilterStatus={setFilterStatus}
               setFilterDepartment={setFilterDepartment}
               setFilterPo={setFilterPo}
               setFilterCa={setFilterCa}
@@ -304,7 +362,23 @@ const Page: React.FC = () => {
           {/* Export Button */}
           <div className="mx-4 mb-4 flex justify-end space-x-2">
             {selectedItems.length > 0 && (
-              <PrintAllChecked selectedRis={selectedItems} />
+              <>
+                <CustomButton
+                  containerStyles="app__btn_green"
+                  isDisabled={downloading}
+                  title={`Approve Selected (${selectedItems.length})`}
+                  btnType="button"
+                  handleClick={handleApproveSelected}
+                />
+                <CustomButton
+                  containerStyles="app__btn_orange"
+                  isDisabled={downloading}
+                  title={`Mark Selected as Pending (${selectedItems.length})`}
+                  btnType="button"
+                  handleClick={handlePendingSelected}
+                />
+                <PrintAllChecked selectedRis={selectedItems} />
+              </>
             )}
             <CustomButton
               containerStyles="app__btn_blue"
@@ -367,6 +441,17 @@ const Page: React.FC = () => {
                           <div>
                             <span className="font-light">Type:</span>{' '}
                             <span className="font-medium">{item.type}</span>
+                          </div>
+                          <div>
+                            <span className="font-light">Status:</span>{' '}
+                            <span
+                              className={`font-medium uppercase ${
+                                item.status === 'Pending'
+                                  ? ' text-red-500'
+                                  : 'text-green-500'
+                              }`}>
+                              {item.status}
+                            </span>
                           </div>
                           <div>
                             <span className="font-light">

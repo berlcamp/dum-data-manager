@@ -102,7 +102,7 @@ export interface DocumentTypes {
   user_id: string
   recent_remarks: DocumentRemarksTypes
   ddm_user: AccountTypes
-  attachments: { name: string}[]
+  attachments: { name: string }[]
   amount: string
   received_from: string
   routing_no: number
@@ -150,12 +150,15 @@ export interface RisPoTypes {
   quantity: number
   amount: number
   price: number
+  diesel_price: number
+  gasoline_price: number
+  total_amount: number
   po_date: string
   description: string
   created_by: string
   ddm_user: AccountTypes
   ddm_ris: RisTypes[]
-  remaining_quantity?: number
+  remaining_quantity?: string
   ddm_ris_appropriation: RisAppropriationTypes
 }
 
@@ -184,6 +187,7 @@ export interface RisTypes {
   price: number
   total_amount: number
   purpose: string
+  status: string
   transaction_type: string
   type: string
   created_by: string
@@ -199,6 +203,16 @@ export interface RisVehicleTypes {
   id: string
   name: string
   plate_number: string
+}
+
+export interface RisDepartmentCodeTypes {
+  id: string
+  code: string
+  department_id: string
+  po_id: string
+  department: RisDepartmentTypes
+  purchase_order: RisPoTypes
+  status: string
 }
 
 export interface RisPriceTypes {

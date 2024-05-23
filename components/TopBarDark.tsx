@@ -1,5 +1,6 @@
 import TopMenu from '@/components/TopBars/TopMenu'
 import UserDropdown from '@/components/TopBars/UserDropdown'
+import LoginDropDown from './TopBars/LoginDropDown'
 
 export default function TopBarDark({ isGuest }: { isGuest?: boolean }) {
   return (
@@ -13,6 +14,7 @@ export default function TopBarDark({ isGuest }: { isGuest?: boolean }) {
               <UserDropdown darkMode={true} />
             </>
           )}
+          {isGuest && <LoginDropDown darkMode={true} />}
         </div>
       </div>
     </div>

@@ -37,6 +37,7 @@ import { z } from 'zod'
 
 interface FilterTypes {
   setFilterAppropriation: (a: string) => void
+  setFilterStatus: (status: string) => void
   setFilterDepartment: (d: string) => void
   setFilterCa: (ca: string) => void
   setFilterPo: (po: string) => void
@@ -50,6 +51,7 @@ const FormSchema = z.object({
   dateFrom: z.date().optional(),
   dateTo: z.date().optional(),
   appropriation: z.string().optional(),
+  status: z.string().optional(),
   department: z.string().optional(),
   purchase_order: z.string().optional(),
   cash_advance: z.string().optional(),
@@ -59,6 +61,7 @@ const Filters = ({
   setFilterCa,
   setFilterPo,
   setFilterAppropriation,
+  setFilterStatus,
   setFilterDepartment,
   setFilterDateFrom,
   setFilterDateTo,
@@ -78,6 +81,7 @@ const Filters = ({
       dateFrom: undefined,
       dateTo: undefined,
       appropriation: '',
+      status: '',
       department: '',
       purchase_order: '',
       cash_advance: '',
@@ -89,6 +93,7 @@ const Filters = ({
     setFilterCa(data.cash_advance || 'All')
     setFilterPo(data.purchase_order || 'All')
     setFilterAppropriation(data.appropriation || 'All')
+    setFilterStatus(data.status || 'All')
     setFilterDepartment(data.department || 'All')
     setFilterDateFrom(data.dateFrom)
     setFilterDateTo(data.dateTo)
@@ -101,6 +106,7 @@ const Filters = ({
     setFilterPo('All')
     setFilterCa('All')
     setFilterAppropriation('All')
+    setFilterStatus('All')
     setFilterDepartment('All')
     setFilterDateFrom(undefined)
     setFilterDateTo(undefined)
@@ -364,6 +370,31 @@ const Filters = ({
                             {item.name}
                           </SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="items-center inline-flex app__filter_field_container">
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem className="w-[140px]">
+                    <FormLabel className="app__form_label">Status</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value?.toString()}
+                      defaultValue={field.value?.toString()}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Pending">Pending</SelectItem>
+                        <SelectItem value="Approved">Approved</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormItem>

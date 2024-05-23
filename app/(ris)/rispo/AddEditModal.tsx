@@ -51,25 +51,29 @@ const FormSchema = z.object({
   appropriation: z.string().min(1, {
     message: 'Appropriation No is required.',
   }),
-  price: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
-    .number({
-      required_error: 'Price per liter is required.',
-      invalid_type_error: 'Price per liter is required..',
-    })
-    .gte(1, {
-      message: 'Price per liter is required...',
-    }),
   quantity: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
     .number({
       required_error: 'Quantity (L) is required.',
       invalid_type_error: 'Quantity (L) is required..',
-    })
-    .gte(1, {
-      message: 'Quantity (L) is required...',
     }),
   description: z.string().min(1, {
     message: 'Description is required.',
   }),
+  diesel_price: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
+    .number({
+      required_error: 'Diesel price is required.',
+      invalid_type_error: 'Diesel price is required..',
+    }),
+  total_amount: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
+    .number({
+      required_error: 'Amount limit is required.',
+      invalid_type_error: 'Amount limit is required..',
+    }),
+  gasoline_price: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
+    .number({
+      required_error: 'Gasoline price is required.',
+      invalid_type_error: 'Gasoline price is required..',
+    }),
   po_date: z.date({
     required_error: 'PO Date is required.',
   }),
@@ -83,6 +87,8 @@ interface ModalProps {
 export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const { setToast } = useFilter()
   const { supabase, session, systemUsers } = useSupabase()
+
+  const [fuelType, setFuelType] = useState('')
 
   const [appropriations, setAppropriations] = useState<
     RisAppropriationTypes[] | []
@@ -104,7 +110,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       type: editData ? editData.type : '',
       po_number: editData ? editData.po_number : '',
       appropriation: editData ? editData.appropriation?.toString() || '' : '',
-      price: editData ? editData.price : 0,
+      gasoline_price: editData ? editData.gasoline_price : 0,
+      diesel_price: editData ? editData.diesel_price : 0,
+      total_amount: editData ? editData.amount : 0,
       quantity: editData ? editData.quantity : 0,
       description: editData ? editData.description : '',
       po_date: editData ? new Date(editData.po_date) : new Date(),
@@ -121,14 +129,25 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
   const handleCreate = async (formdata: z.infer<typeof FormSchema>) => {
     try {
+      let price = 0
+      if (formdata.type === 'Gasoline') {
+        price = formdata.gasoline_price
+      }
+      if (formdata.type === 'Diesel') {
+        price = formdata.diesel_price
+      }
       const newData = {
         type: formdata.type,
         description: formdata.description,
         po_number: formdata.po_number,
         appropriation: formdata.appropriation,
-        price: formdata.price,
+        diesel_price: formdata.diesel_price,
+        gasoline_price: formdata.gasoline_price,
         quantity: formdata.quantity,
-        amount: Number(formdata.quantity) * Number(formdata.price),
+        amount:
+          formdata.type === 'Fuel'
+            ? formdata.total_amount
+            : Number(formdata.quantity) * Number(price),
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
         created_by: session.user.id,
       }
@@ -169,14 +188,26 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     if (!editData) return
 
     try {
+      let price = 0
+      if (formdata.type === 'Gasoline') {
+        price = formdata.gasoline_price
+      }
+      if (formdata.type === 'Diesel') {
+        price = formdata.diesel_price
+      }
+
       const newData = {
         type: formdata.type,
         description: formdata.description,
         po_number: formdata.po_number,
         appropriation: formdata.appropriation,
-        price: formdata.price,
+        diesel_price: formdata.diesel_price,
+        gasoline_price: formdata.gasoline_price,
         quantity: formdata.quantity,
-        amount: Number(formdata.quantity) * Number(formdata.price),
+        amount:
+          formdata.type === 'Fuel'
+            ? formdata.total_amount
+            : Number(formdata.quantity) * Number(price),
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
         created_by: session.user.id,
       }
@@ -187,21 +218,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         .eq('id', editData.id)
 
       if (error) throw new Error(error.message)
-
-      // update price per liter on all RIS if PO price has changed
-      if (
-        editData.price !== formdata.price ||
-        editData.appropriation !== formdata.appropriation ||
-        editData.type !== formdata.type
-      ) {
-        await supabase
-          .from('ddm_ris')
-          .update({
-            price: formdata.price,
-            type: formdata.type,
-          })
-          .eq('po_id', editData.id)
-      }
 
       // Append new data in redux
       const items = [...globallist]
@@ -286,7 +302,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     <div
       ref={wrapperRef}
       className="app__modal_wrapper">
-      <div className="app__modal_wrapper2">
+      <div className="app__modal_wrapper2_large">
         <div className="app__modal_wrapper3">
           <div className="app__modal_header">
             <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
@@ -303,13 +319,13 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           <div className="app__modal_body">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
-                <div className="md:grid md:grid-cols-1 md:gap-4">
+                <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-6">
                     <FormField
                       control={form.control}
                       name="po_date"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col">
+                        <FormItem className="flex flex-col space-y-3">
                           <FormLabel className="app__form_label">
                             P.O. Date
                           </FormLabel>
@@ -406,69 +422,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="type"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Type
-                          </FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Choose Type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Gasoline">Gasoline</SelectItem>
-                              <SelectItem value="Diesel">Diesel</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="price"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Price per Liter
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="Price per Liter"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="quantity"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Quantity (Liters)
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="Quantity"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+
                     <FormField
                       control={form.control}
                       name="description"
@@ -488,6 +442,124 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         </FormItem>
                       )}
                     />
+                  </div>
+                  <div className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Type
+                          </FormLabel>
+                          <Select
+                            onValueChange={(value) => {
+                              form.setValue('type', value)
+                              setFuelType(value)
+                            }}
+                            defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choose Type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Gasoline">Gasoline</SelectItem>
+                              <SelectItem value="Diesel">Diesel</SelectItem>
+                              <SelectItem value="Fuel">Fuel</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {(form.getValues('type') === 'Fuel' ||
+                      form.getValues('type') === 'Gasoline') && (
+                      <FormField
+                        control={form.control}
+                        name="gasoline_price"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="app__form_label">
+                              Gasoline price per Liter
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="Price per Liter"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    {(form.getValues('type') === 'Fuel' ||
+                      form.getValues('type') === 'Diesel') && (
+                      <FormField
+                        control={form.control}
+                        name="diesel_price"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="app__form_label">
+                              Diesel price per Liter
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="Price per Liter"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    {(form.getValues('type') === 'Gasoline' ||
+                      form.getValues('type') === 'Diesel') && (
+                      <FormField
+                        control={form.control}
+                        name="quantity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="app__form_label">
+                              Quantity (Liters)
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="Quantity"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    {form.getValues('type') === 'Fuel' && (
+                      <FormField
+                        control={form.control}
+                        name="total_amount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="app__form_label">
+                              Total Amount
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="Total Amount"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
                 </div>
                 <hr className="my-4" />
