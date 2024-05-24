@@ -5,7 +5,7 @@ export const docTypes = [
   'Invitation',
   'Infrastructure Request',
   'Request Endorsement/Applicants',
-  'Others'
+  'Others',
 ]
 
 export const docRouting = [
@@ -20,9 +20,12 @@ export const docRouting = [
   'Forwarded to BFP',
   'Forwarded to BJMP',
   'Forwarded to Budget',
-  'Forwarded to COA',,
-  'Forwarded to DCO',,
-  'Forwarded to DILG',,
+  'Forwarded to COA',
+  ,
+  'Forwarded to DCO',
+  ,
+  'Forwarded to DILG',
+  ,
   'Forwarded to Engineering',
   'Forwarded to GSO',
   'Forwarded to GSO DESIGNEE - Raphael Claude Rousseau',
@@ -79,7 +82,7 @@ export const documentTypes = [
   { type: 'Salary Loan', shortcut: 'SAL-LOAN' },
   { type: 'Show Cause', shortcut: 'SHW-CAUSE' },
   { type: 'Special Order', shortcut: 'SO' },
-  { type: 'Travel Order', shortcut: 'TO' }
+  { type: 'Travel Order', shortcut: 'TO' },
 ]
 
 export const statusList = [
@@ -92,10 +95,7 @@ export const statusList = [
   { status: 'Resolved', color: '#a44508' },
 ]
 
-export const superAdmins = [
-  'berlcamp@gmail.com',
-  'arfel@ddm.com',
-]
+export const superAdmins = ['berlcamp@gmail.com', 'arfel@ddm.com']
 
 export const risOffices = [
   'DILG',
@@ -130,12 +130,7 @@ export const risOffices = [
   'MEDO',
 ]
 
-export const profileCategories = [
-  'A',
-  'B',
-  'C',
-  'UC',
-]
+export const profileCategories = ['A', 'B', 'C', 'UC']
 
 export const profilePositions = [
   'Barangay Chairman',
@@ -147,4 +142,51 @@ export const profilePositions = [
   'Government Employee',
   'LGU Employee',
   'Undefined',
+]
+
+export const barangays = [
+  'Bag-ong Valencia',
+  'Bag-ong Kauswagan',
+  'Bag-ong Silangan',
+  'Bucayan',
+  'Calumanggi',
+  'Canibongan',
+  'Caridad',
+  'Danlugan',
+  'Dapiwak',
+  'Datu Totocan',
+  'Dilud',
+  'Ditulan',
+  'Dulian',
+  'Dulop',
+  'Guintananan',
+  'Guitran',
+  'Gumpingan',
+  'La Fortuna',
+  'Labangon',
+  'Libertad',
+  'Licabang',
+  'Lipawan',
+  'Lower Landing',
+  'Lower Timonan',
+  'Macasing',
+  'Mahayahay',
+  'Manlabay',
+  'Malagalad',
+  'Maralag',
+  'Marangan',
+  'New Basak',
+  'Saad',
+  'Salvador',
+  'San Juan',
+  'San Pablo (Poblacion)',
+  'San Pedro (Poblacion)',
+  'San Vicente',
+  'Senote',
+  'Sinonok',
+  'Sunop',
+  'Tagun',
+  'Tamurayan',
+  'Upper Landing',
+  'Upper Timonan',
 ]

@@ -148,7 +148,9 @@ export async function fetchProfiles(
   rangeFrom: number
 ) {
   try {
-    let query = supabase.from('ddm_profiles').select('*', { count: 'exact' })
+    let query = supabase
+      .from('ddm_profiles')
+      .select('*, coordinator:coordinator_id(*)', { count: 'exact' })
 
     // Full text search
     if (filters.filterKeyword && filters.filterKeyword.trim() !== '') {
@@ -189,6 +191,51 @@ export async function fetchProfiles(
     return { data, count }
   } catch (error) {
     console.error('fetch profiles error', error)
+    return { data: [], count: 0 }
+  }
+}
+
+export async function fetchCoordinators(
+  filters: {
+    filterKeyword?: string
+  },
+  perPageCount: number,
+  rangeFrom: number
+) {
+  try {
+    let query = supabase.from('ddm_profile_coordinators').select('*', {
+      count: 'exact',
+    })
+
+    // Full text search
+    if (
+      typeof filters.filterKeyword !== 'undefined' &&
+      filters.filterKeyword.trim() !== ''
+    ) {
+      query = query.or(`fullname.ilike.%${filters.filterKeyword}%`)
+    }
+
+    // Perform count before paginations
+    // const { count } = await query
+
+    // Per Page from context
+    const from = rangeFrom
+    const to = from + (perPageCount - 1)
+    // Per Page from context
+    query = query.range(from, to)
+
+    // Order By
+    query = query.order('id', { ascending: false })
+
+    const { data, count, error } = await query
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return { data, count }
+  } catch (error) {
+    console.error('fetch error xx', error)
     return { data: [], count: 0 }
   }
 }

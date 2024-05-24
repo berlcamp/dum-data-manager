@@ -40,15 +40,21 @@ export default function CategoriesChart({ labels, dataSets }: PagePros) {
   }
 
   const options = {
-    indexAxis: 'y' as const,
-    maintainAspectRatio: false,
-    scales: {
-      x: {
-        beginAtZero: true,
+    plugins: {
+      title: {
+        display: true,
+        text: 'Chart.js Bar Chart - Stacked',
       },
     },
-    // height: data.datasets.length * 1,
-    maxBarThickness: 40,
+    responsive: true,
+    scales: {
+      x: {
+        stacked: true,
+      },
+      y: {
+        stacked: true,
+      },
+    },
   }
 
   return (

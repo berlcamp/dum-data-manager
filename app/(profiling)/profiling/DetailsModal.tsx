@@ -19,6 +19,7 @@ import { PencilLineIcon, TrashIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Avatar from 'react-avatar'
 import { useDispatch, useSelector } from 'react-redux'
+import Coordinator from './Coordinator'
 
 interface ModalProps {
   hideModal: () => void
@@ -197,10 +198,12 @@ const RemarksList = ({
 
 const Category = ({
   category,
+  type,
   id,
   refetch,
 }: {
   category: string
+  type: string
   id: string
   refetch: () => void
 }) => {
@@ -230,8 +233,18 @@ const Category = ({
     setSaving(true)
 
     try {
+      let catType = ''
+      if (type === 'category') {
+        catType = 'Core Category'
+      }
+      if (type === 'blc_category') {
+        catType = 'BLC Category'
+      }
+      if (type === 'province_category') {
+        catType = 'Province Category'
+      }
       const newData = {
-        category: newCat,
+        [type]: newCat,
       }
 
       const { error } = await supabase
@@ -248,7 +261,7 @@ const Category = ({
         user: `${user.firstname} ${user.middlename || ''} ${
           user.lastname || ''
         }`,
-        remarks: `Category updated from ${origCategory} to ${newCat}`,
+        remarks: `Category updated ${catType} from ${origCategory} to ${newCat}`,
         type: 'system',
       }
 
@@ -519,11 +532,38 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                     </tr>
                     <tr>
                       <td className="px-2 py-2 font-light text-right text-xs">
-                        Category:
+                        Core Category:
                       </td>
                       <td>
                         <Category
                           category={details.category}
+                          type="category"
+                          id={details.id}
+                          refetch={() => setRefetch(!refetch)}
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-2 font-light text-right text-xs">
+                        BLC Category:
+                      </td>
+                      <td>
+                        <Category
+                          category={details.blc_category}
+                          type="blc_category"
+                          id={details.id}
+                          refetch={() => setRefetch(!refetch)}
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-2 font-light text-right text-xs">
+                        Province Category:
+                      </td>
+                      <td>
+                        <Category
+                          category={details.province_category}
+                          type="province_category"
                           id={details.id}
                           refetch={() => setRefetch(!refetch)}
                         />
@@ -548,6 +588,17 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                         <span className="font-medium">
                           {details.purok}, {details.address}
                         </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-2 font-light text-right text-xs">
+                        BL Coordinator
+                      </td>
+                      <td>
+                        <Coordinator
+                          profileId={details.id}
+                          coordinator={details.coordinator}
+                        />
                       </td>
                     </tr>
                   </tbody>

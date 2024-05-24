@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  CustomButton,
   PerPage,
   ShowMore,
   Sidebar,
@@ -9,13 +10,13 @@ import {
   TopBar,
   Unauthorized,
 } from '@/components/index'
-import { fetchProfiles } from '@/utils/fetchApi'
+import { fetchCoordinators } from '@/utils/fetchApi'
 import React, { useEffect, useState } from 'react'
 
 import Filters from './Filters'
 
 // Types
-import type { ProfileTypes } from '@/types'
+import type { ProfileBlcTypes } from '@/types'
 
 // Redux imports
 import { updateList } from '@/GlobalRedux/Features/listSlice'
@@ -24,21 +25,20 @@ import { superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { useDispatch, useSelector } from 'react-redux'
-import DetailsModal from './DetailsModal'
+import AddEditModal from './AddEditModal'
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
 
-  // Modal
-  const [viewDetailsModal, setViewDetailsModal] = useState(false)
-  const [details, setDetails] = useState<ProfileTypes | null>(null)
+  // Modals
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<ProfileBlcTypes | null>(null)
 
   // Filters
   const [filterKeyword, setFilterKeyword] = useState('')
-  const [filterBarangay, setFilterBarangay] = useState('')
 
   // List
-  const [list, setList] = useState<ProfileTypes[]>([])
+  const [list, setList] = useState<ProfileBlcTypes[]>([])
   const [perPageCount, setPerPageCount] = useState<number>(10)
   const [showingCount, setShowingCount] = useState<number>(0)
   const [resultsCount, setResultsCount] = useState<number>(0)
@@ -54,10 +54,9 @@ const Page: React.FC = () => {
     setLoading(true)
 
     try {
-      const result = await fetchProfiles(
+      const result = await fetchCoordinators(
         {
           filterKeyword,
-          filterBarangay,
         },
         perPageCount,
         0
@@ -80,10 +79,9 @@ const Page: React.FC = () => {
     setLoading(true)
 
     try {
-      const result = await fetchProfiles(
+      const result = await fetchCoordinators(
         {
           filterKeyword,
-          filterBarangay,
         },
         perPageCount,
         list.length
@@ -102,6 +100,16 @@ const Page: React.FC = () => {
     }
   }
 
+  const handleAdd = () => {
+    setShowAddModal(true)
+    setSelectedItem(null)
+  }
+
+  const handleEdit = (item: ProfileBlcTypes) => {
+    setShowAddModal(true)
+    setSelectedItem(item)
+  }
+
   // Update list whenever list in redux updates
   useEffect(() => {
     setList(globallist)
@@ -111,14 +119,13 @@ const Page: React.FC = () => {
   useEffect(() => {
     setList([])
     void fetchData()
-  }, [filterKeyword, filterBarangay, perPageCount])
+  }, [filterKeyword, perPageCount])
 
   const isDataEmpty = !Array.isArray(list) || list.length < 1 || !list
   const email: string = session.user.email
 
   // Check access from permission settings or Super Admins
-  if (!hasAccess('profiling') && !superAdmins.includes(email))
-    return <Unauthorized />
+  if (!hasAccess('ris') && !superAdmins.includes(email)) return <Unauthorized />
 
   return (
     <>
@@ -130,15 +137,18 @@ const Page: React.FC = () => {
           {/* Header */}
           <TopBar />
           <div className="app__title">
-            <Title title="Profiles" />
+            <Title title="Barangay Livelihood Coordinators" />
+            <CustomButton
+              containerStyles="app__btn_green"
+              title="Add New Coordinator"
+              btnType="button"
+              handleClick={handleAdd}
+            />
           </div>
 
           {/* Filters */}
           <div className="app__filters">
-            <Filters
-              setFilterBarangay={setFilterBarangay}
-              setFilterKeyword={setFilterKeyword}
-            />
+            <Filters setFilterKeyword={setFilterKeyword} />
           </div>
 
           {/* Per Page */}
@@ -154,9 +164,9 @@ const Page: React.FC = () => {
             <table className="app__table">
               <thead className="app__thead">
                 <tr>
-                  <th className="app__th">Fullname</th>
-                  <th className="app__th">BL Coordinator</th>
-                  <th className="app__th">Address</th>
+                  <th className="app__th">Name</th>
+                  <th className="app__th">Barangay</th>
+                  <th className="app__th"></th>
                 </tr>
               </thead>
               <tbody>
@@ -165,45 +175,22 @@ const Page: React.FC = () => {
                     <tr
                       key={index}
                       className="app__tr">
-                      <td className="app__td text-sm">
-                        <div
-                          onClick={() => {
-                            setViewDetailsModal(true)
-                            setDetails(item)
-                          }}
-                          className="cursor-pointer text-emerald-800 font-semibold">
-                          {item.fullname}
+                      <td className="app__td">{item.fullname}</td>
+                      <td className="app__td">{item.barangay}</td>
+                      <td className="app__td">
+                        <div className="flex space-x-2 items-center">
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="app__btn_green_xs">
+                            Edit
+                          </button>
                         </div>
-                        <div className="text-xs">
-                          <div>
-                            Core Category:{' '}
-                            <span className="font-bold">{item.category}</span>
-                          </div>
-                          <div>
-                            BLC Category:{' '}
-                            <span className="font-bold">
-                              {item.blc_category}
-                            </span>
-                          </div>
-                          <div>
-                            Province Category:{' '}
-                            <span className="font-bold">
-                              {item.province_category}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="app__td text-xs">
-                        {item.coordinator && item.coordinator.fullname}
-                      </td>
-                      <td className="app__td text-xs">
-                        {item.address} - {item.purok}
                       </td>
                     </tr>
                   ))}
                 {loading && (
                   <TableRowLoading
-                    cols={4}
+                    cols={3}
                     rows={2}
                   />
                 )}
@@ -218,15 +205,16 @@ const Page: React.FC = () => {
           {resultsCount > showingCount && !loading && (
             <ShowMore handleShowMore={handleShowMore} />
           )}
+
+          {/* Add/Edit Modal */}
+          {showAddModal && (
+            <AddEditModal
+              editData={selectedItem}
+              hideModal={() => setShowAddModal(false)}
+            />
+          )}
         </div>
       </div>
-      {/* Details Modal */}
-      {details && viewDetailsModal && (
-        <DetailsModal
-          details={details}
-          hideModal={() => setViewDetailsModal(false)}
-        />
-      )}
     </>
   )
 }

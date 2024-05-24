@@ -188,6 +188,7 @@ export interface RisTypes {
   total_amount: number
   purpose: string
   status: string
+  origin: string
   transaction_type: string
   type: string
   created_by: string
@@ -235,12 +236,21 @@ export interface RisAppropriationTypes {
   ddm_ris_purchase_orders: RisPoTypes[]
   remaining_amount?: number
 }
+export interface ProfileBlcTypes {
+  id: string
+  fullname: string
+  barangay: string
+}
 
 export interface ProfileTypes {
   id: string
   fullname: string
   address: string
   category: string
+  blc_category: string
+  coordinator_id: string
+  coordinator: ProfileBlcTypes
+  province_category: string
   position: string
   precinct: string
   purok: string

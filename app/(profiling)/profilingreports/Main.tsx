@@ -24,13 +24,39 @@ import { superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import CategoriesChart from './CategoriesChart'
-import DetailsModal from './DetailsModal'
 
+const CategoryCount = ({
+  category,
+  count,
+}: {
+  category: string
+  count: number
+}) => {
+  return (
+    <div className="hover:bg-slate-200 text-gray-700">
+      <div className="p-2">
+        <div className="flex items-center justify-center">
+          <div className="w-10 h-10 bg-gray-500 text-white rounded-full flex items-center justify-center">
+            {category}
+          </div>
+        </div>
+        <div className="pl-10 mt-2 font-extralight">
+          <span className="text-sm">Core: </span>
+          <span className="font-bold">{count}</span>
+        </div>
+        <div className="pl-10 font-extralight">
+          <span className="text-sm">BLC: </span>
+          <span className="font-bold">{count}</span>
+        </div>
+        <div className="pl-10 font-extralight">
+          <span className="text-sm">Province: </span>
+          <span className="font-bold">{count}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
 const Page: React.FC = () => {
-  // Modal
-  const [viewDetailsModal, setViewDetailsModal] = useState(false)
-  const [details, setDetails] = useState<ProfileTypes | null>(null)
-
   // Filters
   const [filterBarangay, setFilterBarangay] = useState('')
 
@@ -226,7 +252,7 @@ const Page: React.FC = () => {
           {loading && <TwoColTableLoading />}
           {!loading && (
             <>
-              <div className="mx-4 flex justify-end">
+              <div className="mx-4 flex border-b pb-4 justify-end">
                 <CustomButton
                   containerStyles="app__btn_blue"
                   isDisabled={downloading}
@@ -235,41 +261,25 @@ const Page: React.FC = () => {
                   handleClick={handleDownloadExcel}
                 />
               </div>
-              <div className="mx-4 mt-10 text-lg">Categories Summary</div>
+              <div className="mx-4 mt-4 text-lg">Categories Summary</div>
               <div className="mx-4 mt-2 bg-slate-100">
                 <div className="border-b grid grid-cols-4">
-                  <div className="hover:bg-slate-200 text-gray-700">
-                    <div className="p-2">
-                      <div className="text-center font-extralight">A</div>
-                      <div className="flex items-center justify-center">
-                        <span className="text-2xl">{totalA}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="hover:bg-slate-200 text-gray-700">
-                    <div className="p-2">
-                      <div className="text-center font-extralight">B</div>
-                      <div className="flex items-center justify-center">
-                        <span className="text-2xl">{totalB}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="hover:bg-slate-200 text-gray-700">
-                    <div className="p-2">
-                      <div className="text-center font-extralight">C</div>
-                      <div className="flex items-center justify-center">
-                        <span className="text-2xl">{totalC}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="hover:bg-slate-200 text-gray-700">
-                    <div className="p-2">
-                      <div className="text-center font-extralight">UC</div>
-                      <div className="flex items-center justify-center">
-                        <span className="text-2xl">{totalUC}</span>
-                      </div>
-                    </div>
-                  </div>
+                  <CategoryCount
+                    category="A"
+                    count={totalA}
+                  />
+                  <CategoryCount
+                    category="B"
+                    count={totalB}
+                  />
+                  <CategoryCount
+                    category="C"
+                    count={totalC}
+                  />
+                  <CategoryCount
+                    category="UC"
+                    count={totalUC}
+                  />
                 </div>
                 <div className="mt-10 p-2 mx-auto w-full md:w-1/2">
                   <CategoriesChart
@@ -282,13 +292,6 @@ const Page: React.FC = () => {
           )}
         </div>
       </div>
-      {/* Details Modal */}
-      {details && viewDetailsModal && (
-        <DetailsModal
-          details={details}
-          hideModal={() => setViewDetailsModal(false)}
-        />
-      )}
     </>
   )
 }

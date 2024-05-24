@@ -102,6 +102,7 @@ export default function FuelRequest() {
         po_id: selectedItem.po_id,
         vehicle_id: formdata.vehicle_id,
         transaction_type: 'Purchase Order',
+        origin: 'Portal',
         type: formdata.type,
         quantity: formdata.quantity,
         price: price,
@@ -128,6 +129,7 @@ export default function FuelRequest() {
       .from('ddm_ris_department_codes')
       .select('*, purchase_order:po_id(*), department:department_id(*)')
       .eq('code', code)
+      .eq('status', 'Active')
     if (code && data.length > 0) {
       setErrorMessage('')
       setSelectedItem(data[0])
