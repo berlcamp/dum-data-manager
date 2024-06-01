@@ -63,6 +63,8 @@ const Page: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [checkAll, setCheckAll] = useState(false)
 
+  const [zeroPrices, setZeroPrices] = useState<RisTypes[] | []>([])
+
   const { supabase, session } = useSupabase()
   const { hasAccess, setToast } = useFilter()
 
@@ -299,6 +301,14 @@ const Page: React.FC = () => {
     }
   }
 
+  // Get all RIS without price
+  useEffect(() => {
+    ;(async () => {
+      const { data } = await supabase.from('ddm_ris').select().eq('price', 0)
+      setZeroPrices(data)
+    })()
+  }, [])
+
   // Update list whenever list in redux updates
   useEffect(() => {
     setList(globallist)
@@ -358,6 +368,24 @@ const Page: React.FC = () => {
               setFilterDateTo={setFilterDateTo}
             />
           </div>
+
+          {/* Warning Message */}
+          {zeroPrices.length > 0 && (
+            <div className="mx-4 mb-4">
+              <div className="text-xs">
+                <span className="text-red-500 font-bold">
+                  Warning! The following R.I.S. currently have 0 Price:{' '}
+                </span>
+                {zeroPrices.map((ris, idx) => (
+                  <span
+                    key={idx}
+                    className="text-gray-600">
+                    {ris.id},{' '}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Export Button */}
           <div className="mx-4 mb-4 flex justify-end space-x-2">

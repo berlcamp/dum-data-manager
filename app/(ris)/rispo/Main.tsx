@@ -149,11 +149,30 @@ const Page: React.FC = () => {
     if (remainingQuantity < 100) {
       return (
         <span style={{ color: 'red', fontWeight: 'bold' }}>
-          {remainingQuantity}
+          {remainingQuantity.toFixed(2)}
         </span>
       )
     } else {
-      return <span>{remainingQuantity}</span>
+      return <span>{remainingQuantity.toFixed(2)}</span>
+    }
+  }
+
+  const countRemainingAmount = (item: RisPoTypes) => {
+    let totalAmount = 0
+    if (item.ddm_ris) {
+      item.ddm_ris.forEach((ris) => {
+        totalAmount += Number(ris.quantity) * Number(ris.price)
+      })
+    }
+    const remainingAmount = Number(item.amount) - totalAmount
+    if (remainingAmount < 100) {
+      return (
+        <span style={{ color: 'red', fontWeight: 'bold' }}>
+          {remainingAmount.toFixed(2)}
+        </span>
+      )
+    } else {
+      return <span>{remainingAmount.toFixed(2)}</span>
     }
   }
 
@@ -275,6 +294,14 @@ const Page: React.FC = () => {
                           <div>
                             <span className="font-light">Amount:</span>{' '}
                             <span className="font-medium">{item.amount}</span>
+                          </div>
+                          <div>
+                            <span className="font-light">
+                              Remaining Amount:
+                            </span>{' '}
+                            <span className="font-medium">
+                              {countRemainingAmount(item)}
+                            </span>
                           </div>
                           <div>
                             <span className="font-light">Description:</span>{' '}
