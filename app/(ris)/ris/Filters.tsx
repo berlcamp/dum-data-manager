@@ -28,6 +28,7 @@ import {
   RisCaTypes,
   RisDepartmentTypes,
   RisPoTypes,
+  RisVehicleTypes,
 } from '@/types'
 import { format } from 'date-fns'
 import { Calendar as CalendarIcon } from 'lucide-react'
@@ -37,6 +38,7 @@ import { z } from 'zod'
 
 interface FilterTypes {
   setFilterAppropriation: (a: string) => void
+  setFilterVehicle: (a: string) => void
   setFilterStatus: (status: string) => void
   setFilterDepartment: (d: string) => void
   setFilterCa: (ca: string) => void
@@ -51,6 +53,7 @@ const FormSchema = z.object({
   dateFrom: z.date().optional(),
   dateTo: z.date().optional(),
   appropriation: z.string().optional(),
+  vehicle: z.string().optional(),
   status: z.string().optional(),
   department: z.string().optional(),
   purchase_order: z.string().optional(),
@@ -61,6 +64,7 @@ const Filters = ({
   setFilterCa,
   setFilterPo,
   setFilterAppropriation,
+  setFilterVehicle,
   setFilterStatus,
   setFilterDepartment,
   setFilterDateFrom,
@@ -73,6 +77,7 @@ const Filters = ({
   const [departments, setDepartments] = useState<RisDepartmentTypes[] | []>([])
   const [purchaseOrders, setPurchaseOrders] = useState<RisPoTypes[] | []>([])
   const [cashAdvances, setCashAdvances] = useState<RisCaTypes[] | []>([])
+  const [vehicles, setVehicles] = useState<RisVehicleTypes[] | []>([])
 
   const { supabase } = useSupabase()
 
@@ -81,6 +86,7 @@ const Filters = ({
       dateFrom: undefined,
       dateTo: undefined,
       appropriation: '',
+      vehicle: '',
       status: '',
       department: '',
       purchase_order: '',
@@ -93,6 +99,7 @@ const Filters = ({
     setFilterCa(data.cash_advance || 'All')
     setFilterPo(data.purchase_order || 'All')
     setFilterAppropriation(data.appropriation || 'All')
+    setFilterVehicle(data.vehicle || 'All')
     setFilterStatus(data.status || 'All')
     setFilterDepartment(data.department || 'All')
     setFilterDateFrom(data.dateFrom)
@@ -106,6 +113,7 @@ const Filters = ({
     setFilterPo('All')
     setFilterCa('All')
     setFilterAppropriation('All')
+    setFilterVehicle('All')
     setFilterStatus('All')
     setFilterDepartment('All')
     setFilterDateFrom(undefined)
@@ -145,6 +153,14 @@ const Filters = ({
         .select()
         .order('ca_number', { ascending: true })
       setCashAdvances(data)
+    })()
+    // Fetch vehicles
+    ;(async () => {
+      const { data } = await supabase
+        .from('ddm_ris_vehicles')
+        .select()
+        .order('name', { ascending: true })
+      setVehicles(data)
     })()
     console.log('filter data fetched successfully')
   }, [])
@@ -368,6 +384,36 @@ const Filters = ({
                             key={idx}
                             value={item.id.toString()}>
                             {item.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="items-center inline-flex app__filter_field_container">
+              <FormField
+                control={form.control}
+                name="vehicle"
+                render={({ field }) => (
+                  <FormItem className="w-[140px]">
+                    <FormLabel className="app__form_label">Vehicle</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value?.toString()}
+                      defaultValue={field.value?.toString()}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {vehicles?.map((item, idx) => (
+                          <SelectItem
+                            key={idx}
+                            value={item.id.toString()}>
+                            {item.name} - {item.plate_number}
                           </SelectItem>
                         ))}
                       </SelectContent>

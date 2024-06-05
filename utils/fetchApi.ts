@@ -358,6 +358,7 @@ export async function fetchRis(
   filters: {
     filterKeyword?: string
     filterAppropriation?: string
+    filterVehicle?: string
     filterStatus?: string
     filterDepartment?: string
     filterCa?: string
@@ -432,6 +433,11 @@ export async function fetchRis(
     // Department
     if (filters.filterDepartment && filters.filterDepartment !== 'All') {
       query = query.eq('department_id', filters.filterDepartment)
+    }
+
+    // Vehicle
+    if (filters.filterVehicle && filters.filterVehicle !== 'All') {
+      query = query.eq('vehicle_id', filters.filterVehicle)
     }
 
     // From Appropriation filters

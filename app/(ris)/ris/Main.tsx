@@ -47,6 +47,7 @@ const Page: React.FC = () => {
   const [filterPo, setFilterPo] = useState('All')
   const [filterCa, setFilterCa] = useState('All')
   const [filterAppropriation, setFilterAppropriation] = useState('All')
+  const [filterVehicle, setFilterVehicle] = useState('All')
   const [filterStatus, setFilterStatus] = useState('All')
   const [filterDepartment, setFilterDepartment] = useState('All')
   const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(
@@ -80,6 +81,7 @@ const Page: React.FC = () => {
         {
           filterKeyword,
           filterAppropriation,
+          filterVehicle,
           filterStatus,
           filterDepartment,
           filterPo,
@@ -112,6 +114,7 @@ const Page: React.FC = () => {
         {
           filterKeyword,
           filterAppropriation,
+          filterVehicle,
           filterStatus,
           filterDepartment,
           filterPo,
@@ -158,14 +161,13 @@ const Page: React.FC = () => {
       { header: '#', key: 'no', width: 20 },
       { header: 'Date Requested', key: 'date', width: 20 },
       { header: 'PO', key: 'po', width: 20 },
-      { header: 'CA', key: 'ca', width: 20 },
+      { header: 'Purpose', key: 'purpose', width: 20 },
       { header: 'Requester', key: 'requester', width: 20 },
       { header: 'Type', key: 'type', width: 20 },
       { header: 'Quantity', key: 'quantity', width: 20 },
       { header: 'Price', key: 'price', width: 20 },
       { header: 'Vehicle', key: 'vehicle', width: 20 },
       { header: 'Department', key: 'department', width: 20 },
-      { header: 'Appropriation', key: 'appropriation', width: 20 },
       // Add more columns based on your data structure
     ]
 
@@ -173,6 +175,7 @@ const Page: React.FC = () => {
       {
         filterKeyword,
         filterAppropriation,
+        filterVehicle,
         filterPo,
         filterCa,
         filterDateFrom,
@@ -191,16 +194,13 @@ const Page: React.FC = () => {
         no: index + 1,
         date: format(new Date(item.date_requested), 'MM/dd/yyyy'),
         po: `${item.purchase_order?.po_number || ''}`,
-        ca: `${item.cash_advance?.ca_number || ''}`,
+        purpose: `${item.purpose}`,
         requester: `${item.requester}`,
         type: `${item.type}`,
         quantity: `${item.quantity}`,
         price: `${item.price}`,
         vehicle: `${item.vehicle.name}-${item.vehicle.plate_number}`,
         department: `${item.department.name}`,
-        appropriation: `${
-          item.purchase_order?.ddm_ris_appropriation?.name || ''
-        }`,
       })
     })
 
@@ -321,6 +321,7 @@ const Page: React.FC = () => {
   }, [
     filterKeyword,
     filterAppropriation,
+    filterVehicle,
     filterStatus,
     filterDepartment,
     filterPo,
@@ -360,6 +361,7 @@ const Page: React.FC = () => {
             <Filters
               setFilterKeyword={setFilterKeyword}
               setFilterAppropriation={setFilterAppropriation}
+              setFilterVehicle={setFilterVehicle}
               setFilterStatus={setFilterStatus}
               setFilterDepartment={setFilterDepartment}
               setFilterPo={setFilterPo}
