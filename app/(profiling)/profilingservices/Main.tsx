@@ -16,7 +16,7 @@ import React, { useEffect, useState } from 'react'
 import Filters from './Filters'
 
 // Types
-import type { ProfileBlcTypes } from '@/types'
+import type { ServicesTypes } from '@/types'
 
 // Redux imports
 import { updateList } from '@/GlobalRedux/Features/listSlice'
@@ -32,13 +32,13 @@ const Page: React.FC = () => {
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<ProfileBlcTypes | null>(null)
+  const [selectedItem, setSelectedItem] = useState<ServicesTypes | null>(null)
 
   // Filters
   const [filterKeyword, setFilterKeyword] = useState('')
 
   // List
-  const [list, setList] = useState<ProfileBlcTypes[]>([])
+  const [list, setList] = useState<ServicesTypes[]>([])
   const [perPageCount, setPerPageCount] = useState<number>(10)
   const [showingCount, setShowingCount] = useState<number>(0)
   const [resultsCount, setResultsCount] = useState<number>(0)
@@ -105,7 +105,7 @@ const Page: React.FC = () => {
     setSelectedItem(null)
   }
 
-  const handleEdit = (item: ProfileBlcTypes) => {
+  const handleEdit = (item: ServicesTypes) => {
     setShowAddModal(true)
     setSelectedItem(item)
   }
@@ -165,7 +165,6 @@ const Page: React.FC = () => {
               <thead className="app__thead">
                 <tr>
                   <th className="app__th">Name</th>
-                  <th className="app__th">Barangay</th>
                   <th className="app__th"></th>
                 </tr>
               </thead>
@@ -175,8 +174,7 @@ const Page: React.FC = () => {
                     <tr
                       key={index}
                       className="app__tr">
-                      <td className="app__td">{item.fullname}</td>
-                      <td className="app__td">{item.barangay}</td>
+                      <td className="app__td">{item.name}</td>
                       <td className="app__td">
                         <div className="flex space-x-2 items-center">
                           <button
