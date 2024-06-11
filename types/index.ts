@@ -242,6 +242,11 @@ export interface ProfileBlcTypes {
   barangay: string
 }
 
+export interface ServicesTypes {
+  id: string
+  name: string
+}
+
 export interface ProfileTypes {
   id: string
   fullname: string

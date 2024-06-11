@@ -14,55 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { barangays } from '@/constants/TrackerConstants'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-
-const barangays = [
-  'Bag-ong Valencia',
-  'Bag-ong Kauswagan',
-  'Bag-ong Silangan',
-  'Bucayan',
-  'Calumanggi',
-  'Canibongan',
-  'Caridad',
-  'Danlugan',
-  'Dapiwak',
-  'Datu Totocan',
-  'Dilud',
-  'Ditulan',
-  'Dulian',
-  'Dulop',
-  'Guintananan',
-  'Guitran',
-  'Gumpingan',
-  'La Fortuna',
-  'Labangon',
-  'Libertad',
-  'Licabang',
-  'Lipawan',
-  'Lower Landing',
-  'Lower Timonan',
-  'Macasing',
-  'Mahayahay',
-  'Manlabay',
-  'Malagalad',
-  'Maralag',
-  'Marangan',
-  'New Basak',
-  'Saad',
-  'Salvador',
-  'San Juan',
-  'San Pablo (Poblacion)',
-  'San Pedro (Poblacion)',
-  'San Vicente',
-  'Senote',
-  'Sinonok',
-  'Sunop',
-  'Tagun',
-  'Tamurayan',
-  'Upper Landing',
-  'Upper Timonan',
-]
 
 interface FilterTypes {
   setFilterKeyword: (keyword: string) => void
