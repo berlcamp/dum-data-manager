@@ -244,7 +244,9 @@ export interface ProfileBlcTypes {
 
 export interface ServicesTypes {
   id: string
-  name: string
+  service: string
+  date: string
+  amount: string
 }
 
 export interface ProfileTypes {

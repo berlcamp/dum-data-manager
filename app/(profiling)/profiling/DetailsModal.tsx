@@ -9,10 +9,16 @@ import {
 import {
   profileCategories,
   profilePositions,
+  services,
 } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
-import type { AccountTypes, ProfileRemarksTypes, ProfileTypes } from '@/types'
+import type {
+  AccountTypes,
+  ProfileRemarksTypes,
+  ProfileTypes,
+  ServicesTypes,
+} from '@/types'
 import { nanoid } from '@reduxjs/toolkit'
 import { format } from 'date-fns'
 import { PencilLineIcon, TrashIcon } from 'lucide-react'
@@ -181,6 +187,87 @@ const RemarksList = ({
               </div>
             </div>
           )}
+        </div>
+      </div>
+      {showConfirmation && (
+        <ConfirmModal
+          message="Are you sure you want to perform this action?"
+          header="Confirm delete"
+          btnText="Confirm"
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
+        />
+      )}
+    </div>
+  )
+}
+
+const ServicesList = ({
+  service,
+  profile,
+  refetch,
+}: {
+  service: ServicesTypes
+  profile: ProfileTypes
+  refetch: () => void
+}) => {
+  const { supabase } = useSupabase()
+  const { setToast } = useFilter()
+
+  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [selectedId, setSelectedId] = useState('')
+
+  const handleCancel = () => {
+    setShowConfirmation(false)
+    setSelectedId('')
+  }
+  const handleConfirm = async () => {
+    await handleDeleteReply()
+    setShowConfirmation(false)
+  }
+
+  const handleDeleteReply = async () => {
+    try {
+      const { error } = await supabase
+        .from('ddm_profile_services')
+        .delete()
+        .eq('id', selectedId)
+
+      if (error) throw new Error(error.message)
+
+      setSelectedId('')
+      setToast('success', 'Successfully Deleted!')
+      refetch()
+    } catch (e) {
+      setToast('error', 'Something went wrong')
+    }
+  }
+
+  return (
+    <div className="w-full flex-col space-y-1 px-4 py-4 border-t text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+      <div className="w-full group">
+        <div className="flex items-center space-x-2">
+          <div className="flex flex-1 items-center space-x-2">
+            <Avatar
+              round={true}
+              size="30"
+              name={profile.fullname}
+            />
+            <div>
+              {/* <div className="font-bold">
+                <span>{profile.fullname} </span>
+              </div> */}
+              <div className="text-gray-500  focus:ring-0 focus:outline-none text-xs text-left inline-flex items-center">
+                {format(new Date(service.date), 'dd MMM yyyy')}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Message */}
+        <div className="pl-10 mt-2">
+          <div>Availed {service.service}</div>
+          <div>Amount: {service.amount}</div>
         </div>
       </div>
       {showConfirmation && (
@@ -417,9 +504,16 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
     []
   )
 
+  const [servicesLists, setServicesLists] = useState<ServicesTypes[] | []>([])
+
   const [refetch, setRefetch] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  const [addService, setAddService] = useState(false)
+  const [service, setService] = useState('')
+  const [serviceDate, setServiceDate] = useState('')
+  const [serviceAmount, setServiceAmount] = useState('')
 
   const { supabase, session, systemUsers } = useSupabase()
   const user: AccountTypes = systemUsers.find(
@@ -462,6 +556,38 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
     }
   }
 
+  const handleSubmitService = async () => {
+    if (service.trim().length === 0) {
+      return
+    }
+
+    setSaving(true)
+
+    try {
+      const newData = {
+        profile_id: details.id,
+        service,
+        date: serviceDate,
+        amount: serviceAmount,
+      }
+
+      const { data, error } = await supabase
+        .from('ddm_profile_services')
+        .insert(newData)
+        .select()
+
+      if (error) throw new Error(error.message)
+
+      // Append new remarks to list
+      setServicesLists([...servicesLists, { ...newData, id: data[0].id }])
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setRemarks('')
+      setSaving(false)
+    }
+  }
+
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       hideModal()
@@ -486,6 +612,18 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
         .eq('profile_id', details.id)
 
       setRemarksLists(data)
+      setLoading(false)
+    })()
+
+    // Fetch services availed
+    ;(async () => {
+      setLoading(true)
+      const { data } = await supabase
+        .from('ddm_profile_services')
+        .select()
+        .eq('profile_id', details.id)
+
+      setServicesLists(data)
       setLoading(false)
     })()
   }, [refetch])
@@ -606,48 +744,136 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
               </div>
               <hr />
               <div className="w-full relative">
-                <div className="mx-2 mb-10 outline-none overflow-x-hidden overflow-y-auto text-xs text-gray-600 bg-gray-100 dark:bg-gray-800 dark:text-gray-400">
-                  <div className="flex space-x-2 px-4 py-4">
-                    <span className="font-bold">Remarks:</span>
-                  </div>
-                  {loading && <TwoColTableLoading />}
-                  {!loading && (
-                    <>
-                      {/* Remarks Box */}
-                      <div className="w-full flex-col space-y-2 px-4 mb-5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                        <textarea
-                          onChange={(e) => setRemarks(e.target.value)}
-                          value={remarks}
-                          placeholder="Write your remarks here.."
-                          className="w-full h-20 border resize-none focus:ring-0 focus:outline-none p-2 text-sm text-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                        />
-                        <div className="flex items-start">
-                          <span className="flex-1">&nbsp;</span>
-
-                          <CustomButton
-                            containerStyles="app__btn_green"
-                            title="Submit"
-                            isDisabled={saving}
-                            handleClick={handleSubmitRemarks}
-                            btnType="button"
-                          />
-                        </div>
+                <div className="mx-2 mb-10 outline-none overflow-x-hidden overflow-y-auto text-xs text-gray-600 ">
+                  <div className="flex space-x-2">
+                    <div className="bg-gray-100 w-full">
+                      <div className="flex space-x-2 px-4 py-4">
+                        <span className="font-bold">Remarks:</span>
                       </div>
-                      {remarksLists.length > 0 ? (
-                        remarksLists.map((remarks, idx) => (
-                          <RemarksList
-                            key={idx}
-                            refetch={() => setRefetch(!refetch)}
-                            remarks={remarks}
-                          />
-                        ))
-                      ) : (
-                        <div className="px-4 pb-4 text-center">
-                          No remarks added yet.
-                        </div>
+                      {loading && <TwoColTableLoading />}
+                      {!loading && (
+                        <>
+                          {/* Remarks Box */}
+                          <div className="w-full flex-col space-y-2 px-4 mb-5 text-xs text-gray-600">
+                            <textarea
+                              onChange={(e) => setRemarks(e.target.value)}
+                              value={remarks}
+                              placeholder="Write your remarks here.."
+                              className="w-full h-20 border resize-none focus:ring-0 focus:outline-none p-2 text-sm text-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                            />
+                            <div className="flex items-start">
+                              <span className="flex-1">&nbsp;</span>
+
+                              <CustomButton
+                                containerStyles="app__btn_green"
+                                title="Submit"
+                                isDisabled={saving}
+                                handleClick={handleSubmitRemarks}
+                                btnType="button"
+                              />
+                            </div>
+                          </div>
+                          {remarksLists.length > 0 ? (
+                            remarksLists.map((remarks, idx) => (
+                              <RemarksList
+                                key={idx}
+                                refetch={() => setRefetch(!refetch)}
+                                remarks={remarks}
+                              />
+                            ))
+                          ) : (
+                            <div className="px-4 pb-4 text-center">
+                              No remarks added yet.
+                            </div>
+                          )}
+                        </>
                       )}
-                    </>
-                  )}
+                    </div>
+                    <div className="bg-gray-100 w-full">
+                      <div className="flex space-x-2 px-4 py-4">
+                        <span className="font-bold">Services Availed:</span>
+                      </div>
+                      {loading && <TwoColTableLoading />}
+                      {!loading && (
+                        <>
+                          <div className="w-full flex-col space-y-2 px-4 mb-5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                            <div className="flex space-x-2">
+                              <div>
+                                <div>Service Availed:</div>
+                                <select
+                                  onChange={(e) => setService(e.target.value)}
+                                  value={service}
+                                  className="w-full border outline-none p-2 text-sm text-gray-700">
+                                  <option value="">Choose</option>
+                                  {services.map((s, i) => (
+                                    <option
+                                      key={i}
+                                      value={s}>
+                                      {s}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <div>Date Availed:</div>
+                                <input
+                                  type="date"
+                                  onChange={(e) =>
+                                    setServiceDate(e.target.value)
+                                  }
+                                  value={serviceDate}
+                                  className="w-full border outline-none p-2 text-sm text-gray-700"
+                                />
+                              </div>
+                              <div>
+                                <div>Amount (optional):</div>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  onChange={(e) =>
+                                    setServiceAmount(e.target.value)
+                                  }
+                                  value={serviceAmount}
+                                  className="w-full border outline-none p-2 text-sm text-gray-700"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex items-start">
+                              <span className="flex-1">&nbsp;</span>
+                              <CustomButton
+                                containerStyles="app__btn_gray"
+                                title="Cancel"
+                                isDisabled={saving}
+                                handleClick={() => setAddService(false)}
+                                btnType="button"
+                              />
+                              <CustomButton
+                                containerStyles="app__btn_green ml-2"
+                                title="Submit"
+                                isDisabled={saving}
+                                handleClick={handleSubmitService}
+                                btnType="button"
+                              />
+                            </div>
+                          </div>
+                          {servicesLists.length > 0 ? (
+                            servicesLists.map((serv, idx) => (
+                              <ServicesList
+                                key={idx}
+                                refetch={() => setRefetch(!refetch)}
+                                service={serv}
+                                profile={details}
+                              />
+                            ))
+                          ) : (
+                            <div className="px-4 pb-4 text-center">
+                              No services availed yet.
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

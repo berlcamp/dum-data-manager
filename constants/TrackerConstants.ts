@@ -190,3 +190,5 @@ export const barangays = [
   'UPPER LANDING',
   'UPPER TIMONAN',
 ]
+
+export const services = ['TUPAD Beneficiary', 'DSWD Food For Work']

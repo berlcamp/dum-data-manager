@@ -122,7 +122,7 @@ export default function Coordinator({
 
   return (
     <div className="">
-      <div className="w-full">
+      <div className="w-[400px]">
         <div className="bg-white p-1 border border-gray-300 rounded-sm">
           {selectedCoordinator && (
             <div className="space-x-2">
