@@ -52,6 +52,7 @@ const FormSchema = z.object({
   requester: z.string().min(1, {
     message: 'Requester is required.',
   }),
+  destination: z.string().optional(),
   department_id: z.coerce.string().min(1, {
     message: 'Requesting Department is required.',
   }),
@@ -120,6 +121,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     resolver: zodResolver(FormSchema),
     defaultValues: {
       requester: editData ? editData.requester : '',
+      destination: editData ? editData.destination : '',
       department_id: editData ? editData.department_id : '',
       vehicle_id: editData ? editData.vehicle_id : '',
       transaction_type: editData ? editData.transaction_type : '',
@@ -158,6 +160,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     try {
       const newData = {
         requester: formdata.requester,
+        destination: formdata.destination,
         department_id: formdata.department_id,
         po_id:
           formdata.transaction_type === 'Purchase Order'
@@ -218,6 +221,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     try {
       const newData = {
         requester: formdata.requester,
+        destination: formdata.destination,
         department_id: formdata.department_id,
         po_id:
           formdata.transaction_type === 'Purchase Order'
@@ -766,6 +770,24 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               <Textarea
                                 placeholder="Purpose"
                                 className="resize-none"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="destination"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="app__form_label">
+                              Destination
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Destination"
                                 {...field}
                               />
                             </FormControl>

@@ -198,6 +198,7 @@ export interface RisTypes {
   purchase_order: RisPoTypes
   cash_advance: RisCaTypes
   department: RisDepartmentTypes
+  destination: string
 }
 
 export interface RisVehicleTypes {
