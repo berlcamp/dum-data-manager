@@ -471,7 +471,7 @@ export async function fetchRis(
     query = query.range(from, to)
 
     // Order By
-    query = query.order('id', { ascending: false })
+    query = query.order('date_requested', { ascending: false })
 
     const { data, count, error } = await query
 
