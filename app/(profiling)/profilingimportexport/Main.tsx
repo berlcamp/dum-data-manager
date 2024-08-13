@@ -116,7 +116,7 @@ const Page: React.FC = () => {
       const blob = new Blob([buffer], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       })
-      saveAs(blob, `${formdata.barangay}.xlsx`)
+      saveAs(blob, `${formdata.barangay}-${formdata.type}.xlsx`)
     })
     setDownloading(false)
   }
