@@ -27,10 +27,14 @@ import CategoriesChart from './CategoriesChart'
 
 const CategoryCount = ({
   category,
-  count,
+  core,
+  blc,
+  prov,
 }: {
   category: string
-  count: number
+  core: number
+  blc: number
+  prov: number
 }) => {
   return (
     <div className="hover:bg-slate-200 text-gray-700">
@@ -42,15 +46,15 @@ const CategoryCount = ({
         </div>
         <div className="pl-10 mt-2 font-extralight">
           <span className="text-sm">Core: </span>
-          <span className="font-bold">{count}</span>
+          <span className="font-bold">{core}</span>
         </div>
         <div className="pl-10 font-extralight">
           <span className="text-sm">BLC: </span>
-          <span className="font-bold">{count}</span>
+          <span className="font-bold">{blc}</span>
         </div>
         <div className="pl-10 font-extralight">
           <span className="text-sm">Province: </span>
-          <span className="font-bold">{count}</span>
+          <span className="font-bold">{prov}</span>
         </div>
       </div>
     </div>
@@ -61,10 +65,18 @@ const Page: React.FC = () => {
   const [filterBarangay, setFilterBarangay] = useState('')
 
   // Summary Data
-  const [totalA, setTotalA] = useState(0)
-  const [totalB, setTotalB] = useState(0)
-  const [totalC, setTotalC] = useState(0)
-  const [totalUC, setTotalUC] = useState(0)
+  const [totalACore, setTotalACore] = useState(0)
+  const [totalABlc, setTotalABlc] = useState(0)
+  const [totalAProv, setTotalAProv] = useState(0)
+  const [totalBCore, setTotalBCore] = useState(0)
+  const [totalBBlc, setTotalBBlc] = useState(0)
+  const [totalBProv, setTotalBProv] = useState(0)
+  const [totalCCore, setTotalCCore] = useState(0)
+  const [totalCBlc, setTotalCBlc] = useState(0)
+  const [totalCProv, setTotalCProv] = useState(0)
+  const [totalUCCore, setTotalUCCore] = useState(0)
+  const [totalUCBlc, setTotalUCBlc] = useState(0)
+  const [totalUCProv, setTotalUCProv] = useState(0)
 
   // Chart data
   const [dataSets, setDataSets] = useState([])
@@ -93,7 +105,7 @@ const Page: React.FC = () => {
     '#6dd6b5',
   ]
 
-  const query = async (category: string) => {
+  const query = async (category: string, type: string) => {
     setLoading(true)
 
     let query = supabase.from('ddm_profiles').select('id', { count: 'exact' })
@@ -105,7 +117,15 @@ const Page: React.FC = () => {
 
     // Filter Category
     if (category !== '') {
-      query = query.eq('category', category)
+      if (type === 'core') {
+        query = query.eq('category', category)
+      }
+      if (type === 'blc') {
+        query = query.eq('blc_category', category)
+      }
+      if (type === 'prov') {
+        query = query.eq('province_category', category)
+      }
     }
 
     const { count } = await query
@@ -118,39 +138,55 @@ const Page: React.FC = () => {
     try {
       const dataSetsData: any = []
 
-      const countA = await query('A')
-      const countB = await query('B')
-      const countC = await query('C')
-      const countUC = await query('UC')
+      const countACore = await query('A', 'core')
+      const countABlc = await query('A', 'blc')
+      const countAProv = await query('A', 'prov')
+      const countBCore = await query('B', 'core')
+      const countBBlc = await query('B', 'blc')
+      const countBProv = await query('B', 'prov')
+      const countCCore = await query('C', 'core')
+      const countCBlc = await query('C', 'blc')
+      const countCProv = await query('C', 'prov')
+      const countUCCore = await query('UC', 'core')
+      const countUCBlc = await query('UC', 'blc')
+      const countUCProv = await query('UC', 'prov')
 
       dataSetsData.push(
         {
           label: `A`,
-          data: [countA],
+          data: [countACore],
           bgColor: colors[Math.floor(Math.random() * 11)],
         },
         {
           label: `B`,
-          data: [countB],
+          data: [countBCore],
           bgColor: colors[Math.floor(Math.random() * 11)],
         },
         {
           label: `C`,
-          data: [countC],
+          data: [countCCore],
           bgColor: colors[Math.floor(Math.random() * 11)],
         },
         {
           label: `UC`,
-          data: [countUC],
+          data: [countUCCore],
           bgColor: colors[Math.floor(Math.random() * 11)],
         }
       )
 
       // Set summary data
-      setTotalA(countA)
-      setTotalB(countB)
-      setTotalC(countC)
-      setTotalUC(countUC)
+      setTotalACore(countACore)
+      setTotalABlc(countABlc)
+      setTotalAProv(countAProv)
+      setTotalBCore(countBCore)
+      setTotalBBlc(countBBlc)
+      setTotalBProv(countBProv)
+      setTotalCCore(countCCore)
+      setTotalCBlc(countCBlc)
+      setTotalCProv(countCProv)
+      setTotalUCCore(countUCCore)
+      setTotalUCBlc(countUCBlc)
+      setTotalUCProv(countUCProv)
 
       // Charts data
       setLabels(['Categories'])
@@ -266,19 +302,27 @@ const Page: React.FC = () => {
                 <div className="border-b grid grid-cols-4">
                   <CategoryCount
                     category="A"
-                    count={totalA}
+                    core={totalACore}
+                    blc={totalABlc}
+                    prov={totalAProv}
                   />
                   <CategoryCount
                     category="B"
-                    count={totalB}
+                    core={totalBCore}
+                    blc={totalBBlc}
+                    prov={totalBProv}
                   />
                   <CategoryCount
                     category="C"
-                    count={totalC}
+                    core={totalCCore}
+                    blc={totalCBlc}
+                    prov={totalCProv}
                   />
                   <CategoryCount
                     category="UC"
-                    count={totalUC}
+                    core={totalUCCore}
+                    blc={totalUCBlc}
+                    prov={totalUCProv}
                   />
                 </div>
                 <div className="mt-10 p-2 mx-auto w-full md:w-1/2">
