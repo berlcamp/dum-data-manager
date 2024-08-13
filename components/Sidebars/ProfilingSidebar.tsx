@@ -33,6 +33,19 @@ export default function ProfilingSidebar() {
           </Link>
         </li>
         <li>
+          <Link
+            href="/profilingimportexport"
+            className={`app__menu_link ${
+              currentRoute === '/profilingimportexport'
+                ? 'app_menu_link_active'
+                : ''
+            }`}>
+            <span className="flex-1 ml-3 whitespace-nowrap">
+              Import/Export Data
+            </span>
+          </Link>
+        </li>
+        <li>
           <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2 mt-8">
             <span>Reports</span>
           </div>
