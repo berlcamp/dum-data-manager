@@ -129,7 +129,7 @@ const Page: React.FC = () => {
   const [downloading, setDownloading] = useState(false)
 
   // CSV Reader
-  const [csvContents, setCsvContents] = useState(null)
+  const [csvContents, setCsvContents] = useState<any>(null)
   const { CSVReader } = useCSVReader()
   const [zoneHover, setZoneHover] = useState(false)
   const [removeHoverColor, setRemoveHoverColor] = useState(
@@ -146,7 +146,14 @@ const Page: React.FC = () => {
   }
 
   const handleProcessCsvData = async () => {
-    console.log('csvContents', csvContents)
+    if (csvContents) {
+      // process each row
+      csvContents.data.forEach((item: any) => {
+        const id = item[1]
+        const category = item[3]
+        const remarks = item[4]
+      })
+    }
   }
 
   const handleDownloadExcel = async (formdata: z.infer<typeof FormSchema>) => {

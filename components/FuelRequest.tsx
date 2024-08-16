@@ -43,6 +43,9 @@ const FormSchema = z.object({
   requester: z.string().min(1, {
     message: 'Requester is required.',
   }),
+  destination: z.string().min(1, {
+    message: 'Destination is required.',
+  }),
   vehicle_id: z.coerce.string().min(1, {
     message: 'Vehicle is required.',
   }),
@@ -79,6 +82,7 @@ export default function FuelRequest() {
     resolver: zodResolver(FormSchema),
     defaultValues: {
       requester: '',
+      destination: '',
       vehicle_id: '',
       type: '',
       quantity: 0,
@@ -98,6 +102,7 @@ export default function FuelRequest() {
 
       const newData = {
         requester: formdata.requester,
+        destination: formdata.destination,
         department_id: selectedItem.department_id,
         po_id: selectedItem.po_id,
         vehicle_id: formdata.vehicle_id,
@@ -372,6 +377,24 @@ export default function FuelRequest() {
                               <Input
                                 type="number"
                                 placeholder="Quantity"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="destination"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="app__form_label">
+                              Destination
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Destination"
                                 {...field}
                               />
                             </FormControl>
