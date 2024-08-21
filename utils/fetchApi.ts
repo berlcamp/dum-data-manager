@@ -195,6 +195,93 @@ export async function fetchProfiles(
   }
 }
 
+export async function fetchImportLogs(perPageCount: number, rangeFrom: number) {
+  try {
+    let query = supabase
+      .from('ddm_profile_import_logs')
+      .select('*, profile:profile_id(address), survey:survey_id(name)', {
+        count: 'exact',
+      })
+
+    // Perform count before paginations
+    // const { count } = await query
+
+    // Per Page from context
+    const from = rangeFrom
+    const to = from + (perPageCount - 1)
+    // Per Page from context
+    query = query.range(from, to)
+
+    // Order By
+    query = query.order('id', { ascending: true })
+
+    const { data, count, error } = await query
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return { data, count }
+  } catch (error) {
+    console.error('fetch error', error)
+    return { data: [], count: 0 }
+  }
+}
+
+export async function fetchCategories(
+  filters: {
+    profile_ids?: string[]
+    survey_id?: string
+    type?: string
+  },
+  perPageCount: number,
+  rangeFrom: number
+) {
+  try {
+    let query = supabase
+      .from('ddm_profile_categories')
+      .select('*, profile:profile_id(fullname,address)', { count: 'exact' })
+
+    // Filter profile ids
+    if (filters.profile_ids) {
+      query = query.in('profile_id', filters.profile_ids)
+    }
+
+    // Filter survey_id
+    if (filters.survey_id && filters.survey_id.trim() !== '') {
+      query = query.eq('survey_id', filters.survey_id)
+    }
+
+    // Filter type
+    if (filters.type && filters.type.trim() !== '') {
+      query = query.eq('type', filters.type)
+    }
+
+    // Perform count before paginations
+    // const { count } = await query
+
+    // Per Page from context
+    const from = rangeFrom
+    const to = from + (perPageCount - 1)
+    // Per Page from context
+    query = query.range(from, to)
+
+    // Order By
+    query = query.order('id', { ascending: true })
+
+    const { data, count, error } = await query
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return { data, count }
+  } catch (error) {
+    console.error('fetch error', error)
+    return { data: [], count: 0 }
+  }
+}
+
 export async function fetchCoordinators(
   filters: {
     filterKeyword?: string
@@ -701,6 +788,68 @@ export async function fetchRisDepartments(
     ) {
       query = query.or(`name.ilike.%${filters.filterKeyword}%`)
     }
+
+    // Perform count before paginations
+    // const { count } = await query
+
+    // Per Page from context
+    const from = rangeFrom
+    const to = from + (perPageCount - 1)
+    // Per Page from context
+    query = query.range(from, to)
+
+    // Order By
+    query = query.order('id', { ascending: false })
+
+    const { data, count, error } = await query
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return { data, count }
+  } catch (error) {
+    console.error('fetch error xx', error)
+    return { data: [], count: 0 }
+  }
+}
+
+export async function fetchSurveys(perPageCount: number, rangeFrom: number) {
+  try {
+    let query = supabase
+      .from('ddm_profile_surveys')
+      .select('*', { count: 'exact' })
+
+    // Perform count before paginations
+    // const { count } = await query
+
+    // Per Page from context
+    const from = rangeFrom
+    const to = from + (perPageCount - 1)
+    // Per Page from context
+    query = query.range(from, to)
+
+    // Order By
+    query = query.order('id', { ascending: false })
+
+    const { data, count, error } = await query
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return { data, count }
+  } catch (error) {
+    console.error('fetch error xx', error)
+    return { data: [], count: 0 }
+  }
+}
+
+export async function fetchServices(perPageCount: number, rangeFrom: number) {
+  try {
+    let query = supabase
+      .from('ddm_profile_services')
+      .select('*', { count: 'exact' })
 
     // Perform count before paginations
     // const { count } = await query

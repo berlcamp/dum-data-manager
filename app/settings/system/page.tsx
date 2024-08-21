@@ -81,6 +81,12 @@ const Page: React.FC = () => {
                   users={users}
                   title="Who can access Profiling System"
                 />
+                <ChooseUsers
+                  multiple={true}
+                  type="profiling_admin"
+                  users={users}
+                  title="Profiling Admin"
+                />
               </>
             )}
           </div>

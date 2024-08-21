@@ -54,6 +54,7 @@
     "react-to-print": "^2.15.1",
     "react-tooltip": "^5.25.1",
     "react-uuid": "^2.0.0",
+    "recharts": "^2.13.0-alpha.4",
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.22.4"

@@ -230,6 +230,35 @@ export interface RisDepartmentTypes {
   office: string
 }
 
+export interface ProfileSurveyTypes {
+  id: string
+  name: string
+}
+
+export interface ServicesTypes {
+  id: string
+  date: string
+  amount: string
+  profile_id: string
+  profile: ProfileTypes
+  service: ServicesListTypes
+  count: number
+}
+
+export interface ServicesListTypes {
+  id: string
+  name: string
+  services_availed: ServicesTypes[]
+}
+
+export interface SurveyCategoryTypes {
+  id: string
+  category: string
+  type: string
+  profile_id: string
+  survey_id: string
+}
+
 export interface RisAppropriationTypes {
   id: string
   name: string
@@ -243,11 +272,12 @@ export interface ProfileBlcTypes {
   barangay: string
 }
 
-export interface ServicesTypes {
+export interface ImportLogTypes {
   id: string
-  service: string
-  date: string
-  amount: string
+  created_at: string
+  type: string
+  profile: ProfileTypes
+  survey: ProfileSurveyTypes
 }
 
 export interface ProfileTypes {

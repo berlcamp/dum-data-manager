@@ -9,15 +9,17 @@ import {
 import {
   profileCategories,
   profilePositions,
-  services,
 } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import type {
   AccountTypes,
   ProfileRemarksTypes,
+  ProfileSurveyTypes,
   ProfileTypes,
+  ServicesListTypes,
   ServicesTypes,
+  SurveyCategoryTypes,
 } from '@/types'
 import { nanoid } from '@reduxjs/toolkit'
 import { format } from 'date-fns'
@@ -25,7 +27,6 @@ import { PencilLineIcon, TrashIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Avatar from 'react-avatar'
 import { useDispatch, useSelector } from 'react-redux'
-import Coordinator from './Coordinator'
 
 interface ModalProps {
   hideModal: () => void
@@ -229,7 +230,7 @@ const ServicesList = ({
   const handleDeleteReply = async () => {
     try {
       const { error } = await supabase
-        .from('ddm_profile_services')
+        .from('ddm_profile_services_availed')
         .delete()
         .eq('id', selectedId)
 
@@ -266,8 +267,10 @@ const ServicesList = ({
 
         {/* Message */}
         <div className="pl-10 mt-2">
-          <div>Availed {service.service}</div>
-          <div>Amount: {service.amount}</div>
+          <div>Availed {service.service.name}</div>
+          {service.amount && service.amount !== '' && (
+            <div>Amount: {service.amount}</div>
+          )}
         </div>
       </div>
       {showConfirmation && (
@@ -278,133 +281,6 @@ const ServicesList = ({
           onConfirm={handleConfirm}
           onCancel={handleCancel}
         />
-      )}
-    </div>
-  )
-}
-
-const Category = ({
-  category,
-  type,
-  id,
-  refetch,
-}: {
-  category: string
-  type: string
-  id: string
-  refetch: () => void
-}) => {
-  const { setToast } = useFilter()
-
-  const [editMode, setEditMode] = useState(false)
-  const [origCategory, setOrigCategory] = useState(category)
-  const [newCategory, setNewCategory] = useState(category)
-  const [saving, setSaving] = useState(false)
-
-  const { supabase, session, systemUsers } = useSupabase()
-  const user: AccountTypes = systemUsers.find(
-    (user: AccountTypes) => user.id === session.user.id
-  )
-
-  // Redux staff
-  const globallist = useSelector((state: any) => state.list.value)
-  const dispatch = useDispatch()
-
-  const handleUpdateCategory = async (newCat: string) => {
-    setNewCategory(newCat)
-
-    if (origCategory === newCat) {
-      return
-    }
-
-    setSaving(true)
-
-    try {
-      let catType = ''
-      if (type === 'category') {
-        catType = 'Core Category'
-      }
-      if (type === 'blc_category') {
-        catType = 'BLC Category'
-      }
-      if (type === 'province_category') {
-        catType = 'Province Category'
-      }
-      const newData = {
-        [type]: newCat,
-      }
-
-      const { error } = await supabase
-        .from('ddm_profiles')
-        .update(newData)
-        .eq('id', id)
-
-      if (error) throw new Error(error.message)
-
-      const newRemarks = {
-        profile_id: id,
-        user_id: session.user.id,
-        timestamp: format(new Date(), 'yyyy-MM-dd h:mm a'),
-        user: `${user.firstname} ${user.middlename || ''} ${
-          user.lastname || ''
-        }`,
-        remarks: `Category updated ${catType} from ${origCategory} to ${newCat}`,
-        type: 'system',
-      }
-
-      const { error: error2 } = await supabase
-        .from('ddm_profile_remarks')
-        .insert(newRemarks)
-        .select()
-
-      if (error2) throw new Error(error2.message)
-
-      // Append new data in redux
-      const items = [...globallist]
-      const updatedData = {
-        ...newData,
-        id,
-      }
-      const foundIndex = items.findIndex((x) => x.id === updatedData.id)
-      items[foundIndex] = { ...items[foundIndex], ...updatedData }
-      dispatch(updateList(items))
-
-      setOrigCategory(newCat)
-      setToast('success', 'Category saved successfully')
-      refetch()
-    } catch (error) {
-      console.error(error)
-    } finally {
-      setEditMode(false)
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="w-full">
-      {!editMode && (
-        <div className="flex items-center space-x-2">
-          <span>{origCategory}</span>
-          <PencilLineIcon
-            onClick={() => setEditMode(true)}
-            className="w-4 h-4 cursor-pointer text-blue-500"
-          />
-        </div>
-      )}
-      {/* Edit Box */}
-      {editMode && (
-        <select
-          disabled={saving}
-          value={newCategory}
-          onChange={(e) => handleUpdateCategory(e.target.value)}>
-          {profileCategories.map((c) => (
-            <option
-              key={nanoid()}
-              value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
       )}
     </div>
   )
@@ -505,6 +381,7 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
   )
 
   const [servicesLists, setServicesLists] = useState<ServicesTypes[] | []>([])
+  const [services, setServices] = useState<ServicesListTypes[] | []>([])
 
   const [refetch, setRefetch] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -515,7 +392,19 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
   const [serviceDate, setServiceDate] = useState('')
   const [serviceAmount, setServiceAmount] = useState('')
 
+  const [coreCategory, setCoreCategory] = useState('')
+  const [blcCategory, setBlcCategory] = useState('')
+  const [provinceCategory, setProvinceCategory] = useState('')
+
+  const [filterSurvey, setFilterSurvey] = useState('')
+  const [surveys, setSurveys] = useState<ProfileSurveyTypes[] | []>([])
+  const [surveyData, setSurveyData] = useState<SurveyCategoryTypes[] | null>(
+    null
+  )
+
   const { supabase, session, systemUsers } = useSupabase()
+  const { setToast } = useFilter()
+
   const user: AccountTypes = systemUsers.find(
     (user: AccountTypes) => user.id === session.user.id
   )
@@ -557,7 +446,8 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
   }
 
   const handleSubmitService = async () => {
-    if (service.trim().length === 0) {
+    if (service.trim().length === 0 || serviceDate === '') {
+      setToast('error', 'Service availed and Date are required')
       return
     }
 
@@ -566,25 +456,81 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
     try {
       const newData = {
         profile_id: details.id,
-        service,
+        service_id: service,
         date: serviceDate,
         amount: serviceAmount,
       }
 
       const { data, error } = await supabase
-        .from('ddm_profile_services')
+        .from('ddm_profile_services_availed')
         .insert(newData)
-        .select()
+        .select('*, service:service_id(name)')
 
       if (error) throw new Error(error.message)
 
+      console.log([...servicesLists, { ...data }])
+
       // Append new remarks to list
-      setServicesLists([...servicesLists, { ...newData, id: data[0].id }])
+      setServicesLists([...servicesLists, { ...data[0] }])
     } catch (error) {
       console.error(error)
     } finally {
       setRemarks('')
       setSaving(false)
+    }
+  }
+
+  const handleUpdateCategory = async (type: string, category: string) => {
+    // update category
+    try {
+      const { error } = await supabase.from('ddm_profile_categories').upsert(
+        {
+          profile_id: details.id,
+          category,
+          type,
+          survey_id: filterSurvey,
+        },
+        { onConflict: 'type,survey_id,profile_id', ignoreDuplicates: false }
+      )
+
+      if (error) throw new Error(error.message)
+
+      let originalCategory = ''
+      if (type === 'Core') {
+        originalCategory = coreCategory
+        setCoreCategory(category)
+      }
+      if (type === 'BLC') {
+        originalCategory = blcCategory
+        setBlcCategory(category)
+      }
+      if (type === 'Province') {
+        originalCategory = provinceCategory
+        setProvinceCategory(category)
+      }
+
+      // add to logs
+      const newRemarks = {
+        profile_id: details.id,
+        user_id: session.user.id,
+        timestamp: format(new Date(), 'yyyy-MM-dd h:mm a'),
+        user: `${user.firstname} ${user.middlename || ''} ${
+          user.lastname || ''
+        }`,
+        remarks: `Category updated ${type} from ${originalCategory} to ${category}`,
+        type: 'system',
+      }
+
+      const { error: error2 } = await supabase
+        .from('ddm_profile_remarks')
+        .insert(newRemarks)
+
+      if (error2) throw new Error(error2.message)
+
+      setToast('success', 'Successfully saved!')
+      setRefetch(!refetch)
+    } catch (e) {
+      setToast('error', 'Something went wrong')
     }
   }
 
@@ -615,18 +561,68 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
       setLoading(false)
     })()
 
+    // Fetch services
+    ;(async () => {
+      setLoading(true)
+      const { data } = await supabase.from('ddm_profile_services').select('*')
+
+      setServices(data)
+      setLoading(false)
+    })()
+
     // Fetch services availed
     ;(async () => {
       setLoading(true)
       const { data } = await supabase
-        .from('ddm_profile_services')
-        .select()
+        .from('ddm_profile_services_availed')
+        .select('*, service:service_id(name)')
         .eq('profile_id', details.id)
 
       setServicesLists(data)
       setLoading(false)
     })()
+
+    // Surveys data
+    ;(async () => {
+      const result = await supabase
+        .from('ddm_profile_surveys')
+        .select()
+        .order('id', { ascending: false })
+
+      setSurveys(result.data)
+      setFilterSurvey(result.data[0].id) //default selected survey
+    })()
   }, [refetch])
+
+  useEffect(() => {
+    // Survey category data
+    ;(async () => {
+      if (filterSurvey) {
+        const cat = await supabase
+          .from('ddm_profile_categories')
+          .select()
+          .eq('survey_id', filterSurvey)
+          .eq('profile_id', details.id)
+
+        setSurveyData(cat.data)
+
+        const core = cat.data.find(
+          (obj: SurveyCategoryTypes) => obj.type === 'Core'
+        )?.category
+        const blc = cat.data.find(
+          (obj: SurveyCategoryTypes) => obj.type === 'BLC'
+        )?.category
+        const prov = cat.data.find(
+          (obj: SurveyCategoryTypes) => obj.type === 'Province'
+        )?.category
+
+        // Set categories
+        setCoreCategory(core)
+        setBlcCategory(blc)
+        setProvinceCategory(prov)
+      }
+    })()
+  }, [filterSurvey])
 
   return (
     <>
@@ -651,14 +647,8 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
 
             <div className="modal-body relative overflow-x-scroll">
               {/* Document Details */}
-              <div className="py-2">
+              <div className="px-2 pt-2 pb-8 grid md:grid-cols-2 gap-2">
                 <table className="w-full">
-                  <thead>
-                    <tr>
-                      <th className="w-40"></th>
-                      <th></th>
-                    </tr>
-                  </thead>
                   <tbody>
                     <tr>
                       <td className="px-2 py-2 font-light text-right text-xs">
@@ -670,42 +660,9 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                     </tr>
                     <tr>
                       <td className="px-2 py-2 font-light text-right text-xs">
-                        Core Category:
+                        ID:
                       </td>
-                      <td>
-                        <Category
-                          category={details.category}
-                          type="category"
-                          id={details.id}
-                          refetch={() => setRefetch(!refetch)}
-                        />
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-2 py-2 font-light text-right text-xs">
-                        BLC Category:
-                      </td>
-                      <td>
-                        <Category
-                          category={details.blc_category}
-                          type="blc_category"
-                          id={details.id}
-                          refetch={() => setRefetch(!refetch)}
-                        />
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-2 py-2 font-light text-right text-xs">
-                        Province Category:
-                      </td>
-                      <td>
-                        <Category
-                          category={details.province_category}
-                          type="province_category"
-                          id={details.id}
-                          refetch={() => setRefetch(!refetch)}
-                        />
-                      </td>
+                      <td>{details.id}</td>
                     </tr>
                     <tr>
                       <td className="px-2 py-2 font-light text-right text-xs">
@@ -728,7 +685,7 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                         </span>
                       </td>
                     </tr>
-                    <tr>
+                    {/* <tr>
                       <td className="px-2 py-2 font-light text-right text-xs">
                         BL Coordinator
                       </td>
@@ -738,6 +695,86 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                           coordinator={details.coordinator}
                         />
                       </td>
+                    </tr> */}
+                  </tbody>
+                </table>
+                <table className="w-full">
+                  <tbody>
+                    <tr>
+                      <td className="px-2 py-2 font-light text-right text-xs align-top">
+                        Survey&nbsp;Batch:
+                      </td>
+                      <td className="align-top">
+                        <select
+                          value={filterSurvey}
+                          onChange={(e) => setFilterSurvey(e.target.value)}
+                          className="app__input_standard !w-40">
+                          {surveys.map((h: ProfileSurveyTypes, i: number) => (
+                            <option
+                              key={i}
+                              value={h.id}>
+                              {h.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-2 font-light text-right text-xs"></td>
+                      <td>
+                        <div className="w-80 pt-1 pb-3 space-y-1">
+                          <div className="flex space-x-2 items-center">
+                            <span className="font-light text-xs">Core:</span>
+                            <select
+                              value={coreCategory}
+                              onChange={(e) =>
+                                handleUpdateCategory('Core', e.target.value)
+                              }>
+                              {profileCategories.map((c) => (
+                                <option
+                                  key={nanoid()}
+                                  value={c}>
+                                  {c}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex space-x-2 items-center">
+                            <span className="font-light text-xs">BLC:</span>
+                            <select
+                              value={blcCategory}
+                              onChange={(e) =>
+                                handleUpdateCategory('BLC', e.target.value)
+                              }>
+                              {profileCategories.map((c) => (
+                                <option
+                                  key={nanoid()}
+                                  value={c}>
+                                  {c}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex space-x-2 items-center">
+                            <span className="font-light text-xs">
+                              Province:
+                            </span>
+                            <select
+                              value={provinceCategory}
+                              onChange={(e) =>
+                                handleUpdateCategory('Province', e.target.value)
+                              }>
+                              {profileCategories.map((c) => (
+                                <option
+                                  key={nanoid()}
+                                  value={c}>
+                                  {c}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -745,7 +782,7 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
               <hr />
               <div className="w-full relative">
                 <div className="mx-2 mb-10 outline-none overflow-x-hidden overflow-y-auto text-xs text-gray-600 ">
-                  <div className="flex space-x-2">
+                  <div className="grid md:grid-cols-2 gap-8">
                     <div className="bg-gray-100 w-full">
                       <div className="flex space-x-2 px-4 py-4">
                         <span className="font-bold">Remarks:</span>
@@ -762,8 +799,6 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                               className="w-full h-20 border resize-none focus:ring-0 focus:outline-none p-2 text-sm text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                             />
                             <div className="flex items-start">
-                              <span className="flex-1">&nbsp;</span>
-
                               <CustomButton
                                 containerStyles="app__btn_green"
                                 title="Submit"
@@ -803,13 +838,13 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                                 <select
                                   onChange={(e) => setService(e.target.value)}
                                   value={service}
-                                  className="w-full border outline-none p-2 text-sm text-gray-700">
+                                  className="w-32 border outline-none p-2 text-sm text-gray-700">
                                   <option value="">Choose</option>
                                   {services.map((s, i) => (
                                     <option
                                       key={i}
-                                      value={s}>
-                                      {s}
+                                      value={s.id}>
+                                      {s.name}
                                     </option>
                                   ))}
                                 </select>
@@ -822,11 +857,11 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                                     setServiceDate(e.target.value)
                                   }
                                   value={serviceDate}
-                                  className="w-full border outline-none p-2 text-sm text-gray-700"
+                                  className="w-32 border outline-none p-2 text-sm text-gray-700"
                                 />
                               </div>
                               <div>
-                                <div>Amount (optional):</div>
+                                <div>Amount:</div>
                                 <input
                                   type="number"
                                   step="any"
@@ -834,19 +869,11 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                                     setServiceAmount(e.target.value)
                                   }
                                   value={serviceAmount}
-                                  className="w-full border outline-none p-2 text-sm text-gray-700"
+                                  className="w-20 border outline-none p-2 text-sm text-gray-700"
                                 />
                               </div>
                             </div>
                             <div className="flex items-start">
-                              <span className="flex-1">&nbsp;</span>
-                              <CustomButton
-                                containerStyles="app__btn_gray"
-                                title="Cancel"
-                                isDisabled={saving}
-                                handleClick={() => setAddService(false)}
-                                btnType="button"
-                              />
                               <CustomButton
                                 containerStyles="app__btn_green ml-2"
                                 title="Submit"
