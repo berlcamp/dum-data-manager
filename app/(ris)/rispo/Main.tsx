@@ -139,12 +139,22 @@ const Page: React.FC = () => {
   }
 
   const countRemainingQuantity = (item: RisPoTypes) => {
-    const totalQuantityUsed = item.ddm_ris
-      ? item.ddm_ris.reduce(
-          (accumulator, ris) => accumulator + Number(ris.quantity),
-          0
-        )
-      : 0
+    // const totalQuantityUsed = item.ddm_ris
+    //   ? item.ddm_ris.reduce(
+    //       (accumulator, ris) => accumulator + Number(ris.quantity),
+    //       0
+    //     )
+    //   : 0
+
+    let totalQuantityUsed = 0
+    if (item.ddm_ris) {
+      item.ddm_ris.forEach((ris) => {
+        if (ris.status === 'Approved') {
+          totalQuantityUsed += Number(ris.quantity)
+        }
+      })
+    }
+
     const remainingQuantity = Number(item.quantity) - totalQuantityUsed
     if (remainingQuantity < 100) {
       return (
@@ -161,7 +171,9 @@ const Page: React.FC = () => {
     let totalAmount = 0
     if (item.ddm_ris) {
       item.ddm_ris.forEach((ris) => {
-        totalAmount += Number(ris.quantity) * Number(ris.price)
+        if (ris.status === 'Approved') {
+          totalAmount += Number(ris.quantity) * Number(ris.price)
+        }
       })
     }
     const remainingAmount = Number(item.amount) - totalAmount
