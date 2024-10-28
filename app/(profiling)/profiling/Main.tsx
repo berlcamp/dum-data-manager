@@ -107,22 +107,34 @@ const Page: React.FC = () => {
     setLoading(true)
 
     try {
-      const { data, error } = await supabase.rpc('search_users', {
-        fullname_param: filterKeyword,
-        address_param: filterBarangay,
-      })
+      // const { data, error } = await supabase.rpc('search_users', {
+      //   fullname_param: filterKeyword,
+      //   address_param: filterBarangay,
+      // })
 
-      if (error) {
-        setToast('error', 'Something went wrong')
-        throw new Error(error.message)
-      }
+      // if (error) {
+      //   setToast('error', 'Something went wrong')
+      //   throw new Error(error.message)
+      // }
+
+      // // update the list in redux
+      // const newList = [...data]
+      // dispatch(updateList(newList))
+
+      const result = await fetchProfiles(
+        {
+          filterKeyword,
+          filterBarangay,
+        },
+        perPageCount,
+        0
+      )
 
       // update the list in redux
-      const newList = [...data]
-      dispatch(updateList(newList))
+      dispatch(updateList(result.data))
 
-      setResultsCount(newList.length)
-      setShowingCount(newList.length)
+      setResultsCount(result.count ? result.count : 0)
+      setShowingCount(result.data.length)
     } catch (e) {
       console.error(e)
     } finally {
@@ -143,10 +155,8 @@ const Page: React.FC = () => {
 
   // Keyword search
   useEffect(() => {
-    if (filterKeyword.trim() !== '') {
-      setList([])
-      void handleSearch()
-    }
+    setList([])
+    void handleSearch()
   }, [filterKeyword, filterBarangay])
 
   const isDataEmpty = !Array.isArray(list) || list.length < 1 || !list
