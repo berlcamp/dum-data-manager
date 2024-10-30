@@ -1,4 +1,5 @@
 'use client'
+import { useSupabase } from '@/context/SupabaseProvider'
 import type { DocumentTypes } from '@/types'
 import { fetchDocuments } from '@/utils/fetchApi'
 import Excel from 'exceljs'
@@ -20,11 +21,12 @@ interface DocumentFilterTypes {
 const DownloadExcelButton = ({ filters }: { filters: DocumentFilterTypes }) => {
   //
   const [loading, setLoading] = useState(false)
+  const { session } = useSupabase()
 
   const handleDownload = async () => {
     setLoading(true)
     try {
-      const result = await fetchDocuments(filters, 500, 0)
+      const result = await fetchDocuments(filters, session.user.id, 500, 0)
 
       const results: DocumentTypes[] | [] = result.data
 

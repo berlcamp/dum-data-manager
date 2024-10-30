@@ -1,3 +1,4 @@
+import { docRouting } from '@/constants/TrackerConstants'
 import type { AccountTypes } from '@/types'
 import { createBrowserClient } from '@supabase/ssr'
 import { addDays, format, subDays } from 'date-fns'
@@ -25,19 +26,54 @@ interface FilterProfileTypes {
   filterCategory?: string
 }
 
+// Helper function to get query condition by department
+function getStatusesByOffice(department: string) {
+  return docRouting
+    .filter((route) => route.office === department)
+    .map((route) => `title.eq.${route.status}`)
+    .join(',')
+}
+
 export async function fetchDocuments(
   filters: DocumentFilterTypes,
+  userDepartment: string,
   perPageCount: number,
   rangeFrom: number
 ) {
   try {
-    // Advance filters
+    // Get Department ID within Tracker Flow
     const trackerIds: string[] = []
+    let newTrackerIds: string[] = []
+
+    let query1 = supabase.from('ddm_tracker_routes').select('tracker_id')
+
+    if (userDepartment === 'Mayor Office') {
+      const mayorOfficeStatuses = getStatusesByOffice('Mayor Office')
+      query1 = query1.or(mayorOfficeStatuses)
+    }
+
+    if (userDepartment === 'Tourism Office') {
+      const tourismOfficeStatuses = getStatusesByOffice('Tourism Office')
+      query1 = query1.or(tourismOfficeStatuses)
+    }
+
+    const { data: trackerFlow } = await query1
+
+    trackerFlow?.forEach((item: any) => {
+      trackerIds.push(item.tracker_id)
+    })
+
+    if (trackerIds.length === 0) {
+      trackerIds.push('99999')
+    }
+
+    // Advance filters
     if (filters.filterDateForwardedFrom || filters.filterDateForwardedTo) {
       let query1 = supabase
         .from('ddm_tracker_routes')
         .select('tracker_id')
         .limit(900)
+        .in('id', trackerIds)
 
       if (filters.filterRoute && filters.filterRoute !== '') {
         query1 = query1.eq('title', filters.filterRoute)
@@ -59,12 +95,14 @@ export async function fetchDocuments(
 
       if (data1) {
         if (data1.length > 0) {
-          data1.forEach((d) => trackerIds.push(d.tracker_id))
-        } else {
-          trackerIds.push('99999999')
+          data1.forEach((d) => newTrackerIds.push(d.tracker_id))
         }
       }
+    } else {
+      newTrackerIds = trackerIds
     }
+
+    console.log('newTrackerIds', newTrackerIds)
 
     let query = supabase
       .from('ddm_trackers')
@@ -99,10 +137,8 @@ export async function fetchDocuments(
       query = query.eq('status', filters.filterStatus)
     }
 
-    // Advance Filters
-    if (trackerIds.length > 0) {
-      query = query.in('id', trackerIds)
-    }
+    // Filters allowed tracker Ids
+    query = query.in('id', newTrackerIds)
 
     // Filter type
     if (
@@ -921,14 +957,44 @@ export async function fetchRisAppropriations(
   }
 }
 
-export async function fetchActivities(today: string, endDate: Date) {
+export async function fetchActivities(
+  userDepartment: string,
+  today: string,
+  endDate: Date
+) {
   try {
+    // Get Department ID within Tracker Flow
+    const trackerIds: string[] = []
+
+    let query1 = supabase.from('ddm_tracker_routes').select('tracker_id')
+
+    if (userDepartment === 'Mayor Office') {
+      const mayorOfficeStatuses = getStatusesByOffice('Mayor Office')
+      query1 = query1.or(mayorOfficeStatuses)
+    }
+
+    if (userDepartment === 'Tourism Office') {
+      const tourismOfficeStatuses = getStatusesByOffice('Tourism Office')
+      query1 = query1.or(tourismOfficeStatuses)
+    }
+
+    const { data: trackerFlow } = await query1
+
+    trackerFlow?.forEach((item: any) => {
+      trackerIds.push(item.tracker_id)
+    })
+
+    if (trackerIds.length === 0) {
+      trackerIds.push('99999')
+    }
+
     const { data, count, error } = await supabase
       .from('ddm_trackers')
       .select('*', { count: 'exact' })
       .gte('activity_date', today)
       .lt('activity_date', endDate.toISOString())
       .eq('archived', false)
+      .in('id', trackerIds) // Filters allowed tracker Ids
       .order('activity_date', { ascending: true })
 
     if (error) {

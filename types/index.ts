@@ -17,11 +17,13 @@ export interface searchUser {
 }
 
 export interface namesType {
+  id: string
   firstname: string
   middlename: string
   lastname: string
   avatar_url: string
-  id: string
+  department: string
+  status: string
 }
 
 export interface settingsDataTypes {
@@ -117,6 +119,7 @@ export interface AccountTypes {
   lastname: string
   status: string
   password: string
+  department: string
   avatar_url: string
   email: string
   org_id: string

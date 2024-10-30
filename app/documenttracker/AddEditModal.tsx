@@ -40,6 +40,7 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import { Input } from '@/components/ui/input'
 import {
+  departments,
   docRouting,
   documentTypes,
   statusList,
@@ -105,6 +106,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const user: AccountTypes = systemUsers.find(
     (user: AccountTypes) => user.id === session.user.id
   )
+  const defaultLocation = departments.find((d) => d.office === user.department)
 
   // Redux staff
   const globallist = useSelector((state: any) => state.list.value)
@@ -137,7 +139,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     resolver: zodResolver(FormSchema),
     defaultValues: {
       type: editData ? editData.type : '',
-      location: editData ? editData.location : 'Received at Mayors Office',
+      location: editData ? editData.location : defaultLocation?.default,
       status: editData ? editData.status : 'Open',
       specify: editData ? editData.specify || '' : '',
       requester: editData ? editData.requester || '' : '',
@@ -816,8 +818,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               {docRouting.map((route, index) => (
                                 <SelectItem
                                   key={index}
-                                  value={route!}>
-                                  {route}
+                                  value={route.status}>
+                                  {route.status}
                                 </SelectItem>
                               ))}
                             </SelectContent>

@@ -1,7 +1,7 @@
 import { CustomButton, OneColLayoutLoading } from '@/components/index'
 import { useFilter } from '@/context/FilterContext'
 import axios from 'axios'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
 // Types
@@ -10,6 +10,7 @@ import type { AccountTypes } from '@/types'
 // Redux imports
 import { updateList } from '@/GlobalRedux/Features/listSlice'
 import { updateResultCounter } from '@/GlobalRedux/Features/resultsCounterSlice'
+import { departments } from '@/constants/TrackerConstants'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { useDispatch, useSelector } from 'react-redux'
 
@@ -56,6 +57,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
         firstname: formdata.firstname,
         middlename: formdata.middlename,
         lastname: formdata.lastname,
+        department: formdata.department,
         status: 'Active',
         email: formdata.email,
         temp_password: tempPassword.toString(),
@@ -121,6 +123,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
       firstname: formdata.firstname,
       middlename: formdata.middlename,
       lastname: formdata.lastname,
+      department: formdata.department,
     }
 
     try {
@@ -155,6 +158,16 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
       console.error(e)
     }
   }
+
+  // manually set the defaultValues of use-form-hook whenever the component receives new props.
+  useEffect(() => {
+    reset({
+      firstname: editData ? editData.firstname : '',
+      middlename: editData ? editData.middlename : '',
+      lastname: editData ? editData.lastname : '',
+      department: editData ? editData.department : '',
+    })
+  }, [editData, reset])
 
   const tempPassword = Math.floor(Math.random() * 8999) + 1000
 
@@ -191,7 +204,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
                         <input
                           {...register('firstname', { required: true })}
                           type="text"
-                          className="app__select_standard"
+                          className="app__input_standard"
                         />
                         {errors.firstname && (
                           <div className="app__error_message">
@@ -208,7 +221,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
                         <input
                           {...register('middlename')}
                           type="text"
-                          className="app__select_standard"
+                          className="app__input_standard"
                         />
                       </div>
                     </div>
@@ -220,8 +233,27 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
                         <input
                           {...register('lastname')}
                           type="text"
-                          className="app__select_standard"
+                          className="app__input_standard"
                         />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="app__form_field_container">
+                    <div className="w-full">
+                      <div className="app__label_standard">Department</div>
+                      <div>
+                        <select
+                          {...register('department')}
+                          className="app__select_standard">
+                          <option value="">Choose department</option>
+                          {departments.map((d, i) => (
+                            <option
+                              key={i}
+                              value={d.office}>
+                              {d.office}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   </div>

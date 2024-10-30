@@ -168,8 +168,8 @@ const Filters = ({
                         {docRouting.map((route, index) => (
                           <SelectItem
                             key={index}
-                            value={route!}>
-                            {route}
+                            value={route.status}>
+                            {route.status}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -392,8 +392,8 @@ const Filters = ({
                         {docRouting.map((route, index) => (
                           <SelectItem
                             key={index}
-                            value={route!}>
-                            {route}
+                            value={route.status}>
+                            {route.status}
                           </SelectItem>
                         ))}
                       </SelectContent>

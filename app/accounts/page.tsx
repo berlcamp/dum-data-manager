@@ -232,6 +232,7 @@ const Page: React.FC = () => {
                   <th className="hidden md:table-cell app__th">
                     Temporary Password
                   </th>
+                  <th className="hidden md:table-cell app__th">Department</th>
                   <th className="hidden md:table-cell app__th">Status</th>
                 </tr>
               </thead>
@@ -319,6 +320,12 @@ const Page: React.FC = () => {
                               {item.temp_password}
                             </div>
                             <div>
+                              <span className="app_td_mobile_label">
+                                Department:
+                              </span>{' '}
+                              {item.department}
+                            </div>
+                            <div>
                               {item.status === 'Inactive' ? (
                                 <span className="app__status_container_red">
                                   Inactive
@@ -338,6 +345,9 @@ const Page: React.FC = () => {
                       </td>
                       <td className="hidden md:table-cell app__td">
                         <div>{item.temp_password}</div>
+                      </td>
+                      <td className="hidden md:table-cell app__td">
+                        <div>{item.department}</div>
                       </td>
                       <td className="hidden md:table-cell app__td">
                         {item.status === 'Inactive' ? (

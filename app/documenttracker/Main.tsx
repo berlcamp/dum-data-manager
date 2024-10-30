@@ -96,6 +96,7 @@ const Page: React.FC = () => {
 
   const fetchData = async () => {
     setLoading(true)
+    if (!user) return
 
     try {
       const result = await fetchDocuments(
@@ -109,6 +110,7 @@ const Page: React.FC = () => {
           filterDateForwardedFrom,
           filterDateForwardedTo,
         },
+        user.department,
         perPageCount,
         0
       )
@@ -129,6 +131,7 @@ const Page: React.FC = () => {
   // Append data to existing list whenever 'show more' button is clicked
   const handleShowMore = async () => {
     setLoading(true)
+    if (!user) return
 
     try {
       const result = await fetchDocuments(
@@ -142,6 +145,7 @@ const Page: React.FC = () => {
           filterDateForwardedFrom,
           filterDateForwardedTo,
         },
+        user.department,
         perPageCount,
         list.length
       )
@@ -273,12 +277,14 @@ const Page: React.FC = () => {
 
   // Upcoming activities
   const fetchActivitiesData = async () => {
+    if (!user) return
+
     const today = format(new Date(), 'yyyy-MM-dd')
     const today2 = new Date()
     const endDate = new Date()
     endDate.setDate(today2.getDate() + 60)
 
-    const result = await fetchActivities(today, endDate)
+    const result = await fetchActivities(user.department, today, endDate)
 
     setActivitiesData(result.data)
   }
@@ -533,11 +539,14 @@ const Page: React.FC = () => {
                                     <Menu.Item key={idx}>
                                       <div
                                         onClick={() =>
-                                          handleChangeLocation(item, route!)
+                                          handleChangeLocation(
+                                            item,
+                                            route.status
+                                          )
                                         }
                                         className="flex items-center justify-between space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
-                                        <span>{route}</span>
-                                        {route === item.location && (
+                                        <span>{route.status}</span>
+                                        {route.status === item.location && (
                                           <CheckIcon className="w-4 h-4" />
                                         )}
                                       </div>

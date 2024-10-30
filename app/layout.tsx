@@ -7,7 +7,6 @@ import { Toaster } from 'react-hot-toast'
 import 'server-only'
 import './globals.css'
 
-import LandingPage from '@/components/LandingPage'
 import type { AccountTypes, UserAccessTypes } from '@/types/index'
 import type { Metadata } from 'next'
 
@@ -109,7 +108,8 @@ export default async function RootLayout({
           systemUsers={sysUsers}
           currentUser={currUser}>
           <SupabaseListener serverAccessToken={session?.access_token} />
-          {!session && <LandingPage />}
+          {/* {!session && <LandingPage />} */}
+          {!session && <>{children}</>}
           {session && (
             <Providers>
               <FilterProvider>
