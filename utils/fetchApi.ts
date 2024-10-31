@@ -41,7 +41,7 @@ export async function fetchDocuments(
   rangeFrom: number
 ) {
   try {
-    // Get Department ID within Tracker Flow
+    // Get Document ID within Tracker Flow and origin department
     const trackerIds: string[] = []
     let newTrackerIds: string[] = []
 
@@ -55,6 +55,14 @@ export async function fetchDocuments(
 
       trackerFlow?.forEach((item: any) => {
         trackerIds.push(item.tracker_id)
+      })
+
+      const { data: origins } = await supabase
+        .from('ddm_trackers')
+        .select('id, origin_department')
+        .eq('origin_department', userDepartment)
+      origins?.forEach((item: any) => {
+        trackerIds.push(item.id)
       })
     }
 

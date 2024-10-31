@@ -194,6 +194,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           ? format(new Date(formdata.activity_date), 'yyyy-MM-dd')
           : null,
         particulars: formdata.particulars,
+        origin_department: user.department,
         requester: formdata.requester,
         user_id: session.user.id,
       }

@@ -448,17 +448,6 @@ const Page: React.FC = () => {
                                 <Menu.Item>
                                   <div
                                     onClick={() => {
-                                      setShowPrintSlipModal(true)
-                                      setSelectedItem(item)
-                                    }}
-                                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
-                                    <PrinterIcon className="cursor-pointer outline-none w-6 h-6 text-blue-500" />
-                                    <span>Print Slip</span>
-                                  </div>
-                                </Menu.Item>
-                                <Menu.Item>
-                                  <div
-                                    onClick={() => {
                                       setShowAddStickyModal(true)
                                       setSelectedItem(item)
                                     }}
@@ -467,22 +456,38 @@ const Page: React.FC = () => {
                                     <span>Add to Starred</span>
                                   </div>
                                 </Menu.Item>
-                                <Menu.Item>
-                                  <div
-                                    onClick={() => handleEdit(item)}
-                                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
-                                    <PencilIcon className="cursor-pointer outline-none w-6 h-6 text-green-500" />
-                                    <span>Edit Details</span>
-                                  </div>
-                                </Menu.Item>
-                                <Menu.Item>
-                                  <div
-                                    onClick={() => handleArchive(item.id)}
-                                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
-                                    <Trash2 className="cursor-pointer outline-none w-6 h-6 text-red-500" />
-                                    <span>Move To Archive</span>
-                                  </div>
-                                </Menu.Item>
+                                {user?.department ===
+                                  item.origin_department && (
+                                  <>
+                                    <Menu.Item>
+                                      <div
+                                        onClick={() => {
+                                          setShowPrintSlipModal(true)
+                                          setSelectedItem(item)
+                                        }}
+                                        className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
+                                        <PrinterIcon className="cursor-pointer outline-none w-6 h-6 text-blue-500" />
+                                        <span>Print Slip</span>
+                                      </div>
+                                    </Menu.Item>
+                                    <Menu.Item>
+                                      <div
+                                        onClick={() => handleEdit(item)}
+                                        className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
+                                        <PencilIcon className="cursor-pointer outline-none w-6 h-6 text-green-500" />
+                                        <span>Edit Details</span>
+                                      </div>
+                                    </Menu.Item>
+                                    <Menu.Item>
+                                      <div
+                                        onClick={() => handleArchive(item.id)}
+                                        className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
+                                        <Trash2 className="cursor-pointer outline-none w-6 h-6 text-red-500" />
+                                        <span>Move To Archive</span>
+                                      </div>
+                                    </Menu.Item>
+                                  </>
+                                )}
                               </div>
                             </Menu.Items>
                           </Transition>

@@ -35,7 +35,7 @@ export const docRouting = [
     office: 'Mayor',
     status: 'Forwarded to Atty. Kate Daytec Aventajado',
   },
-  { office: 'Mayor', status: 'Forwarded to BAC' },
+  { office: 'BAC', status: 'Forwarded to BAC' },
   { office: 'Mayor', status: 'Forwarded to BFP' },
   { office: 'Mayor', status: 'Forwarded to BJMP' },
   { office: 'Mayor', status: 'Forwarded to Budget' },
@@ -43,7 +43,7 @@ export const docRouting = [
   { office: 'Mayor', status: 'Forwarded to DCO' },
   { office: 'Mayor', status: 'Forwarded to DILG' },
   { office: 'Mayor', status: 'Forwarded to Engineering' },
-  { office: 'Mayor', status: 'Forwarded to GSO' },
+  { office: 'GSO', status: 'Forwarded to GSO' },
   {
     office: 'Mayor',
     status: 'Forwarded to GSO DESIGNEE - Raphael Claude Rousseau',
@@ -53,9 +53,9 @@ export const docRouting = [
   { office: 'Mayor', status: 'Forwarded to Mayors Office' },
   { office: 'Mayor', status: 'Forwarded to MEDO' },
   { office: 'Mayor', status: 'Forwarded to MDRRMO' },
-  { office: 'Mayor', status: 'Forwarded to MPDO' },
+  { office: 'MPDO', status: 'Forwarded to MPDO' },
   { office: 'Mayor', status: 'Forwarded to MSWDO' },
-  { office: 'Mayor', status: 'Forwarded to MYDO' },
+  { office: 'MYDO', status: 'Forwarded to MYDO' },
   { office: 'Mayor', status: 'Forwarded to Permit Div' },
   { office: 'Mayor', status: 'Forwarded to PDAO' },
   { office: 'Mayor', status: 'Forwarded to PNP' },
@@ -63,8 +63,8 @@ export const docRouting = [
   { office: 'Mayor', status: 'Forwarded to Sentro sa Pagserbis YU' },
   { office: 'Mayor', status: 'Forwarded to SB Office' },
   { office: 'Mayor', status: 'Forwarded to Subanen Affairs' },
-  { office: 'Mayor', status: 'Forwarded to Tourism' },
-  { office: 'Mayor', status: 'Forwarded to Treasurers' },
+  { office: 'Tourism', status: 'Forwarded to Tourism' },
+  { office: 'MTO', status: 'Forwarded to Treasurers' },
 ]
 
 export const documentTypes = [

@@ -110,6 +110,7 @@ export interface DocumentTypes {
   routing_no: number
   routing_slip_no: string
   received_by: string
+  origin_department: string
 }
 
 export interface AccountTypes {
