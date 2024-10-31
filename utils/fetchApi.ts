@@ -45,23 +45,18 @@ export async function fetchDocuments(
     const trackerIds: string[] = []
     let newTrackerIds: string[] = []
 
-    let query1 = supabase.from('ddm_tracker_routes').select('tracker_id')
+    if (userDepartment) {
+      let query1 = supabase.from('ddm_tracker_routes').select('tracker_id')
 
-    if (userDepartment === 'Mayor Office') {
-      const mayorOfficeStatuses = getStatusesByOffice('Mayor Office')
-      query1 = query1.or(mayorOfficeStatuses)
+      const statuses = getStatusesByOffice(userDepartment)
+      query1 = query1.or(statuses)
+
+      const { data: trackerFlow } = await query1
+
+      trackerFlow?.forEach((item: any) => {
+        trackerIds.push(item.tracker_id)
+      })
     }
-
-    if (userDepartment === 'Tourism Office') {
-      const tourismOfficeStatuses = getStatusesByOffice('Tourism Office')
-      query1 = query1.or(tourismOfficeStatuses)
-    }
-
-    const { data: trackerFlow } = await query1
-
-    trackerFlow?.forEach((item: any) => {
-      trackerIds.push(item.tracker_id)
-    })
 
     if (trackerIds.length === 0) {
       trackerIds.push('99999')
@@ -102,7 +97,7 @@ export async function fetchDocuments(
       newTrackerIds = trackerIds
     }
 
-    console.log('newTrackerIds', newTrackerIds)
+    console.log('newTrackerIds', userDepartment, newTrackerIds)
 
     let query = supabase
       .from('ddm_trackers')
