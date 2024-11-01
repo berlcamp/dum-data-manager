@@ -966,26 +966,29 @@ export async function fetchActivities(
   endDate: Date
 ) {
   try {
-    // Get Department ID within Tracker Flow
+    // Get Document ID within Tracker Flow and origin department
     const trackerIds: string[] = []
 
-    let query1 = supabase.from('ddm_tracker_routes').select('tracker_id')
+    if (userDepartment) {
+      let query1 = supabase.from('ddm_tracker_routes').select('tracker_id')
 
-    if (userDepartment === 'Mayor Office') {
-      const mayorOfficeStatuses = getStatusesByOffice('Mayor Office')
-      query1 = query1.or(mayorOfficeStatuses)
+      const statuses = getStatusesByOffice(userDepartment)
+      query1 = query1.or(statuses)
+
+      const { data: trackerFlow } = await query1
+
+      trackerFlow?.forEach((item: any) => {
+        trackerIds.push(item.tracker_id)
+      })
+
+      const { data: origins } = await supabase
+        .from('ddm_trackers')
+        .select('id, origin_department')
+        .eq('origin_department', userDepartment)
+      origins?.forEach((item: any) => {
+        trackerIds.push(item.id)
+      })
     }
-
-    if (userDepartment === 'Tourism Office') {
-      const tourismOfficeStatuses = getStatusesByOffice('Tourism Office')
-      query1 = query1.or(tourismOfficeStatuses)
-    }
-
-    const { data: trackerFlow } = await query1
-
-    trackerFlow?.forEach((item: any) => {
-      trackerIds.push(item.tracker_id)
-    })
 
     if (trackerIds.length === 0) {
       trackerIds.push('99999')
