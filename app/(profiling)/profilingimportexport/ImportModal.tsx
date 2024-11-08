@@ -53,7 +53,7 @@ export default function ImportModal({ hideModal }: ModalProps) {
       // process each row starting 2nd row
       csvContents.data.slice(1).forEach((item: any, i: number) => {
         const profile_id = item[1]
-        const category = item[3]
+        const category = item[3] === '' ? 'UC' : item[3]
         const remarks = item[4]
         p_id = profile_id
 
@@ -65,6 +65,7 @@ export default function ImportModal({ hideModal }: ModalProps) {
           category,
           survey_id,
           type,
+          remarks,
         })
 
         //create delete array

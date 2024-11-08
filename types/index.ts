@@ -284,18 +284,25 @@ export interface ImportLogTypes {
   survey: ProfileSurveyTypes
 }
 
+export interface ProfileCategoriesType {
+  id: string
+  profile_id: string
+  category: string
+  type: string
+  remarks: string
+  survey_id: string
+}
+
 export interface ProfileTypes {
   id: string
   fullname: string
   address: string
-  category: string
-  blc_category: string
   coordinator_id: string
   coordinator: ProfileBlcTypes
-  province_category: string
   position: string
   precinct: string
   purok: string
+  categories: ProfileCategoriesType[]
 }
 export interface ProfileRemarksTypes {
   id?: string
@@ -304,6 +311,7 @@ export interface ProfileRemarksTypes {
   user: string
   remarks: string
   profile_id: string
+  profile?: ProfileTypes
   type: string
 }
 

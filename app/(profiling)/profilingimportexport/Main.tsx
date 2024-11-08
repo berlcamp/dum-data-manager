@@ -23,6 +23,7 @@ import { fetchImportLogs } from '@/utils/fetchApi'
 import { useDispatch, useSelector } from 'react-redux'
 import ExportModal from './ExportModal'
 import ImportModal from './ImportModal'
+import TemplateModal from './TemplateModal'
 
 const Page: React.FC = () => {
   //
@@ -39,6 +40,7 @@ const Page: React.FC = () => {
   // Modals
   const [showImportModal, setShowImportModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
+  const [showTemplateModal, setShowTemplateModal] = useState(false)
 
   // Redux staff
   const globallist = useSelector((state: any) => state.list.value)
@@ -124,6 +126,12 @@ const Page: React.FC = () => {
                 btnType="button"
                 handleClick={() => setShowExportModal(true)}
               />
+              <CustomButton
+                containerStyles="app__btn_blue"
+                title="Download Survey Template"
+                btnType="button"
+                handleClick={() => setShowTemplateModal(true)}
+              />
             </div>
           </div>
 
@@ -179,6 +187,11 @@ const Page: React.FC = () => {
         {/* Export Modal */}
         {showExportModal && (
           <ExportModal hideModal={() => setShowExportModal(false)} />
+        )}
+
+        {/* Export Modal */}
+        {showTemplateModal && (
+          <TemplateModal hideModal={() => setShowTemplateModal(false)} />
         )}
       </div>
     </>

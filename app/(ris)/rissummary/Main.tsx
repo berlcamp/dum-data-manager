@@ -15,7 +15,6 @@ import Filters from './Filters'
 
 // Types
 import type {
-  ProfileTypes,
   RisCaTypes,
   RisDepartmentTypes,
   RisPoTypes,
@@ -27,7 +26,6 @@ import { superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import CategoriesChart from './CategoriesChart'
-import DetailsModal from './DetailsModal'
 
 const findLowestAndHighestValues = (items: any, key: any) => {
   return items.reduce(
@@ -46,10 +44,6 @@ const findLowestAndHighestValues = (items: any, key: any) => {
 }
 
 const Page: React.FC = () => {
-  // Modal
-  const [viewDetailsModal, setViewDetailsModal] = useState(false)
-  const [details, setDetails] = useState<ProfileTypes | null>(null)
-
   // Filters
   const [filterPo, setFilterPo] = useState('All')
   const [filterCa, setFilterCa] = useState('All')
@@ -398,13 +392,6 @@ const Page: React.FC = () => {
           )}
         </div>
       </div>
-      {/* Details Modal */}
-      {details && viewDetailsModal && (
-        <DetailsModal
-          details={details}
-          hideModal={() => setViewDetailsModal(false)}
-        />
-      )}
     </>
   )
 }
