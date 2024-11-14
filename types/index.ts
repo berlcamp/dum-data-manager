@@ -313,6 +313,7 @@ export interface ProfileRemarksTypes {
   profile_id: string
   profile?: ProfileTypes
   type: string
+  file_path: string | null
 }
 
 export interface ChartDataSetTypes {

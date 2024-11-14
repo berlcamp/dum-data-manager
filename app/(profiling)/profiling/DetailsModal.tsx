@@ -23,7 +23,8 @@ import type {
 } from '@/types'
 import { nanoid } from '@reduxjs/toolkit'
 import { format } from 'date-fns'
-import { PencilLineIcon, TrashIcon } from 'lucide-react'
+import { PaperclipIcon, PencilLineIcon, TrashIcon } from 'lucide-react'
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import Avatar from 'react-avatar'
 import { useDispatch, useSelector } from 'react-redux'
@@ -158,7 +159,24 @@ const RemarksList = ({
 
         {/* Message */}
         <div className="pl-10 mt-2">
-          {!editMode && <div>{origRemarks}</div>}
+          {!editMode && (
+            <div>
+              <div>{origRemarks}</div>
+              {remarks.file_path && (
+                <div>
+                  <div className="mt-2 text-xs font-medium">
+                    Attached Files:
+                  </div>
+                  <Link
+                    href={`${remarks.file_path}`}
+                    target="_blank"
+                    className="text-blue-600 hover:underline">
+                    {remarks.file_path.slice(-20)}
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
           {/* Edit Box */}
           {editMode && (
             <div className="w-full space-y-2 mb-5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
@@ -402,12 +420,19 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
     null
   )
 
+  const [file, setFile] = useState<File | null>(null)
+
   const { supabase, session, systemUsers } = useSupabase()
   const { setToast } = useFilter()
 
   const user: AccountTypes = systemUsers.find(
     (user: AccountTypes) => user.id === session.user.id
   )
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0] || null
+    setFile(selectedFile)
+  }
 
   const handleSubmitRemarks = async () => {
     if (remarks.trim().length === 0) {
@@ -417,6 +442,20 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
     setSaving(true)
 
     try {
+      let filePath: string | null = null
+
+      // Upload file if it exists
+      if (file) {
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+        const fileName = `${Date.now()}_${sanitizedFileName}`
+        const { data: fileData, error: fileError } = await supabase.storage
+          .from('ddm_public') // Replace with your storage bucket name
+          .upload(`profile_remarks_attachments/${fileName}`, file)
+
+        if (fileError) throw new Error(fileError.message)
+        filePath = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/ddm_public/${fileData.path}` // Get the path of the uploaded file
+      }
+
       const newData = {
         profile_id: details.id,
         user_id: session.user.id,
@@ -425,6 +464,7 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
           user.lastname || ''
         }`,
         remarks: remarks,
+        file_path: filePath,
         type: '',
       }
 
@@ -442,6 +482,7 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
     } finally {
       setRemarks('')
       setSaving(false)
+      setFile(null) // Reset file input
     }
   }
 
@@ -796,6 +837,32 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                               placeholder="Write your remarks here.."
                               className="w-full h-20 border resize-none focus:ring-0 focus:outline-none p-2 text-sm text-gray-700 dark:bg-gray-900 dark:text-gray-300"
                             />
+                            <div className="mt-2 flex flex-col space-y-2 items-end">
+                              {/* File Input Wrapper */}
+                              <div className="relative">
+                                <input
+                                  type="file"
+                                  accept=".pdf, .doc, .docx, .xls, .xlsx, .png, .jpg, .jpeg, .gif"
+                                  onChange={handleFileChange}
+                                  className="hidden" // Hides the default file input
+                                  id="fileUpload"
+                                />
+
+                                {/* Custom Button for File Input */}
+                                <label
+                                  htmlFor="fileUpload"
+                                  className="cursor-pointer flex items-start space-x-2">
+                                  <span>Attach File</span>
+                                  <PaperclipIcon className="w-4 h-4" />
+                                </label>
+
+                                {file && (
+                                  <span className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                                    Selected: {file.name}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                             <div className="flex items-start">
                               <CustomButton
                                 containerStyles="app__btn_green"
