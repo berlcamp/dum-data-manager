@@ -61,6 +61,8 @@ export function CategorySummary() {
       { header: 'A', key: 'a', width: 20 },
       { header: 'B', key: 'b', width: 20 },
       { header: 'C', key: 'c', width: 20 },
+      { header: 'D', key: 'd', width: 20 },
+      { header: 'INC', key: 'inc', width: 20 },
       { header: 'UC', key: 'uc', width: 20 },
     ]
 
@@ -73,6 +75,8 @@ export function CategorySummary() {
         a: `${item.a}`,
         b: `${item.b}`,
         c: `${item.c}`,
+        d: `${item.d}`,
+        inc: `${item.inc}`,
         uc: `${item.uc}`,
       })
     })
@@ -167,6 +171,8 @@ export function CategorySummary() {
                 <th className="app__th">A</th>
                 <th className="app__th">B</th>
                 <th className="app__th">C</th>
+                <th className="app__th">D</th>
+                <th className="app__th">INC</th>
                 <th className="app__th">UC</th>
               </tr>
             </thead>
@@ -181,12 +187,14 @@ export function CategorySummary() {
                     <td className="app__td">{item.a}</td>
                     <td className="app__td">{item.b}</td>
                     <td className="app__td">{item.c}</td>
+                    <td className="app__td">{item.d}</td>
+                    <td className="app__td">{item.inc}</td>
                     <td className="app__td">{item.uc}</td>
                   </tr>
                 ))}
               {loading && (
                 <TableRowLoading
-                  cols={6}
+                  cols={8}
                   rows={2}
                 />
               )}
