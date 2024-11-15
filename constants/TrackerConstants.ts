@@ -150,7 +150,7 @@ export const risOffices = [
   'MEDO',
 ]
 
-export const profileCategories = ['', 'A', 'B', 'C', 'UC']
+export const profileCategories = ['', 'A', 'B', 'C', 'D', 'UC', 'INC']
 
 export const profilePositions = [
   'Barangay Chairman',
