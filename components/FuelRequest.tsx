@@ -15,6 +15,15 @@ import {
 } from '@/components/ui/popover'
 import { z } from 'zod'
 
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+
 // Redux imports
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -35,7 +44,7 @@ import { useSupabase } from '@/context/SupabaseProvider'
 import { RisDepartmentCodeTypes, RisVehicleTypes } from '@/types'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, Check, ChevronsUpDown } from 'lucide-react'
 import { KeyboardEvent, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
@@ -303,28 +312,77 @@ export default function FuelRequest() {
                         control={form.control}
                         name="vehicle_id"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="flex flex-col">
                             <FormLabel className="app__form_label">
                               Vehicle
                             </FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Choose Vehicle" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {vehicles?.map((vehicle, idx) => (
-                                  <SelectItem
-                                    key={idx}
-                                    value={vehicle.id.toString()}>
-                                    {vehicle.name} - {vehicle.plate_number}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className={cn(
+                                      'w-full justify-between',
+                                      !field.value && 'text-muted-foreground'
+                                    )}>
+                                    {field.value
+                                      ? `${
+                                          vehicles.find(
+                                            (vehicle) =>
+                                              vehicle.id.toString() ===
+                                              field.value.toString()
+                                          )?.name
+                                        }-${
+                                          vehicles.find(
+                                            (vehicle) =>
+                                              vehicle.id.toString() ===
+                                              field.value.toString()
+                                          )?.plate_number
+                                        }`
+                                      : 'Select Vehicle'}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-full p-0">
+                                <Command>
+                                  <CommandInput placeholder="Search vehicle..." />
+                                  <CommandList>
+                                    <CommandEmpty>
+                                      No vehicle found.
+                                    </CommandEmpty>
+                                    <CommandGroup>
+                                      {vehicles.map((vehicle) => (
+                                        <CommandItem
+                                          value={vehicle.id}
+                                          key={vehicle.id}
+                                          onSelect={() => {
+                                            form.setValue(
+                                              'vehicle_id',
+                                              field.value.toString() ===
+                                                vehicle.id
+                                                ? ''
+                                                : vehicle.id
+                                            )
+                                          }}>
+                                          {vehicle.name}-{vehicle.plate_number}
+                                          <Check
+                                            className={cn(
+                                              'ml-auto',
+                                              vehicle.id.toString() ===
+                                                field.value.toString()
+                                                ? 'opacity-100'
+                                                : 'opacity-0'
+                                            )}
+                                          />
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
                             <FormMessage />
                           </FormItem>
                         )}

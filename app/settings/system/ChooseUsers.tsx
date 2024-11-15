@@ -63,7 +63,7 @@ export default function ChooseUsers({
 
       const fullName =
         `${user.lastname} ${user.firstname} ${user.middlename}`.toLowerCase()
-      return searchWords.every((word) => fullName.includes(word))
+      return searchWords.every((word) => fullName.includes(word.toLowerCase()))
     })
 
     setSearchManagersResults(results)

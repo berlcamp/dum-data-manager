@@ -46,7 +46,28 @@ import type {
   RisVehicleTypes,
 } from '@/types'
 import { format } from 'date-fns'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, Check, ChevronsUpDown } from 'lucide-react'
+
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+
+const languages = [
+  { label: 'English', value: 'en' },
+  { label: 'French', value: 'fr' },
+  { label: 'German', value: 'de' },
+  { label: 'Spanish', value: 'es' },
+  { label: 'Portuguese', value: 'pt' },
+  { label: 'Russian', value: 'ru' },
+  { label: 'Japanese', value: 'ja' },
+  { label: 'Korean', value: 'ko' },
+  { label: 'Chinese', value: 'zh' },
+] as const
 
 const FormSchema = z.object({
   requester: z.string().min(1, {
@@ -100,7 +121,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const [purchaseOrders, setPurchaseOrders] = useState<RisPoTypes[] | []>([])
   const [cashAdvances, setCashAdvances] = useState<RisCaTypes[] | []>([])
 
-  const [transactionType, setTransactionType] = useState('')
+  const [open, setOpen] = useState(false)
+  const [value, setValue] = useState('')
   const [dieselPrice, setDieselPrice] = useState(0)
   const [gasolinePrice, setGasolinePrice] = useState(0)
 
@@ -276,12 +298,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     }
   }
 
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') {
-      hideModal()
-    }
-  }
-
   useEffect(() => {
     // Fetch vehicles
     ;(async () => {
@@ -378,12 +394,17 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     })()
   }, [])
 
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [wrapperRef])
+  // const handleKeyDown = (event: KeyboardEvent) => {
+  //   if (event.key === 'Escape') {
+  //     hideModal()
+  //   }
+  // }
+  // useEffect(() => {
+  //   document.addEventListener('keydown', handleKeyDown)
+  //   return () => {
+  //     document.removeEventListener('keydown', handleKeyDown)
+  //   }
+  // }, [wrapperRef])
 
   return (
     <div
@@ -418,7 +439,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             form.setValue('transaction_type', value)
                             form.setValue('po_id', '')
                             form.setValue('ca_id', '')
-                            setTransactionType(value)
                           }}
                           defaultValue={
                             editData
@@ -445,7 +465,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                   />
                 </div>
                 <div className="md:grid md:grid-cols-2 md:gap-4">
-                  {(editData || form.getValues('transaction_type') !== '') && (
+                  {(editData || form.watch('transaction_type') !== '') && (
                     <>
                       <FormField
                         control={form.control}
@@ -649,32 +669,77 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         control={form.control}
                         name="vehicle_id"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="flex flex-col">
                             <FormLabel className="app__form_label">
                               Vehicle
                             </FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={
-                                editData
-                                  ? editData.vehicle_id.toString()
-                                  : field.value
-                              }>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Choose Vehicle" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {vehicles?.map((vehicle, idx) => (
-                                  <SelectItem
-                                    key={idx}
-                                    value={vehicle.id.toString()}>
-                                    {vehicle.name} - {vehicle.plate_number}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className={cn(
+                                      'w-full justify-between',
+                                      !field.value && 'text-muted-foreground'
+                                    )}>
+                                    {field.value
+                                      ? `${
+                                          vehicles.find(
+                                            (vehicle) =>
+                                              vehicle.id.toString() ===
+                                              field.value.toString()
+                                          )?.name
+                                        }-${
+                                          vehicles.find(
+                                            (vehicle) =>
+                                              vehicle.id.toString() ===
+                                              field.value.toString()
+                                          )?.plate_number
+                                        }`
+                                      : 'Select Vehicle'}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-full p-0">
+                                <Command>
+                                  <CommandInput placeholder="Search vehicle..." />
+                                  <CommandList>
+                                    <CommandEmpty>
+                                      No vehicle found.
+                                    </CommandEmpty>
+                                    <CommandGroup>
+                                      {vehicles.map((vehicle) => (
+                                        <CommandItem
+                                          value={vehicle.id}
+                                          key={vehicle.id}
+                                          onSelect={() => {
+                                            form.setValue(
+                                              'vehicle_id',
+                                              field.value.toString() ===
+                                                vehicle.id
+                                                ? ''
+                                                : vehicle.id
+                                            )
+                                          }}>
+                                          {vehicle.name}-{vehicle.plate_number}
+                                          <Check
+                                            className={cn(
+                                              'ml-auto',
+                                              vehicle.id.toString() ===
+                                                field.value.toString()
+                                                ? 'opacity-100'
+                                                : 'opacity-0'
+                                            )}
+                                          />
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
                             <FormMessage />
                           </FormItem>
                         )}
