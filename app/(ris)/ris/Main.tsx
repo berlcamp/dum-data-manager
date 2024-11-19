@@ -177,6 +177,7 @@ const Page: React.FC = () => {
         filterKeyword,
         filterAppropriation,
         filterVehicle,
+        filterStatus,
         filterPo,
         filterCa,
         filterDateFrom,
