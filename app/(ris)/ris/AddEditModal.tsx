@@ -310,7 +310,10 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
     // Fetch departments
     ;(async () => {
-      const { data } = await supabase.from('ddm_ris_departments').select()
+      const { data } = await supabase
+        .from('ddm_ris_departments')
+        .select()
+        .order('name', { ascending: true })
       setDepartments(data)
     })()
 
