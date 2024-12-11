@@ -62,6 +62,7 @@ export function CategorySummary() {
       { header: 'B', key: 'b', width: 20 },
       { header: 'C', key: 'c', width: 20 },
       { header: 'D', key: 'd', width: 20 },
+      { header: 'E', key: 'e', width: 20 },
       { header: 'INC', key: 'inc', width: 20 },
       { header: 'UC', key: 'uc', width: 20 },
     ]
@@ -76,6 +77,7 @@ export function CategorySummary() {
         b: `${item.b}`,
         c: `${item.c}`,
         d: `${item.d}`,
+        e: `${item.e}`,
         inc: `${item.inc}`,
         uc: `${item.uc}`,
       })
@@ -172,6 +174,7 @@ export function CategorySummary() {
                 <th className="app__th">B</th>
                 <th className="app__th">C</th>
                 <th className="app__th">D</th>
+                <th className="app__th">E</th>
                 <th className="app__th">INC</th>
                 <th className="app__th">UC</th>
               </tr>
@@ -188,6 +191,7 @@ export function CategorySummary() {
                     <td className="app__td">{item.b}</td>
                     <td className="app__td">{item.c}</td>
                     <td className="app__td">{item.d}</td>
+                    <td className="app__td">{item.e}</td>
                     <td className="app__td">{item.inc}</td>
                     <td className="app__td">{item.uc}</td>
                   </tr>

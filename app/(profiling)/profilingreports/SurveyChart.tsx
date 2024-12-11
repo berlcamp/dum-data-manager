@@ -79,6 +79,10 @@ export function SurveyChart() {
         label: 'D',
         color: `${colors[i++]}`,
       },
+      e: {
+        label: 'E',
+        color: `${colors[i++]}`,
+      },
       inc: {
         label: 'INC',
         color: `${colors[i++]}`,
