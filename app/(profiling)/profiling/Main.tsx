@@ -202,6 +202,7 @@ const Page: React.FC = () => {
                 <tr>
                   <th className="app__th">Fullname</th>
                   <th className="app__th">Address</th>
+                  <th className="app__th">Precinct</th>
                 </tr>
               </thead>
               <tbody>
@@ -223,11 +224,12 @@ const Page: React.FC = () => {
                       <td className="app__td text-xs">
                         {item.address} - {item.purok}
                       </td>
+                      <td className="app__td text-xs">{item.precinct}</td>
                     </tr>
                   ))}
                 {loading && (
                   <TableRowLoading
-                    cols={4}
+                    cols={3}
                     rows={2}
                   />
                 )}

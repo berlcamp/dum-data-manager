@@ -55,6 +55,7 @@ export default function ExportModal({ hideModal }: ModalProps) {
       // { header: 'Barangay (do not edit)', key: 'barangay', width: 20 },
       { header: 'Category', key: 'category', width: 20 },
       { header: 'Remarks', key: 'remarks', width: 20 },
+      { header: 'Precinct', key: 'precinct', width: 20 },
       // Add more columns based on your data structure
     ]
 
@@ -78,6 +79,7 @@ export default function ExportModal({ hideModal }: ModalProps) {
           // barangay: `${item.profile.address}`,
           category: `${item.categories[0].category ?? 'UC'}`,
           remarks: `${item.categories[0].remarks ?? ''}`,
+          precinct: `${item.precinct ?? ''}`,
         })
       }
     })
