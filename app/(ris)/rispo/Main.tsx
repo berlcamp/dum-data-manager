@@ -13,6 +13,8 @@ import {
 } from '@/components/index'
 import { fetchPurchaseOrders } from '@/utils/fetchApi'
 import { format } from 'date-fns'
+import Excel from 'exceljs'
+import { saveAs } from 'file-saver'
 import React, { useEffect, useState } from 'react'
 
 import Filters from './Filters'
@@ -37,6 +39,8 @@ const Page: React.FC = () => {
   const [showAddVarious, setShowAddVarious] = useState(false)
   const [showRisModal, setShowRisModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RisPoTypes | null>(null)
+
+  const [downloading, setDownloading] = useState(false)
 
   // Filters
   const [filterType, setFilterType] = useState('All')
@@ -167,6 +171,19 @@ const Page: React.FC = () => {
     }
   }
 
+  const countRemainingQuantityFigure = (item: RisPoTypes) => {
+    let totalQuantityUsed = 0
+    if (item.ddm_ris) {
+      item.ddm_ris.forEach((ris) => {
+        if (ris.status === 'Approved') {
+          totalQuantityUsed += Number(ris.quantity)
+        }
+      })
+    }
+
+    return Number(item.quantity) - totalQuantityUsed
+  }
+
   const countRemainingAmount = (item: RisPoTypes) => {
     let totalAmount = 0
     if (item.ddm_ris) {
@@ -186,6 +203,98 @@ const Page: React.FC = () => {
     } else {
       return <span>{remainingAmount.toFixed(2)}</span>
     }
+  }
+
+  const countRemainingAmountFigure = (item: RisPoTypes) => {
+    let totalAmount = 0
+    if (item.ddm_ris) {
+      item.ddm_ris.forEach((ris) => {
+        if (ris.status === 'Approved') {
+          totalAmount += Number(ris.quantity) * Number(ris.price)
+        }
+      })
+    }
+    return Number(item.amount) - totalAmount
+  }
+
+  const handleDownloadExcel = async () => {
+    setDownloading(true)
+
+    // Create a new workbook and add a worksheet
+    const workbook = new Excel.Workbook()
+    const worksheet = workbook.addWorksheet('Sheet 1')
+
+    // Add data to the worksheet
+    worksheet.columns = [
+      { header: '#', key: 'no', width: 20 },
+      { header: 'Date', key: 'date', width: 20 },
+      { header: 'PO', key: 'po', width: 20 },
+      { header: 'Description', key: 'description', width: 20 },
+      { header: 'Type', key: 'type', width: 20 },
+      { header: 'Appropriation', key: 'appropriation', width: 20 },
+      { header: 'Amount', key: 'amount', width: 20 },
+      { header: 'Remaining Amount', key: 'remaining_amount', width: 20 },
+      { header: 'Remaining Quantity', key: 'remaining_quantity', width: 20 },
+      // Add more columns based on your data structure
+    ]
+
+    let approp = ''
+    if (filterAppropriation !== 'All') {
+      const { data: approriation } = await supabase
+        .from('ddm_ris_appropriations')
+        .select()
+        .eq('id', filterAppropriation)
+        .single()
+
+      approp = approriation.name
+    }
+
+    const result = await fetchPurchaseOrders(
+      {
+        filterType,
+        filterKeyword,
+        filterAppropriation,
+      },
+      99999,
+      0
+    )
+
+    const risData: RisPoTypes[] = result.data
+
+    // Data for the Excel file
+    const data: any[] = []
+    risData.forEach((item, index) => {
+      let remQty = 0
+      if (item.type !== 'Fuel') {
+        remQty = countRemainingQuantityFigure(item)
+      }
+      const remAmt = countRemainingAmountFigure(item)
+
+      data.push({
+        no: index + 1,
+        date: format(new Date(item.po_date), 'MM/dd/yyyy'),
+        po: `${item.po_number || ''}`,
+        description: `${item.description}`,
+        type: `${item.type}`,
+        appropriation: `${approp}`,
+        amount: `${item.amount}`,
+        remaining_amount: `${remAmt}`,
+        remaining_quantity: `${remQty !== 0 ? remQty : ''}`,
+      })
+    })
+
+    data.forEach((item) => {
+      worksheet.addRow(item)
+    })
+
+    // Generate the Excel file
+    await workbook.xlsx.writeBuffer().then((buffer) => {
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      saveAs(blob, `Summary.xlsx`)
+    })
+    setDownloading(false)
   }
 
   // Update list whenever list in redux updates
@@ -230,6 +339,17 @@ const Page: React.FC = () => {
               setFilterType={setFilterType}
               setFilterKeyword={setFilterKeyword}
               setFilterAppropriation={setFilterAppropriation}
+            />
+          </div>
+
+          {/* Export Button */}
+          <div className="mx-4 mb-4 flex justify-end space-x-2">
+            <CustomButton
+              containerStyles="app__btn_blue"
+              isDisabled={downloading}
+              title={downloading ? 'Downloading...' : 'Export To Excel'}
+              btnType="button"
+              handleClick={handleDownloadExcel}
             />
           </div>
 
