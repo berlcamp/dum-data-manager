@@ -54,6 +54,7 @@ export default function TemplateModal({ hideModal }: ModalProps) {
       { header: 'Fullname (do not edit)', key: 'fullname', width: 20 },
       { header: 'Category', key: 'category', width: 20 },
       { header: 'Remarks', key: 'remarks', width: 20 },
+      { header: 'Precinct', key: 'precinct', width: 20 },
       // Add more columns based on your data structure
     ]
 
@@ -73,6 +74,7 @@ export default function TemplateModal({ hideModal }: ModalProps) {
         fullname: `${item.fullname}`,
         category: '',
         remarks: '',
+        precinct: `${item.precinct ?? ''}`,
       })
     })
 
