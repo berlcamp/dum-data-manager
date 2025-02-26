@@ -26,15 +26,15 @@ export default function ProfilingSidebar() {
             <span className="flex-1 ml-3 whitespace-nowrap">Profiles</span>
           </Link>
         </li>
-        {/* <li>
+        <li>
           <Link
             href="/profilingblc"
             className={`app__menu_link ${
               currentRoute === '/profilingblc' ? 'app_menu_link_active' : ''
             }`}>
-            <span className="flex-1 ml-3 whitespace-nowrap">BLC{"'"}s</span>
+            <span className="flex-1 ml-3 whitespace-nowrap">Coordinators</span>
           </Link>
-        </li> */}
+        </li>
         <li>
           <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2 mt-8">
             <span>Reports</span>

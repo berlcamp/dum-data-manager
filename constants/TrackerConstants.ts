@@ -150,7 +150,7 @@ export const risOffices = [
   'MEDO',
 ]
 
-export const profileCategories = ['', 'A', 'B', 'C', 'D', 'UC', 'INC']
+export const profileCategories = ['', 'A', 'B', 'C', 'D', 'E', 'UC', 'INC']
 
 export const profilePositions = [
   'Barangay Chairman',
@@ -161,6 +161,7 @@ export const profilePositions = [
   'BPAT',
   'Government Employee',
   'LGU Employee',
+  'Household Leader',
   'Undefined',
 ]
 

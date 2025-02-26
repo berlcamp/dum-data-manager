@@ -28,6 +28,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import Avatar from 'react-avatar'
 import { useDispatch, useSelector } from 'react-redux'
+import Coordinator from './Coordinator'
 
 interface ModalProps {
   hideModal: () => void
@@ -707,7 +708,7 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                     </tr>
                     <tr>
                       <td className="px-2 py-2 font-light text-right text-xs">
-                        Gov&apos;t Position:
+                        Position:
                       </td>
                       <td>
                         <Position
@@ -724,9 +725,9 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                         <span className="font-medium">{details.address}</span>
                       </td>
                     </tr>
-                    {/* <tr>
+                    <tr>
                       <td className="px-2 py-2 font-light text-right text-xs">
-                        BL Coordinator
+                        Coordinator
                       </td>
                       <td>
                         <Coordinator
@@ -734,7 +735,7 @@ export default function DetailsModal({ hideModal, details }: ModalProps) {
                           coordinator={details.coordinator}
                         />
                       </td>
-                    </tr> */}
+                    </tr>
                   </tbody>
                 </table>
                 <table className="w-full">
