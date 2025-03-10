@@ -234,6 +234,55 @@ export async function fetchProfiles(
   }
 }
 
+export async function fetchHouseholdLeaders(
+  filters: FilterProfileTypes,
+  perPageCount: number,
+  rangeFrom: number
+) {
+  try {
+    let query = supabase
+      .from('ddm_profiles')
+      .select('*, coordinator:coordinator_id(*)', { count: 'exact' })
+      .eq('position', 'Household Leader')
+
+    // Full text search
+    if (filters.filterKeyword && filters.filterKeyword.trim() !== '') {
+      query = query.textSearch('fts', fullTextQuery(filters.filterKeyword), {
+        config: 'english',
+      })
+      // query = query.or(`fullname.ilike.%${filters.filterKeyword}%`)
+    }
+
+    // Filter Address
+    if (filters.filterBarangay && filters.filterBarangay.trim() !== '') {
+      query = query.eq('address', filters.filterBarangay)
+    }
+
+    // Perform count before paginations
+    // const { count } = await query
+
+    // Per Page from context
+    const from = rangeFrom
+    const to = from + (perPageCount - 1)
+    // Per Page from context
+    query = query.range(from, to)
+
+    // Order By
+    query = query.order('id', { ascending: true })
+
+    const { data, count, error } = await query
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return { data, count }
+  } catch (error) {
+    console.error('fetch hh leaders error', error)
+    return { data: [], count: 0 }
+  }
+}
+
 export async function fetchImportLogs(perPageCount: number, rangeFrom: number) {
   try {
     let query = supabase
