@@ -219,7 +219,7 @@ export default function PrintModal({ hideModal, details }: ModalProps) {
                   <span className="text-xs absolute top-[182px] left-64 tracking-tighter">
                     {gender}
                   </span>
-                  <span className="text-xs absolute top-[182px] left-2 tracking-tighter">
+                  <span className="text-xs absolute top-[182px] left-2 text-white tracking-tighter">
                     ID No. {idNo}
                   </span>
                   {photoIdPreview && (
