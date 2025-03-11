@@ -302,6 +302,9 @@ export interface ProfileTypes {
   position: string
   precinct: string
   purok: string
+  photo_id_url: string
+  birthday: string
+  gender: string
   categories: ProfileCategoriesType[]
 }
 export interface ProfileRemarksTypes {

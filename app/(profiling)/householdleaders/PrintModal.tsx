@@ -1,9 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
-import { Button } from '@/components/ui/button'
-
 import { CustomButton } from '@/components/index'
+import { Button } from '@/components/ui/button'
+import { barangays } from '@/constants/TrackerConstants'
+import { useSupabase } from '@/context/SupabaseProvider'
 import { ProfileTypes } from '@/types'
+import imageCompression from 'browser-image-compression'
 import html2canvas from 'html2canvas'
 import Image from 'next/image'
 import { useRef, useState } from 'react'
@@ -15,22 +17,51 @@ interface ModalProps {
 
 export default function PrintModal({ hideModal, details }: ModalProps) {
   // useStates
-  const [photoIdPreview, setPhotoIdPreview] = useState<string | null>(null)
-  const [gender, setGender] = useState('')
-  const [birthday, setBirthday] = useState('')
+  const [photoIdPreview, setPhotoIdPreview] = useState<string | null>(
+    details.photo_id_url
+      ? `https://nuhirhfevxoonendpfsm.supabase.co/storage/v1/object/public/ddm_public/${details.photo_id_url}`
+      : null
+  )
+  const [gender, setGender] = useState(details.gender ?? '')
+  const [birthday, setBirthday] = useState(details.birthday ?? '')
   const [fullname, setFullname] = useState(details.fullname)
   const [address, setAddress] = useState(`${details.address}, DUMINGAG, ZDS`)
+  const [selectedFile, setSelectedFile] = useState<File | null | undefined>(
+    null
+  )
 
   const divRef = useRef(null)
 
-  const [isImageLoaded, setIsImageLoaded] = useState(false)
+  const { supabase } = useSupabase()
 
-  const handleImageLoad = () => {
-    setIsImageLoaded(true)
+  const handlePhotoIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      const imageUrl = URL.createObjectURL(file)
+      setPhotoIdPreview(imageUrl)
+      setSelectedFile(file)
+    }
   }
-
   const downloadImage = async () => {
     if (!divRef.current) return
+
+    let photoUrl = ''
+    if (selectedFile instanceof File) {
+      photoUrl = (await uploadPhoto(selectedFile, 'photo_id')) || ''
+    }
+
+    const { error } = await supabase
+      .from('ddm_profiles')
+      .update({
+        birthday: birthday ?? null,
+        gender: gender,
+        photo_id_url: photoUrl,
+      })
+      .eq('id', details.id)
+
+    if (error) {
+      console.error('error', error.message)
+    }
 
     const canvas = await html2canvas(divRef.current, { useCORS: true })
     const dataUrl = canvas.toDataURL('image/jpeg', 1.0) // Convert to JPG
@@ -44,13 +75,48 @@ export default function PrintModal({ hideModal, details }: ModalProps) {
     document.body.removeChild(link)
   }
 
-  const handlePhotoIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      const imageUrl = URL.createObjectURL(file)
-      setPhotoIdPreview(imageUrl)
+  async function uploadPhoto(file: File, folder: string) {
+    const newFileName = `oc.${file.name.split('.').pop()}`
+
+    // Image compression options
+    const options = {
+      maxSizeMB: 1, // Max file size in MB
+      maxWidthOrHeight: 600, // Resize to fit within 1024px
+      useWebWorker: true,
+    }
+
+    try {
+      const compressedFile = await imageCompression(file, options) // Compress the image
+
+      const { data, error } = await supabase.storage
+        .from('ddm_public') // Change to your bucket
+        .upload(`${folder}/${details.id}/${newFileName}`, compressedFile, {
+          upsert: true,
+        })
+
+      if (error) {
+        console.error('Upload Error:', error)
+        return null
+      }
+
+      return data.path // Return file path
+    } catch (err) {
+      console.error('Compression Error:', err)
+      return null
     }
   }
+
+  // Get the index of the barangay (adding 1 to start from 1, not 0)
+  let barangayIndex = barangays.indexOf(details.address) + 1
+
+  // Format barangay index with leading zero if less than 10
+  let formattedBarangayIndex = barangayIndex.toString().padStart(2, '0')
+
+  // Format ID with leading zeros to always have 5 digits
+  let formattedId = details.id.toString().padStart(5, '0')
+
+  // Generate the final ID number
+  const idNo = `OC-${formattedBarangayIndex}-${formattedId}`
 
   return (
     <div className="app__modal_wrapper">
@@ -139,19 +205,22 @@ export default function PrintModal({ hideModal, details }: ModalProps) {
                     width={400}
                     height={400}
                     alt="ID Layout"
-                    onLoad={handleImageLoad}
                   />
-                  <span className="text-xs absolute top-[108px] left-36">
+                  <span className="text-xs absolute top-[108px] left-36 text-white stroke-black drop-shadow-[1px_1px_0px_black] tracking-tighter">
                     {fullname}
                   </span>
-                  <span className="text-xs absolute top-[146px] left-36">
+
+                  <span className="text-xs absolute top-[146px] left-36 text-white stroke-black drop-shadow-[1px_1px_0px_black] tracking-tighter">
                     {address}
                   </span>
-                  <span className="text-xs absolute top-[182px] left-36">
+                  <span className="text-xs absolute top-[182px] left-36 text-white stroke-black drop-shadow-[1px_1px_0px_black] tracking-tighter">
                     {birthday}
                   </span>
-                  <span className="text-xs absolute top-[182px] left-64">
+                  <span className="text-xs absolute top-[182px] left-64 text-white stroke-black drop-shadow-[1px_1px_0px_black] tracking-tighter">
                     {gender}
+                  </span>
+                  <span className="text-xs absolute top-[182px] left-2 text-white stroke-black drop-shadow-[1px_1px_0px_black] tracking-tighter">
+                    ID No. {idNo}
                   </span>
                   {photoIdPreview && (
                     <>
@@ -173,7 +242,7 @@ export default function PrintModal({ hideModal, details }: ModalProps) {
                 onClick={downloadImage}
                 type="submit"
                 variant="green">
-                Download ID
+                Save and Download ID
               </Button>
             </div>
           </div>
