@@ -206,20 +206,20 @@ export default function PrintModal({ hideModal, details }: ModalProps) {
                     height={400}
                     alt="ID Layout"
                   />
-                  <span className="text-xs absolute top-[108px] left-36 text-white stroke-black drop-shadow-[1px_1px_0px_black] tracking-tighter">
+                  <span className="text-xs absolute top-[108px] left-36 tracking-tighter">
                     {fullname}
                   </span>
 
-                  <span className="text-xs absolute top-[146px] left-36 text-white stroke-black drop-shadow-[1px_1px_0px_black] tracking-tighter">
+                  <span className="text-xs absolute top-[146px] left-36 tracking-tighter">
                     {address}
                   </span>
-                  <span className="text-xs absolute top-[182px] left-36 text-white stroke-black drop-shadow-[1px_1px_0px_black] tracking-tighter">
+                  <span className="text-xs absolute top-[182px] left-36 tracking-tighter">
                     {birthday}
                   </span>
-                  <span className="text-xs absolute top-[182px] left-64 text-white stroke-black drop-shadow-[1px_1px_0px_black] tracking-tighter">
+                  <span className="text-xs absolute top-[182px] left-64 tracking-tighter">
                     {gender}
                   </span>
-                  <span className="text-xs absolute top-[182px] left-2 text-white stroke-black drop-shadow-[1px_1px_0px_black] tracking-tighter">
+                  <span className="text-xs absolute top-[182px] left-2 tracking-tighter">
                     ID No. {idNo}
                   </span>
                   {photoIdPreview && (
