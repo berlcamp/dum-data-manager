@@ -19,7 +19,9 @@ export default function PrintModal({ hideModal, details }: ModalProps) {
   // useStates
   const [photoIdPreview, setPhotoIdPreview] = useState<string | null>(
     details.photo_id_url
-      ? `https://nuhirhfevxoonendpfsm.supabase.co/storage/v1/object/public/ddm_public/${details.photo_id_url}`
+      ? `https://nuhirhfevxoonendpfsm.supabase.co/storage/v1/object/public/ddm_public/${
+          details.photo_id_url
+        }??t=${new Date().getTime()}`
       : null
   )
   const [gender, setGender] = useState(details.gender ?? '')
@@ -45,7 +47,7 @@ export default function PrintModal({ hideModal, details }: ModalProps) {
   const downloadImage = async () => {
     if (!divRef.current) return
 
-    let photoUrl = ''
+    let photoUrl = details.photo_id_url ?? ''
     if (selectedFile instanceof File) {
       photoUrl = (await uploadPhoto(selectedFile, 'photo_id')) || ''
     }
@@ -224,7 +226,7 @@ export default function PrintModal({ hideModal, details }: ModalProps) {
                   </span>
                   {photoIdPreview && (
                     <>
-                      <Image
+                      <img
                         src={photoIdPreview}
                         width={92}
                         height={92}
