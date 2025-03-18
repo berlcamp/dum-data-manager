@@ -208,20 +208,23 @@ export default function PrintModal({ hideModal, details }: ModalProps) {
                     height={400}
                     alt="ID Layout"
                   />
-                  <span className="text-xs absolute top-[101px] left-36 tracking-tighter">
+                  <span className="text-xs absolute top-[112px] left-36 tracking-tighter font-bold">
                     {fullname}
                   </span>
 
-                  <span className="text-xs absolute top-[141px] left-36 tracking-tighter">
+                  <span className="text-xs absolute top-[152px] left-36 tracking-tighter ">
                     {address}
                   </span>
-                  <span className="text-xs absolute top-[177px] left-36 tracking-tighter">
+                  <span className="text-xs absolute top-[188px] left-36 tracking-tighter ">
                     {birthday}
                   </span>
-                  <span className="text-xs absolute top-[177px] left-64 tracking-tighter">
+                  <span className="text-xs absolute top-[188px] left-64 tracking-tighter ">
                     {gender}
                   </span>
-                  <span className="text-xs absolute top-[177px] left-2 text-white tracking-tighter">
+                  <span className="text-xs absolute top-[222px] left-36 tracking-tighter ">
+                    01-01-2025
+                  </span>
+                  <span className="text-xs absolute top-[192px] left-3 text-white tracking-tighter ">
                     ID No. {idNo}
                   </span>
                   {photoIdPreview && (
@@ -231,7 +234,7 @@ export default function PrintModal({ hideModal, details }: ModalProps) {
                         width={92}
                         height={92}
                         alt="profile preview"
-                        className="absolute top-[80px] left-[10px]"
+                        className="absolute top-[91px] left-[21px]"
                       />
                     </>
                   )}
