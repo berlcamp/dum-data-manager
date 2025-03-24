@@ -28,6 +28,7 @@ import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { useDispatch, useSelector } from 'react-redux'
 import PrintModal from './PrintModal'
+import TableToPDF from './TableToPDF'
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
@@ -172,7 +173,7 @@ const Page: React.FC = () => {
         filterBarangay,
       },
       9999,
-      list.length
+      0
     )
 
     const allData: ProfileTypes[] = result.data
@@ -330,6 +331,8 @@ const Page: React.FC = () => {
           {resultsCount > showingCount && !loading && (
             <ShowMore handleShowMore={handleShowMore} />
           )}
+
+          {filterBarangay !== '' && <TableToPDF barangay={filterBarangay} />}
         </div>
       </div>
       {/* Details Modal */}

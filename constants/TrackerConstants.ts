@@ -161,6 +161,7 @@ export const profilePositions = [
   'BPAT',
   'Government Employee',
   'LGU Employee',
+  'Cluster Household Leader',
   'Household Leader',
   'Undefined',
 ]
