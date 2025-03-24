@@ -1,6 +1,6 @@
 'use client'
-
 import {
+  CustomButton,
   PerPage,
   ShowMore,
   Sidebar,
@@ -10,6 +10,8 @@ import {
   Unauthorized,
 } from '@/components/index'
 import { fetchHouseholdLeaders } from '@/utils/fetchApi'
+import Excel from 'exceljs'
+import { saveAs } from 'file-saver'
 import React, { useEffect, useState } from 'react'
 
 import Filters from './Filters'
@@ -21,7 +23,7 @@ import type { ProfileTypes } from '@/types'
 import { updateList } from '@/GlobalRedux/Features/listSlice'
 import ProfilingSidebar from '@/components/Sidebars/ProfilingSidebar'
 import { Button } from '@/components/ui/button'
-import { superAdmins } from '@/constants/TrackerConstants'
+import { barangays, superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { useDispatch, useSelector } from 'react-redux'
@@ -32,6 +34,7 @@ const Page: React.FC = () => {
 
   // Modal
   const [viewDetailsModal, setViewDetailsModal] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const [details, setDetails] = useState<ProfileTypes | null>(null)
 
   // Filters
@@ -143,6 +146,74 @@ const Page: React.FC = () => {
     }
   }
 
+  const handleDownloadExcel = async () => {
+    if (filterBarangay === '') {
+      setToast('error', 'Please choose barangay')
+      return
+    }
+    setDownloading(true)
+
+    // Create a new workbook and add a worksheet
+    const workbook = new Excel.Workbook()
+    const worksheet = workbook.addWorksheet('Sheet 1')
+
+    // Add data to the worksheet
+    worksheet.columns = [
+      { header: '#', key: 'no', width: 20 },
+      { header: 'Fullname', key: 'id_number', width: 20 },
+      { header: 'Fullname', key: 'fullname', width: 20 },
+      { header: 'Barangay', key: 'barangay', width: 20 },
+      // Add more columns based on your data structure
+    ]
+
+    const result = await fetchHouseholdLeaders(
+      {
+        filterKeyword,
+        filterBarangay,
+      },
+      9999,
+      list.length
+    )
+
+    const allData: ProfileTypes[] = result.data
+
+    // Data for the Excel file
+    const data: any[] = []
+    allData.forEach((item, index) => {
+      // Get the index of the barangay (adding 1 to start from 1, not 0)
+      let barangayIndex = barangays.indexOf(filterBarangay) + 1
+
+      // Format barangay index with leading zero if less than 10
+      let formattedBarangayIndex = barangayIndex.toString().padStart(2, '0')
+
+      // Format ID with leading zeros to always have 5 digits
+      let formattedId = item.id.toString().padStart(5, '0')
+
+      // Generate the final ID number
+      const idNo = `OC-${formattedBarangayIndex}-${formattedId}`
+
+      data.push({
+        no: index + 1,
+        id_number: `${idNo}`,
+        fullname: `${item.fullname}`,
+        barangay: `${item.address}`,
+      })
+    })
+
+    data.forEach((item) => {
+      worksheet.addRow(item)
+    })
+
+    // Generate the Excel file
+    await workbook.xlsx.writeBuffer().then((buffer) => {
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      saveAs(blob, `Summary.xlsx`)
+    })
+    setDownloading(false)
+  }
+
   // Update list whenever list in redux updates
   useEffect(() => {
     setList(globallist)
@@ -185,6 +256,17 @@ const Page: React.FC = () => {
             <Filters
               setFilterBarangay={setFilterBarangay}
               setFilterKeyword={setFilterKeyword}
+            />
+          </div>
+
+          {/* Export Button */}
+          <div className="mx-4 mb-4 flex justify-end space-x-2">
+            <CustomButton
+              containerStyles="app__btn_blue"
+              isDisabled={downloading}
+              title={downloading ? 'Downloading...' : 'Export To Excel'}
+              btnType="button"
+              handleClick={handleDownloadExcel}
             />
           </div>
 
