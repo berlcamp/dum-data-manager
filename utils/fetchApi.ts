@@ -23,6 +23,7 @@ interface DocumentFilterTypes {
 interface FilterProfileTypes {
   filterKeyword?: string
   filterBarangay?: string
+  filterType?: string
   filterCategory?: string
 }
 
@@ -243,7 +244,7 @@ export async function fetchHouseholdLeaders(
     let query = supabase
       .from('ddm_profiles')
       .select('*, coordinator:coordinator_id(*)', { count: 'exact' })
-      .eq('position', 'Household Leader')
+      .in('position', ['Household Leader', 'Cluster Household Leader'])
 
     // Full text search
     if (filters.filterKeyword && filters.filterKeyword.trim() !== '') {
@@ -256,6 +257,11 @@ export async function fetchHouseholdLeaders(
     // Filter Address
     if (filters.filterBarangay && filters.filterBarangay.trim() !== '') {
       query = query.eq('address', filters.filterBarangay)
+    }
+
+    // Filter Address
+    if (filters.filterType && filters.filterType.trim() !== '') {
+      query = query.eq('position', filters.filterType)
     }
 
     // Perform count before paginations

@@ -41,6 +41,7 @@ const Page: React.FC = () => {
   // Filters
   const [filterKeyword, setFilterKeyword] = useState('')
   const [filterBarangay, setFilterBarangay] = useState('')
+  const [filterType, setFilterType] = useState('')
 
   // List
   const [list, setList] = useState<ProfileTypes[]>([])
@@ -62,6 +63,7 @@ const Page: React.FC = () => {
       const result = await fetchHouseholdLeaders(
         {
           filterKeyword,
+          filterType,
           filterBarangay,
         },
         perPageCount,
@@ -88,6 +90,7 @@ const Page: React.FC = () => {
       const result = await fetchHouseholdLeaders(
         {
           filterKeyword,
+          filterType,
           filterBarangay,
         },
         perPageCount,
@@ -129,6 +132,7 @@ const Page: React.FC = () => {
       const result = await fetchHouseholdLeaders(
         {
           filterKeyword,
+          filterType,
           filterBarangay,
         },
         perPageCount,
@@ -230,7 +234,7 @@ const Page: React.FC = () => {
   useEffect(() => {
     setList([])
     void handleSearch()
-  }, [filterKeyword, filterBarangay])
+  }, [filterKeyword, filterType, filterBarangay])
 
   const isDataEmpty = !Array.isArray(list) || list.length < 1 || !list
   const email: string = session.user.email
@@ -256,6 +260,7 @@ const Page: React.FC = () => {
           <div className="app__filters">
             <Filters
               setFilterBarangay={setFilterBarangay}
+              setFilterType={setFilterType}
               setFilterKeyword={setFilterKeyword}
             />
           </div>
@@ -286,8 +291,8 @@ const Page: React.FC = () => {
                 <tr>
                   <th className="app__th"></th>
                   <th className="app__th">Fullname</th>
+                  <th className="app__th">Position</th>
                   <th className="app__th">Address</th>
-                  <th className="app__th">Precinct</th>
                 </tr>
               </thead>
               <tbody>
@@ -308,15 +313,15 @@ const Page: React.FC = () => {
                         </Button>
                       </td>
                       <td className="app__td">{item.fullname}</td>
+                      <td className="app__td">{item.position}</td>
                       <td className="app__td text-xs">
                         {item.address} - {item.purok}
                       </td>
-                      <td className="app__td text-xs">{item.precinct}</td>
                     </tr>
                   ))}
                 {loading && (
                   <TableRowLoading
-                    cols={3}
+                    cols={4}
                     rows={2}
                   />
                 )}
