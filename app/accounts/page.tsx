@@ -129,7 +129,7 @@ const Page: React.FC = () => {
   const handleInactiveConfirmed = async () => {
     try {
       const { error } = await supabase
-        .from('dum_users')
+        .from('ddm_users')
         .update({ status: 'Inactive' })
         .eq('id', selectedId)
 
@@ -152,7 +152,7 @@ const Page: React.FC = () => {
   const handleActiveConfirmed = async () => {
     try {
       const { error } = await supabase
-        .from('dum_users')
+        .from('ddm_users')
         .update({ status: 'Active' })
         .eq('id', selectedId)
 

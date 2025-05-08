@@ -11,7 +11,7 @@ import type { AccountTypes } from '@/types'
 import { updateList } from '@/GlobalRedux/Features/listSlice'
 import { updateResultCounter } from '@/GlobalRedux/Features/resultsCounterSlice'
 import { departments } from '@/constants/TrackerConstants'
-import { useSupabase } from '@/context/SupabaseProvider'
+import { createClient } from '@supabase/supabase-js'
 import { useDispatch, useSelector } from 'react-redux'
 
 interface ModalProps {
@@ -21,9 +21,18 @@ interface ModalProps {
 
 const AddEditModal = ({ hideModal, editData }: ModalProps) => {
   const { setToast } = useFilter()
-  const { supabase } = useSupabase()
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+  const serviceRoleKey = process.env.NEXT_PUBLIC_SERVICE_ROLE_KEY ?? ''
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
 
   // Redux staff
   const globallist = useSelector((state: any) => state.list.value)
@@ -124,6 +133,8 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
       middlename: formdata.middlename,
       lastname: formdata.lastname,
       department: formdata.department,
+      temp_password:
+        formdata.password !== '' ? formdata.password : editData.temp_password,
     }
 
     try {
@@ -133,6 +144,15 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
         .eq('id', editData.id)
 
       if (error) throw new Error(error.message)
+
+      if (formdata.password !== '') {
+        // update password on supabase
+        const { error: error2 } = await supabase.auth.admin.updateUserById(
+          editData.id,
+          { password: formdata.password }
+        )
+        if (error2) throw new Error(error2.message)
+      }
 
       // Update data in redux
       const items = [...globallist]
@@ -155,6 +175,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
       // reset all form fields
       reset()
     } catch (e) {
+      setToast('error', 'Error occured.')
       console.error(e)
     }
   }
@@ -257,7 +278,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
                       </div>
                     </div>
                   </div>
-                  {!editData && (
+                  {!editData ? (
                     <>
                       <div className="app__form_field_container">
                         <div className="w-full">
@@ -285,6 +306,22 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
                         </div>
                       </div>
                     </>
+                  ) : (
+                    <div className="app__form_field_container">
+                      <div className="w-full">
+                        <div className="app__label_standard">
+                          New Password (Leave Blank if not neccesary)
+                        </div>
+                        <div>
+                          <input
+                            {...register('password')}
+                            placeholder="Leave Blank if not neccesary"
+                            type="text"
+                            className="app__select_standard"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </>
               ) : (
