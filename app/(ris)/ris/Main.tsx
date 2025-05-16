@@ -513,6 +513,14 @@ const Page: React.FC = () => {
                             <span className="font-medium">{item.quantity}</span>
                           </div>
                           <div>
+                            <span className="font-light">
+                              Starting Balance (L):
+                            </span>{' '}
+                            <span className="font-medium">
+                              {item.starting_balance}
+                            </span>
+                          </div>
+                          <div>
                             <span className="font-light">Requester:</span>{' '}
                             <span className="font-medium">
                               {item.requester}
