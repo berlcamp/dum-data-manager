@@ -160,15 +160,15 @@ const Page: React.FC = () => {
     worksheet.columns = [
       { header: '#', key: 'no', width: 20 },
       { header: 'Date Requested', key: 'date', width: 20 },
-      { header: 'PO', key: 'po', width: 20 },
+      { header: 'Vehicle', key: 'vehicle', width: 20 },
       { header: 'Purpose', key: 'purpose', width: 20 },
-      { header: 'Requester', key: 'requester', width: 20 },
+      { header: 'Destination', key: 'destination', width: 20 },
       { header: 'Type', key: 'type', width: 20 },
       { header: 'Quantity', key: 'quantity', width: 20 },
       { header: 'Price', key: 'price', width: 20 },
-      { header: 'Vehicle', key: 'vehicle', width: 20 },
+      { header: 'PO', key: 'po', width: 20 },
+      { header: 'Requester', key: 'requester', width: 20 },
       { header: 'Department', key: 'department', width: 20 },
-      { header: 'Destination', key: 'destination', width: 20 },
       // Add more columns based on your data structure
     ]
 
@@ -195,15 +195,15 @@ const Page: React.FC = () => {
       data.push({
         no: index + 1,
         date: format(new Date(item.date_requested), 'MM/dd/yyyy'),
-        po: `${item.purchase_order?.po_number || ''}`,
+        vehicle: `${item.vehicle.name}-${item.vehicle.plate_number}`,
         purpose: `${item.purpose}`,
-        requester: `${item.requester}`,
+        destination: `${item.destination || ''}`,
         type: `${item.type}`,
         quantity: `${item.quantity}`,
         price: `${item.price}`,
-        vehicle: `${item.vehicle.name}-${item.vehicle.plate_number}`,
+        po: `${item.purchase_order?.po_number || ''}`,
+        requester: `${item.requester}`,
         department: `${item.department.name}`,
-        destination: `${item.destination || ''}`,
       })
     })
 
