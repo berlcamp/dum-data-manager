@@ -188,6 +188,7 @@ export interface RisTypes {
   department_id: string
   appropriation_id: string
   quantity: number
+  starting_balance: number
   price: number
   total_amount: number
   purpose: string

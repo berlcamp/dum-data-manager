@@ -96,6 +96,14 @@ const FormSchema = z.object({
     .gte(1, {
       message: 'Quantity (L) is required...',
     }),
+  starting_balance: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
+    .number({
+      required_error: 'Starting Balance (L) is required.',
+      invalid_type_error: 'Starting Balance (L) is required..',
+    })
+    .gte(1, {
+      message: 'Quantity (L) is required...',
+    }),
   price: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
     .number()
     .optional(),
@@ -151,6 +159,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       po_id: editData ? editData.po_id || '' : '',
       ca_id: editData ? editData.ca_id || '' : '',
       quantity: editData ? editData.quantity : 0,
+      starting_balance: editData ? editData.starting_balance : 0,
       price: editData ? editData.price || 0 : 0,
       purpose: editData ? editData.purpose : '',
       date_requested: editData ? new Date(editData.date_requested) : new Date(),
@@ -194,6 +203,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         transaction_type: formdata.transaction_type,
         type: formdata.type,
         quantity: formdata.quantity,
+        starting_balance: formdata.starting_balance,
         price: formdata.price,
         status: 'Approved',
         purpose: formdata.purpose,
@@ -255,6 +265,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         transaction_type: formdata.transaction_type,
         type: formdata.type,
         quantity: formdata.quantity,
+        starting_balance: formdata.starting_balance,
         price: formdata.price,
         purpose: formdata.purpose,
         date_requested: format(new Date(formdata.date_requested), 'yyyy-MM-dd'),
@@ -806,6 +817,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                           </FormItem>
                         )}
                       />
+
                       <FormField
                         control={form.control}
                         name="price"
@@ -819,6 +831,26 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                 type="number"
                                 step="any"
                                 placeholder="Price per Liter"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="starting_balance"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="app__form_label">
+                              Starting Balance (Liters)
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="any"
+                                placeholder="Starting Balance (Liters)"
                                 {...field}
                               />
                             </FormControl>
