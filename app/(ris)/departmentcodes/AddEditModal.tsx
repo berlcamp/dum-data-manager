@@ -63,8 +63,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      po_id: editData ? editData.po_id : '',
-      department_id: editData ? editData.department_id : '',
+      po_id: editData ? editData.po_id.toString() : '',
+      department_id: editData ? editData.department_id.toString() : '',
     },
   })
 
