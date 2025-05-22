@@ -96,13 +96,13 @@ const FormSchema = z.object({
     .gte(1, {
       message: 'Quantity (L) is required...',
     }),
-  starting_balance: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
+  starting_balance: z.coerce
     .number({
       required_error: 'Starting Balance (L) is required.',
-      invalid_type_error: 'Starting Balance (L) is required..',
+      invalid_type_error: 'Starting Balance must be a number.',
     })
     .gte(0, {
-      message: 'Quantity (L) is required...',
+      message: 'Starting Balance must be greater than or equal to 0.',
     }),
   price: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
     .number()
