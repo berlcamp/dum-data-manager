@@ -16,6 +16,7 @@ export const departments = [
   { office: 'BAC', default: 'Received at BAC' },
   { office: 'MTO', default: 'Received at Treasurers' },
   { office: 'MYDO', default: 'Received at MYDO' },
+  { office: 'MSWD', default: 'Received at MSWD' },
 ]
 
 export const docRouting = [
@@ -27,6 +28,7 @@ export const docRouting = [
   { office: 'BAC', status: 'Received at BAC' },
   { office: 'MTO', status: 'Received at Treasurers' },
   { office: 'MYDO', status: 'Received at MYDO' },
+  { office: 'MSWD', status: 'Received at MSWD' },
   { office: 'Mayor', status: 'Forwarded to Accounting' },
   { office: 'Mayor', status: 'Forwarded to Admin' },
   { office: 'Mayor', status: 'Forwarded to Agriculture' },
@@ -56,6 +58,7 @@ export const docRouting = [
   { office: 'MPDO', status: 'Forwarded to MPDO' },
   { office: 'Mayor', status: 'Forwarded to MSWDO' },
   { office: 'MYDO', status: 'Forwarded to MYDO' },
+  { office: 'MSWD', status: 'Forwarded to MSWD' },
   { office: 'Mayor', status: 'Forwarded to Permit Div' },
   { office: 'Mayor', status: 'Forwarded to PDAO' },
   { office: 'Mayor', status: 'Forwarded to PNP' },
