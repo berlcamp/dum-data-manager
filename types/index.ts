@@ -99,6 +99,13 @@ export interface DocumentTypes {
   contact_number: string
   status: string
   cheque_no: string
+  reg_name: string
+  reg_husband: string
+  reg_wife: string
+  reg_number: string
+  reg_mother: string
+  reg_father: string
+  reg_date: string
   particulars: string
   date_received: string
   user_id: string
@@ -354,4 +361,23 @@ export interface HoursTypes {
 export interface ListTypes {
   date: string
   hours: HoursTypes[]
+}
+
+export interface LcrTypes {
+  id: string
+  date: string
+  reg_no: string
+  type: string
+  created_at: string
+  firstname: string
+  middlename: string
+  lastname: string
+  father_name: string
+  mother_name: string
+  husband_firstname: string
+  husband_middlename: string
+  husband_lastname: string
+  wife_firstname: string
+  wife_middlename: string
+  wife_lastname: string
 }

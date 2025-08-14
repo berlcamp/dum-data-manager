@@ -70,6 +70,19 @@ const MainMenu: React.FC = () => {
                 </div>
               </Link>
             )}
+            {(hasAccess('lcr') || superAdmins.includes(email)) && (
+              <Link href="/lcr">
+                <div className="app__menu_item">
+                  <div className="pt-1">
+                    <Users2Icon className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <div className="app__menu_item_label">LCR</div>
+                    <div className="app__menu_item_label_description">LCR</div>
+                  </div>
+                </div>
+              </Link>
+            )}
             {(hasAccess('tracker') || superAdmins.includes(email)) && (
               <Link href="/documenttracker">
                 <div className="app__menu_item">

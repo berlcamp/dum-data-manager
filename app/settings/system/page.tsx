@@ -71,6 +71,12 @@ const Page: React.FC = () => {
                 />
                 <ChooseUsers
                   multiple={true}
+                  type="lcr"
+                  users={users}
+                  title="Who can access LCR System"
+                />
+                <ChooseUsers
+                  multiple={true}
                   type="vehiclereservation"
                   users={users}
                   title="Who can access Vehicle Reservation System"

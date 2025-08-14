@@ -182,6 +182,53 @@ export async function fetchDocuments(
   }
 }
 
+export async function fetchLcr(
+  filters: {
+    filterKeyword?: string
+    filterType?: string
+  },
+  perPageCount: number,
+  rangeFrom: number
+) {
+  try {
+    let query = supabase.from('ddm_lcr').select('*', { count: 'exact' })
+
+    // Full text search
+    if (filters.filterKeyword && filters.filterKeyword.trim() !== '') {
+      query = query.or(
+        `firstname.ilike.%${filters.filterKeyword}%,middlename.ilike.%${filters.filterKeyword}%,lastname.ilike.%${filters.filterKeyword}%`
+      )
+    }
+
+    // Filter Address
+    if (filters.filterType && filters.filterType.trim() !== '') {
+      query = query.eq('type', filters.filterType)
+    }
+
+    // Perform count before paginations
+    // const { count } = await query
+
+    // Per Page from context
+    const from = rangeFrom
+    const to = from + (perPageCount - 1)
+    // Per Page from context
+    query = query.range(from, to)
+
+    // Order By
+    query = query.order('id', { ascending: true })
+
+    const { data, count, error } = await query
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return { data, count }
+  } catch (error) {
+    console.error('fetch lcr error', error)
+    return { data: [], count: 0 }
+  }
+}
 export async function fetchProfiles(
   filters: FilterProfileTypes,
   perPageCount: number,
