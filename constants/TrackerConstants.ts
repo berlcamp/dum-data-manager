@@ -13,6 +13,7 @@ export const departments = [
   { office: 'Mayor', default: 'Received at Mayors Office' },
   { office: 'MPDO', default: 'Received at MPDO' },
   { office: 'GSO', default: 'Received at GSO' },
+  { office: 'LCR', default: 'Received at LCR' },
   { office: 'BAC', default: 'Received at BAC' },
   { office: 'MTO', default: 'Received at Treasurers' },
   { office: 'MYDO', default: 'Received at MYDO' },
@@ -25,6 +26,7 @@ export const docRouting = [
   { office: 'Tourism', status: 'Received at Tourism' },
   { office: 'MPDO', status: 'Received at MPDO' },
   { office: 'GSO', status: 'Received at GSO' },
+  { office: 'LCR', status: 'Received at LCR' },
   { office: 'BAC', status: 'Received at BAC' },
   { office: 'MTO', status: 'Received at Treasurers' },
   { office: 'MYDO', status: 'Received at MYDO' },
@@ -46,6 +48,7 @@ export const docRouting = [
   { office: 'Mayor', status: 'Forwarded to DILG' },
   { office: 'Mayor', status: 'Forwarded to Engineering' },
   { office: 'GSO', status: 'Forwarded to GSO' },
+  { office: 'LCR', status: 'Forwarded to LCR' },
   {
     office: 'Mayor',
     status: 'Forwarded to GSO DESIGNEE - Raphael Claude Rousseau',
