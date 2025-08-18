@@ -77,7 +77,7 @@ export default function DetailsModal({
 
             <div className="modal-body relative overflow-x-scroll">
               {/* Document Details */}
-              <div className="py-2">
+              <div className="py-8">
                 <div className="flex flex-col lg:flex-row w-full items-start justify-between space-x-2 text-xs dark:text-gray-400">
                   <div className="px-4 w-full">
                     <table className="w-full">
@@ -93,7 +93,7 @@ export default function DetailsModal({
                             Type
                           </td>
                           <td>
-                            <span className="font-medium text-sm">
+                            <span className="font-medium text-sm pl-8">
                               {documentData.type}
                             </span>
                           </td>
@@ -102,7 +102,7 @@ export default function DetailsModal({
                           <td className="px-2 py-2 font-light text-right">
                             Date Registered:
                           </td>
-                          <td className="text-sm font-medium">
+                          <td className="text-sm font-medium pl-8">
                             {documentData.date &&
                               format(new Date(documentData.date), 'PPP')}
                           </td>
@@ -112,7 +112,7 @@ export default function DetailsModal({
                             <td className="px-2 py-2 font-light text-right">
                               Name
                             </td>
-                            <td className="text-sm font-medium">
+                            <td className="text-sm font-medium pl-8">
                               {documentData.firstname} {documentData.middlename}{' '}
                               {documentData.lastname}
                             </td>
@@ -135,7 +135,7 @@ export default function DetailsModal({
                             <td className="px-2 py-2 font-light text-right">
                               Parents
                             </td>
-                            <td className="text-sm font-medium">
+                            <td className="text-sm font-medium  pl-8">
                               <div>Father: {documentData.father_name} </div>
                               <div>Mother: {documentData.mother_name}</div>
                             </td>
@@ -146,7 +146,7 @@ export default function DetailsModal({
                             <td className="px-2 py-2 font-light text-right">
                               Couple
                             </td>
-                            <td className="text-sm font-medium">
+                            <td className="text-sm font-medium  pl-8">
                               <div>
                                 Husband: {documentData.husband_lastname},{' '}
                                 {documentData.husband_firstname}{' '}
@@ -157,6 +157,21 @@ export default function DetailsModal({
                                 {documentData.wife_firstname}{' '}
                                 {documentData.wife_middlename}
                               </div>
+                            </td>
+                          </tr>
+                        )}
+                        {documentData.attachment && (
+                          <tr>
+                            <td className="px-2 py-2 font-light text-right">
+                              Attachment:
+                            </td>
+                            <td className="text-sm font-medium pl-8">
+                              <a
+                                target="_blank"
+                                href={documentData.attachment}
+                                className="text-blue-800">
+                                Download Attachment
+                              </a>
                             </td>
                           </tr>
                         )}

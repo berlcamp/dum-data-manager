@@ -202,6 +202,7 @@ const Page: React.FC = () => {
                   <th className="hidden md:table-cell app__th">Name</th>
                   <th className="hidden md:table-cell app__th">Date</th>
                   <th className="app__th">Other Details</th>
+                  <th className="app__th">Attachment</th>
                 </tr>
               </thead>
               <tbody>
@@ -296,6 +297,16 @@ const Page: React.FC = () => {
                         <div>
                           {item.mother_name && `Mother: ${item.mother_name}`}
                         </div>
+                      </td>
+                      <td className="hidden md:table-cell app__td">
+                        {item.attachment && (
+                          <a
+                            target="_blank"
+                            href={item.attachment}
+                            className="text-blue-800 text-xs font-bold">
+                            Download Attachment
+                          </a>
+                        )}
                       </td>
                     </tr>
                   ))}

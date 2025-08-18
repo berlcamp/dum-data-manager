@@ -215,7 +215,7 @@ export async function fetchLcr(
     query = query.range(from, to)
 
     // Order By
-    query = query.order('id', { ascending: true })
+    query = query.order('date', { ascending: false })
 
     const { data, count, error } = await query
 

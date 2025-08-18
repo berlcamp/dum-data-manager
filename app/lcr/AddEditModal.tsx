@@ -31,9 +31,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Input } from '@/components/ui/input'
 import { departments } from '@/constants/TrackerConstants'
 import type { AccountTypes, AttachmentTypes, LcrTypes } from '@/types'
-import { generateRandomNumber } from '@/utils/text-helper'
-import { XMarkIcon } from '@heroicons/react/20/solid'
-import Attachment from './Attachment'
 
 const FormSchema = z.object({
   reg_no: z.string().min(1, {
@@ -42,6 +39,7 @@ const FormSchema = z.object({
   type: z.string().min(1, {
     message: 'Type is required.',
   }),
+  file: z.any().optional(), // optional now
   firstname: z.string().optional(),
   middlename: z.string().optional(),
   lastname: z.string().optional(),
@@ -131,8 +129,17 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       wife_firstname: editData ? editData.wife_firstname : '',
       wife_middlename: editData ? editData.wife_middlename : '',
       wife_lastname: editData ? editData.wife_lastname : '',
+      file: null,
     },
   })
+
+  function sanitizeFileName(fileName: string): string {
+    // Remove unsafe characters and replace spaces with "_"
+    return fileName
+      .normalize('NFD') // handle accented chars like é → e
+      .replace(/[\u0300-\u036f]/g, '') // remove diacritics
+      .replace(/[^a-zA-Z0-9._-]/g, '_') // keep only safe chars
+  }
 
   const onSubmit = async (formdata: z.infer<typeof FormSchema>) => {
     if (saving) return
@@ -148,7 +155,32 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     setSaving(true)
 
     try {
+      // If file is uploaded → save to storage
+      let publicUrl = ''
+      if (formdata.file && formdata.file.length > 0) {
+        const file = formdata.file[0]
+
+        // Sanitize and make unique
+        const safeName = sanitizeFileName(file.name)
+        const fileName = `${Date.now()}-${safeName}`
+
+        // Upload to bucket
+        const { error: uploadError } = await supabase.storage
+          .from('ddm_lcr')
+          .upload(`registrations/${fileName}`, file)
+
+        if (uploadError) throw uploadError
+
+        // Generate public URL
+        const { data: publicData } = supabase.storage
+          .from('ddm_lcr')
+          .getPublicUrl(`registrations/${fileName}`)
+
+        publicUrl = publicData.publicUrl
+      }
+
       const newData = {
+        attachment: publicUrl,
         date: formdata.date,
         reg_no: formdata.reg_no,
         type: formdata.type,
@@ -172,15 +204,11 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
       if (error) throw new Error(error.message)
 
-      // Upload files
-      const uploadedFiles = await handleUploadFiles(data[0].id)
-
       // Append new data in redux
       const updatedData = {
         ...newData,
         ddm_user: user,
         id: data[0].id,
-        attachments: uploadedFiles,
         date_received: data[0].date_received,
         activity_date: data[0].activity_date || null,
       }
@@ -204,7 +232,32 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     if (!editData) return
 
     try {
+      // If file is uploaded → save to storage
+      let publicUrl = ''
+      if (formdata.file && formdata.file.length > 0) {
+        const file = formdata.file[0]
+
+        // Sanitize and make unique
+        const safeName = sanitizeFileName(file.name)
+        const fileName = `${Date.now()}-${safeName}`
+
+        // Upload to bucket
+        const { error: uploadError } = await supabase.storage
+          .from('ddm_lcr')
+          .upload(`registrations/${fileName}`, file)
+
+        if (uploadError) throw uploadError
+
+        // Generate public URL
+        const { data: publicData } = supabase.storage
+          .from('ddm_lcr')
+          .getPublicUrl(`registrations/${fileName}`)
+
+        publicUrl = publicData.publicUrl
+      }
+
       const newData = {
+        attachment: publicUrl === '' ? editData.attachment : publicUrl,
         date: formdata.date,
         reg_no: formdata.reg_no,
         type: formdata.type,
@@ -227,9 +280,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         .eq('id', editData.id)
 
       if (error) throw new Error(error.message)
-
-      // Upload files
-      const uploadedFiles = await handleUploadFiles(editData.id)
 
       // Append new data in redux
       const items = [...globallist]
@@ -254,77 +304,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
     setSaving(false)
   }
-
-  const handleUploadFiles = async (id: string) => {
-    const newAttachments: any = []
-
-    // Upload attachments
-    await Promise.all(
-      selectedImages.map(async (file: File) => {
-        const fileName = `${generateRandomNumber(2)}_${file.name}`
-        const { error } = await supabase.storage
-          .from('ddm_documents')
-          .upload(`lcr/${id}/${fileName}`, file)
-
-        if (error) {
-          console.log(error)
-        } else {
-          newAttachments.push({ name: fileName })
-        }
-      })
-    )
-
-    // Update attachments on database column
-    if (newAttachments.length > 0) {
-      const { error } = await supabase
-        .from('ddm_lcr')
-        .update({ attachments: newAttachments })
-        .eq('id', id)
-    }
-
-    return newAttachments
-  }
-
-  const deleteFile = (file: FileWithPath) => {
-    const files = selectedImages.filter(
-      (f: FileWithPath) => f.path !== file.path
-    )
-    setSelectedImages(files)
-  }
-
-  const selectedFiles = selectedImages?.map((file: any, index: number) => (
-    <div
-      key={index}
-      className="flex space-x-1 py-px items-center justify-start relative align-top">
-      <XMarkIcon
-        onClick={() => deleteFile(file)}
-        className="cursor-pointer w-5 h-5 text-red-400"
-      />
-      <span className="text-xs">{file.filename}</span>
-    </div>
-  ))
-
-  const fetchAttachments = async () => {
-    if (!editData) return false
-    const { data, error }: { data: AttachmentTypes[] | []; error: unknown } =
-      await supabase.storage
-        .from('ddm_documents')
-        .list(`tracker/${editData.id}`, {
-          limit: 100,
-          offset: 0,
-          sortBy: { column: 'name', order: 'asc' },
-        })
-
-    if (error) console.error(error)
-
-    setAttachments(data)
-  }
-
-  useEffect(() => {
-    if (editData) {
-      void fetchAttachments()
-    }
-  }, [])
 
   useEffect(() => {
     if (fileRejections.length > 0) {
@@ -665,53 +644,37 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         />
                       </>
                     )}
-                    {form.watch('type') === 'xxx' && (
-                      <>
-                        <div className="app__form_label">Attachments:</div>
-
-                        {editData && (
-                          <div className="mb-2">
-                            {attachments?.length === 0 ? (
-                              <div className="text-sm">No attachments</div>
-                            ) : (
-                              <div className="text-sm mb-2">Attachments:</div>
-                            )}
-                            {attachments?.map((file, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center space-x-2 justify-start">
-                                <Attachment
-                                  file={file.name}
-                                  id={editData.id}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        <div
-                          {...getRootProps()}
-                          className="w-1/2 cursor-pointer border-2 border-dashed border-gray-300 bg-gray-100 text-gray-600 px-4 py-2">
-                          <input {...getInputProps()} />
-                          <p className="text-xs">Click here to attach files</p>
+                    {/* FILE UPLOAD */}
+                    <FormField
+                      control={form.control}
+                      name="file"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Attachment (optional)
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="file"
+                              onChange={(e) => field.onChange(e.target.files)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {editData && editData.attachment && (
+                      <div>
+                        <div>Attachment:</div>
+                        <div>
+                          <a
+                            target="_blank"
+                            href={editData.attachment}
+                            className="text-blue-800 text-sm">
+                            Download Attachment
+                          </a>
                         </div>
-                        {fileRejections.length === 0 &&
-                          selectedImages.length > 0 && (
-                            <div className="py-4">
-                              <div className="text-xs font-medium mb-2">
-                                Files to upload:
-                              </div>
-                              {selectedFiles}
-                            </div>
-                          )}
-                        {fileRejections.length > 0 && (
-                          <div className="py-4">
-                            <p className="text-red-500 text-xs">
-                              File rejected. Please make sure its an image, PDF,
-                              DOC, or Excel file and less than 5MB.
-                            </p>
-                          </div>
-                        )}
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
