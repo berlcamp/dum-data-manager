@@ -39,7 +39,7 @@ const FormSchema = z.object({
   type: z.string().min(1, {
     message: 'Type is required.',
   }),
-  file: z.any().optional(), // optional now
+  files: z.any().optional(), // 👈 rename to plural
   firstname: z.string().optional(),
   middlename: z.string().optional(),
   lastname: z.string().optional(),
@@ -129,17 +129,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       wife_firstname: editData ? editData.wife_firstname : '',
       wife_middlename: editData ? editData.wife_middlename : '',
       wife_lastname: editData ? editData.wife_lastname : '',
-      file: null,
+      files: null,
     },
   })
-
-  function sanitizeFileName(fileName: string): string {
-    // Remove unsafe characters and replace spaces with "_"
-    return fileName
-      .normalize('NFD') // handle accented chars like é → e
-      .replace(/[\u0300-\u036f]/g, '') // remove diacritics
-      .replace(/[^a-zA-Z0-9._-]/g, '_') // keep only safe chars
-  }
 
   const onSubmit = async (formdata: z.infer<typeof FormSchema>) => {
     if (saving) return
@@ -156,31 +148,30 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
     try {
       // If file is uploaded → save to storage
-      let publicUrl = ''
-      if (formdata.file && formdata.file.length > 0) {
-        const file = formdata.file[0]
+      let uploadedFiles: string[] = []
 
-        // Sanitize and make unique
-        const safeName = sanitizeFileName(file.name)
-        const fileName = `${Date.now()}-${safeName}`
+      if (formdata.files && formdata.files.length > 0) {
+        for (const file of formdata.files) {
+          const fileName = `${Date.now()}`
 
-        // Upload to bucket
-        const { error: uploadError } = await supabase.storage
-          .from('ddm_lcr')
-          .upload(`registrations/${fileName}`, file)
+          const { error: uploadError } = await supabase.storage
+            .from('ddm_lcr')
+            .upload(`registrations/${fileName}`, file)
 
-        if (uploadError) throw uploadError
+          if (uploadError) throw uploadError
 
-        // Generate public URL
-        const { data: publicData } = supabase.storage
-          .from('ddm_lcr')
-          .getPublicUrl(`registrations/${fileName}`)
+          const { data: publicData } = supabase.storage
+            .from('ddm_lcr')
+            .getPublicUrl(`registrations/${fileName}`)
 
-        publicUrl = publicData.publicUrl
+          uploadedFiles.push(publicData.publicUrl)
+        }
       }
 
+      console.log('uploadedFiles', uploadedFiles)
+
       const newData = {
-        attachment: publicUrl,
+        attachments: uploadedFiles, // 👈 store array
         date: formdata.date,
         reg_no: formdata.reg_no,
         type: formdata.type,
@@ -233,31 +224,29 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
     try {
       // If file is uploaded → save to storage
-      let publicUrl = ''
-      if (formdata.file && formdata.file.length > 0) {
-        const file = formdata.file[0]
 
-        // Sanitize and make unique
-        const safeName = sanitizeFileName(file.name)
-        const fileName = `${Date.now()}-${safeName}`
+      let uploadedFiles: string[] = editData.attachments || []
+      if (formdata.files && formdata.files.length > 0) {
+        uploadedFiles = [] // reset if new uploads
+        for (const file of formdata.files) {
+          const fileName = `${Date.now()}`
 
-        // Upload to bucket
-        const { error: uploadError } = await supabase.storage
-          .from('ddm_lcr')
-          .upload(`registrations/${fileName}`, file)
+          const { error: uploadError } = await supabase.storage
+            .from('ddm_lcr')
+            .upload(`registrations/${fileName}`, file)
 
-        if (uploadError) throw uploadError
+          if (uploadError) throw uploadError
 
-        // Generate public URL
-        const { data: publicData } = supabase.storage
-          .from('ddm_lcr')
-          .getPublicUrl(`registrations/${fileName}`)
+          const { data: publicData } = supabase.storage
+            .from('ddm_lcr')
+            .getPublicUrl(`registrations/${fileName}`)
 
-        publicUrl = publicData.publicUrl
+          uploadedFiles.push(publicData.publicUrl)
+        }
       }
 
       const newData = {
-        attachment: publicUrl === '' ? editData.attachment : publicUrl,
+        attachments: uploadedFiles, // 👈 multiple
         date: formdata.date,
         reg_no: formdata.reg_no,
         type: formdata.type,
@@ -384,7 +373,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                       )}
                     />
                     {(form.watch('type') === 'Certificate of Live Birth' ||
-                      form.watch('type') === 'Certificate Death') && (
+                      form.watch('type') === 'Certificate of Death') && (
                       <>
                         <FormField
                           control={form.control}
@@ -645,35 +634,42 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                       </>
                     )}
                     {/* FILE UPLOAD */}
-                    <FormField
-                      control={form.control}
-                      name="file"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Attachment (optional)
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="file"
-                              onChange={(e) => field.onChange(e.target.files)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    {editData && editData.attachment && (
+                    {form.watch('type') !== '' && (
+                      <FormField
+                        control={form.control}
+                        name="files"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="app__form_label">
+                              Attachments (optional)
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="file"
+                                multiple // 👈 allow multiple
+                                onChange={(e) => field.onChange(e.target.files)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    {editData && editData.attachments?.length > 0 && (
                       <div>
-                        <div>Attachment:</div>
-                        <div>
-                          <a
-                            target="_blank"
-                            href={editData.attachment}
-                            className="text-blue-800 text-sm">
-                            Download Attachment
-                          </a>
-                        </div>
+                        <div>Attachments:</div>
+                        <ul className="list-disc ml-4">
+                          {editData.attachments.map((url, i) => (
+                            <li key={i}>
+                              <a
+                                target="_blank"
+                                href={url}
+                                className="text-blue-800 text-sm">
+                                Download File {i + 1}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                   </div>

@@ -366,7 +366,7 @@ export interface ListTypes {
 export interface LcrTypes {
   id: string
   date: string
-  attachment: string
+  attachments: string[]
   reg_no: string
   type: string
   created_at: string

@@ -268,11 +268,11 @@ const ServicesList = ({
       <div className="w-full group">
         <div className="flex items-center space-x-2">
           <div className="flex flex-1 items-center space-x-2">
-            <Avatar
+            {/* <Avatar
               round={true}
               size="30"
               name={profile.fullname}
-            />
+            /> */}
             <div>
               {/* <div className="font-bold">
                 <span>{profile.fullname} </span>

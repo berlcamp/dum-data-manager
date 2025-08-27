@@ -299,14 +299,18 @@ const Page: React.FC = () => {
                         </div>
                       </td>
                       <td className="hidden md:table-cell app__td">
-                        {item.attachment && (
-                          <a
-                            target="_blank"
-                            href={item.attachment}
-                            className="text-blue-800 text-xs font-bold">
-                            Download Attachment
-                          </a>
-                        )}
+                        <ul className="list-disc ml-4">
+                          {item.attachments?.map((url, i) => (
+                            <li key={i}>
+                              <a
+                                target="_blank"
+                                href={url}
+                                className="text-blue-800 text-sm">
+                                Download File {i + 1}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
                       </td>
                     </tr>
                   ))}

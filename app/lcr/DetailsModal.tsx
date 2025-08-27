@@ -160,18 +160,24 @@ export default function DetailsModal({
                             </td>
                           </tr>
                         )}
-                        {documentData.attachment && (
+                        {documentData.attachments?.length > 0 && (
                           <tr>
                             <td className="px-2 py-2 font-light text-right">
                               Attachment:
                             </td>
                             <td className="text-sm font-medium pl-8">
-                              <a
-                                target="_blank"
-                                href={documentData.attachment}
-                                className="text-blue-800">
-                                Download Attachment
-                              </a>
+                              <ul className="list-disc ml-4">
+                                {documentData.attachments.map((url, i) => (
+                                  <li key={i}>
+                                    <a
+                                      target="_blank"
+                                      href={url}
+                                      className="text-blue-800 text-sm">
+                                      Download File {i + 1}
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
                             </td>
                           </tr>
                         )}

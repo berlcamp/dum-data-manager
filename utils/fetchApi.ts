@@ -191,13 +191,20 @@ export async function fetchLcr(
   rangeFrom: number
 ) {
   try {
+    if (filters.filterKeyword && filters.filterKeyword.trim() !== '') {
+      const { data, error } = await supabase.rpc('search_ddm_lcr', {
+        query: filters.filterKeyword.trim(),
+      })
+      if (error) {
+        throw new Error(error.message)
+      }
+      return { data, count: 10 }
+    }
+
     let query = supabase.from('ddm_lcr').select('*', { count: 'exact' })
 
-    // Full text search
     if (filters.filterKeyword && filters.filterKeyword.trim() !== '') {
-      query = query.or(
-        `firstname.ilike.%${filters.filterKeyword}%,middlename.ilike.%${filters.filterKeyword}%,lastname.ilike.%${filters.filterKeyword}%`
-      )
+      query.filter('fullname', '%%', filters.filterKeyword.trim())
     }
 
     // Filter Address
