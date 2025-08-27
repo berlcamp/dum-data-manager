@@ -81,6 +81,7 @@ export interface DocumentFlowchartTypes {
   date: string
   time: string
   user: string
+  user_department: string
   user_id: string
   title: string
   message: string

@@ -39,12 +39,7 @@ import { recount } from '@/GlobalRedux/Features/recountSlice'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { Input } from '@/components/ui/input'
-import {
-  departments,
-  docRouting,
-  documentTypes,
-  statusList,
-} from '@/constants/TrackerConstants'
+import { documentTypes, statusList } from '@/constants/TrackerConstants'
 import type { AccountTypes, AttachmentTypes, DocumentTypes } from '@/types'
 import { generateRandomNumber } from '@/utils/text-helper'
 import { XMarkIcon } from '@heroicons/react/20/solid'
@@ -55,9 +50,6 @@ import Attachment from './Attachment'
 const FormSchema = z.object({
   type: z.string().min(1, {
     message: 'Type is required.',
-  }),
-  location: z.string().min(1, {
-    message: 'Current Location is required.',
   }),
   status: z.string().min(1, {
     message: 'Status is required.',
@@ -106,8 +98,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const user: AccountTypes = systemUsers.find(
     (user: AccountTypes) => user.id === session.user.id
   )
-  const defaultLocation = departments.find((d) => d.office === user.department)
-
   // Redux staff
   const globallist = useSelector((state: any) => state.list.value)
   const globalRoutesList = useSelector((state: any) => state.routes.value)
@@ -139,7 +129,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     resolver: zodResolver(FormSchema),
     defaultValues: {
       type: editData ? editData.type : '',
-      location: editData ? editData.location : defaultLocation?.default,
       status: editData ? editData.status : 'Open',
       specify: editData ? editData.specify || '' : '',
       requester: editData ? editData.requester || '' : '',
@@ -179,7 +168,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         routing_no: routingNo,
         routing_slip_no: routingSlipNo,
         type: formdata.type,
-        location: formdata.location,
+        location: `Created at ${user.department}`,
         status: formdata.status,
         received_by: `${user.firstname} ${user.middlename || ''} ${
           user.lastname || ''
@@ -215,7 +204,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         user: `${user.firstname} ${user.middlename || ''} ${
           user.lastname || ''
         }`,
-        title: formdata.location,
+        user_department: `${user.department || ''}`,
+        title: `Created at ${user.department}`,
         message: '',
       }
       await supabase.from('ddm_tracker_routes').insert(trackerRoutes)
@@ -275,7 +265,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         contact_number: formdata.contact_number,
         cheque_no: formdata.cheque_no,
         agency: formdata.agency,
-        location: formdata.location,
         date_received: format(new Date(formdata.date_received), 'yyyy-MM-dd'),
         activity_date: formdata.activity_date
           ? format(new Date(formdata.activity_date), 'yyyy-MM-dd')
@@ -368,22 +357,24 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           user: `${user.firstname} ${user.middlename || ''} ${
             user.lastname || ''
           }`,
+          user_department: `${user.department || ''}`,
           title: 'Details updated',
           message: logMessages,
         })
       }
-      if (formdata.location !== editData.location) {
-        trackerRoutes.push({
-          tracker_id: editData.id,
-          date: format(new Date(), 'yyyy-MM-dd'),
-          time: format(new Date(), 'h:mm a'),
-          user_id: session.user.id,
-          user: `${user.firstname} ${user.middlename || ''} ${
-            user.lastname || ''
-          }`,
-          title: formdata.location,
-        })
-      }
+      // if (formdata.location !== editData.location) {
+      //   trackerRoutes.push({
+      //     tracker_id: editData.id,
+      //     date: format(new Date(), 'yyyy-MM-dd'),
+      //     time: format(new Date(), 'h:mm a'),
+      //     user_id: session.user.id,
+      //     user: `${user.firstname} ${user.middlename || ''} ${
+      //       user.lastname || ''
+      //     }`,
+      //     user_department: `${user.department || ''}`,
+      //     title: formdata.location,
+      //   })
+      // }
 
       if (trackerRoutes.length > 0) {
         await supabase.from('ddm_tracker_routes').insert(trackerRoutes)
@@ -799,36 +790,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                     />
                   </div>
                   <div className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="location"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Current Location
-                          </FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Choose Location" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {docRouting.map((route, index) => (
-                                <SelectItem
-                                  key={index}
-                                  value={route.status}>
-                                  {route.status}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                     <FormField
                       control={form.control}
                       name="status"

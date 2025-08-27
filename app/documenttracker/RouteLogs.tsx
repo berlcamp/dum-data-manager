@@ -102,7 +102,12 @@ export default function RouteLogs({
                         </div>
                       ))}
                   </div>
-                  <div className="font-medium">by {item.user}</div>
+                  <div className="font-medium">
+                    by {item.user}{' '}
+                    {item.user_department
+                      ? `(${item.user_department} Office)`
+                      : ''}
+                  </div>
                 </div>
               </div>
             ))}

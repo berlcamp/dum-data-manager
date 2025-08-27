@@ -16,7 +16,6 @@ import { fetchActivities, fetchDocuments } from '@/utils/fetchApi'
 import { Menu, Transition } from '@headlessui/react'
 import {
   CalendarDaysIcon,
-  ChevronDownIcon,
   PencilIcon,
   StarIcon,
 } from '@heroicons/react/20/solid'
@@ -31,14 +30,10 @@ import type { AccountTypes, DocumentTypes } from '@/types'
 
 // Redux imports
 import { updateList } from '@/GlobalRedux/Features/listSlice'
-import {
-  docRouting,
-  statusList,
-  superAdmins,
-} from '@/constants/TrackerConstants'
+import { statusList, superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
-import { CheckIcon, ChevronDown, PrinterIcon, Trash2 } from 'lucide-react'
+import { ChevronDown, PrinterIcon, Trash2 } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Tooltip } from 'react-tooltip'
 import AddStickyModal from './AddStickyModal'
@@ -171,89 +166,6 @@ const Page: React.FC = () => {
   const handleArchive = (id: string) => {
     setSelectedId(id)
     setShowArchiveModal(true)
-  }
-
-  const handleChangeStatus = async (item: DocumentTypes, status: string) => {
-    const { error } = await supabase
-      .from('ddm_trackers')
-      .update({ status })
-      .eq('id', item.id)
-
-    await supabase.from('ddm_tracker_routes').insert({
-      tracker_id: item.id,
-      date: format(new Date(), 'yyyy-MM-dd'),
-      time: format(new Date(), 'h:mm a'),
-      user_id: session.user.id,
-      user: `${user.firstname} ${user.middlename || ''} ${user.lastname || ''}`,
-      title: 'Details updated',
-      message: [
-        {
-          field: 'Status',
-          before: item.status,
-          after: status,
-        },
-      ],
-    })
-
-    // Append new data in redux
-    const items = [...globallist]
-    const updatedData = {
-      status,
-      id: item.id,
-    }
-    const foundIndex = items.findIndex((x) => x.id === updatedData.id)
-    items[foundIndex] = { ...items[foundIndex], ...updatedData }
-    dispatch(updateList(items))
-
-    // pop up the success message
-    setToast('success', 'Successfully Saved.')
-  }
-  const handleChangeLocation = async (
-    item: DocumentTypes,
-    location: string
-  ) => {
-    if (item.location === location) {
-      return
-    }
-
-    try {
-      const { error } = await supabase
-        .from('ddm_trackers')
-        .update({ location })
-        .eq('id', item.id)
-
-      if (error) throw new Error(error.message)
-
-      // Append new data in redux
-      const items = [...globallist]
-      const updatedData = {
-        id: item.id,
-        location,
-      }
-      const foundIndex = items.findIndex((x) => x.id === updatedData.id)
-      items[foundIndex] = { ...items[foundIndex], ...updatedData }
-      dispatch(updateList(items))
-
-      // Add tracker route logs if route is changed
-      const trackerRoutes = {
-        tracker_id: item.id,
-        date: format(new Date(), 'yyyy-MM-dd'),
-        time: format(new Date(), 'h:mm a'),
-        user_id: session.user.id,
-        user: `${user.firstname} ${user.middlename || ''} ${
-          user.lastname || ''
-        }`,
-        title: location,
-        message: '',
-      }
-
-      await supabase.from('ddm_tracker_routes').insert(trackerRoutes)
-
-      // pop up the success message
-      setToast('success', 'Successfully Saved.')
-    } catch (error) {
-      console.error(error)
-    }
   }
 
   const handleEdit = (item: DocumentTypes) => {
@@ -514,105 +426,18 @@ const Page: React.FC = () => {
                         </div>
                       </td>
                       <td className="hidden md:table-cell app__td">
-                        <div className="flex items-center">
-                          <Menu
-                            as="div"
-                            className="app__menu_container font-normal text-gray-600">
-                            <div>
-                              <Menu.Button className="app__dropdown_btn">
-                                <span className="font-bold">
-                                  {item.location}
-                                </span>
-                                <ChevronDownIcon
-                                  className="h-5 w-5"
-                                  aria-hidden="true"
-                                />
-                              </Menu.Button>
-                            </div>
-
-                            <Transition
-                              as={Fragment}
-                              enter="transition ease-out duration-100"
-                              enterFrom="transform opacity-0 scale-95"
-                              enterTo="transform opacity-100 scale-100"
-                              leave="transition ease-in duration-75"
-                              leaveFrom="transform opacity-100 scale-100"
-                              leaveTo="transform opacity-0 scale-95">
-                              <Menu.Items className="absolute right-0 z-30 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                <div className="py-1">
-                                  {docRouting.map((route, idx) => (
-                                    <Menu.Item key={idx}>
-                                      <div
-                                        onClick={() =>
-                                          handleChangeLocation(
-                                            item,
-                                            route.status
-                                          )
-                                        }
-                                        className="flex items-center justify-between space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
-                                        <span>{route.status}</span>
-                                        {route.status === item.location && (
-                                          <CheckIcon className="w-4 h-4" />
-                                        )}
-                                      </div>
-                                    </Menu.Item>
-                                  ))}
-                                </div>
-                              </Menu.Items>
-                            </Transition>
-                          </Menu>
-                        </div>
+                        {item.location === 'Created at Mayor'
+                          ? 'Created at Mayors Office'
+                          : item.location}
                       </td>
                       <td className="hidden md:table-cell app__td">
-                        <div className="flex items-center">
-                          <Menu
-                            as="div"
-                            className="app__menu_container font-normal text-gray-600">
-                            <div>
-                              <Menu.Button className="app__dropdown_btn">
-                                <span
-                                  className="font-bold"
-                                  style={{
-                                    color: getStatusColor(item.status),
-                                  }}>
-                                  {item.status}
-                                </span>
-                                <ChevronDownIcon
-                                  className="h-5 w-5"
-                                  aria-hidden="true"
-                                />
-                              </Menu.Button>
-                            </div>
-
-                            <Transition
-                              as={Fragment}
-                              enter="transition ease-out duration-100"
-                              enterFrom="transform opacity-0 scale-95"
-                              enterTo="transform opacity-100 scale-100"
-                              leave="transition ease-in duration-75"
-                              leaveFrom="transform opacity-100 scale-100"
-                              leaveTo="transform opacity-0 scale-95">
-                              <Menu.Items className="absolute right-0 z-30 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                <div className="py-1">
-                                  {statusList.map((i, idx) => (
-                                    <Menu.Item key={idx}>
-                                      <div
-                                        onClick={() =>
-                                          handleChangeStatus(item, i.status)
-                                        }
-                                        className="flex items-center justify-between space-x-2 cursor-pointer hover:bg-gray-100 text-gray-700 hover:text-gray-900 px-4 py-2 text-xs">
-                                        <span>{i.status}</span>
-                                        {i.status === item.status && (
-                                          <CheckIcon className="w-4 h-4" />
-                                        )}
-                                      </div>
-                                    </Menu.Item>
-                                  ))}
-                                </div>
-                              </Menu.Items>
-                            </Transition>
-                          </Menu>
-                        </div>
+                        <span
+                          className="font-bold"
+                          style={{
+                            color: getStatusColor(item.status),
+                          }}>
+                          {item.status}
+                        </span>
                       </td>
                       <td className="hidden md:table-cell app__td max-w-[150px]">
                         <div className="space-y-1">
