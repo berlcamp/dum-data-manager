@@ -332,17 +332,7 @@ const Page: React.FC = () => {
           item.quantity, // Consume
           item.starting_balance, // Finished Balance
           item.price, // Price/L
-          {
-            stack: [
-              { text: amount.toString() },
-              {
-                text: '(Add’l * Price)',
-                color: 'yellow',
-                fontSize: 7,
-                italics: true,
-              },
-            ],
-          },
+          amount.toString(),
         ])
       })
 
