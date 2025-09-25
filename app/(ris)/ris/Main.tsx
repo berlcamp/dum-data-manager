@@ -17,6 +17,9 @@ import Excel from 'exceljs'
 import { saveAs } from 'file-saver'
 import React, { useEffect, useState } from 'react'
 
+import pdfMake from 'pdfmake/build/pdfmake'
+import pdfFonts from 'pdfmake/build/vfs_fonts'
+
 import Filters from './Filters'
 
 // Types
@@ -68,6 +71,9 @@ const Page: React.FC = () => {
 
   const { supabase, session } = useSupabase()
   const { hasAccess, setToast } = useFilter()
+
+  // Works whether it's under pdfMake.vfs or directly vfs
+  pdfMake.vfs = pdfFonts.pdfMake?.vfs || pdfFonts.vfs
 
   // Redux staff
   const globallist = useSelector((state: any) => state.list.value)
@@ -220,6 +226,223 @@ const Page: React.FC = () => {
       })
       saveAs(blob, `Summary.xlsx`)
     })
+    setDownloading(false)
+  }
+
+  const handleDownloadPDF = async () => {
+    setDownloading(true)
+
+    const result = await fetchRis(
+      {
+        filterKeyword,
+        filterAppropriation,
+        filterVehicle,
+        filterStatus,
+        filterPo,
+        filterCa,
+        filterDateFrom,
+        filterDateTo,
+      },
+      99999,
+      0
+    )
+
+    const risData: RisTypes[] = result.data
+
+    // Group by vehicle
+    const grouped: Record<string, RisTypes[]> = {}
+    risData.forEach((item) => {
+      const key = `${item.vehicle.name}-${item.vehicle.plate_number}`
+      if (!grouped[key]) grouped[key] = []
+      grouped[key].push(item)
+    })
+
+    const content: any[] = []
+
+    Object.entries(grouped).forEach(([vehicleName, items], idx) => {
+      const tableBody: any[] = []
+
+      // Headers (2 rows, type removed)
+      tableBody.push([
+        { text: 'Date Requested', rowSpan: 2, style: 'tableHeader' },
+        { text: 'Purpose', rowSpan: 2, style: 'tableHeader' },
+        { text: 'Destination', rowSpan: 2, style: 'tableHeader' },
+        { text: 'Starting Balance', rowSpan: 2, style: 'tableHeader' },
+        {
+          text: 'Additional',
+          colSpan: 2,
+          alignment: 'center',
+          style: 'tableHeader',
+        },
+        {},
+        { text: 'Consume', rowSpan: 2, style: 'tableHeader' },
+        { text: 'Finished Balance', rowSpan: 2, style: 'tableHeader' },
+        { text: 'Price/L', rowSpan: 2, style: 'tableHeader' },
+        { text: 'Amount', rowSpan: 2, style: 'tableHeader' },
+      ])
+      tableBody.push([
+        {},
+        {},
+        {},
+        {},
+        { text: 'Gasoline', style: 'tableHeader' },
+        { text: 'Diesel', style: 'tableHeader' },
+        {},
+        {},
+        {},
+        {},
+      ])
+
+      let totalGasoline = 0
+      let totalDiesel = 0
+      let totalConsume = 0
+      let totalAmount = 0
+
+      items.forEach((item) => {
+        const gasoline =
+          item.type.toLowerCase() === 'gasoline' ? item.quantity : 0
+        const diesel = item.type.toLowerCase() === 'diesel' ? item.quantity : 0
+        const amount = item.price * item.quantity
+
+        totalGasoline += gasoline
+        totalDiesel += diesel
+        totalConsume += item.quantity
+        totalAmount += amount
+
+        tableBody.push([
+          format(new Date(item.date_requested), 'MM/dd/yyyy'),
+          item.purpose,
+          item.destination || '',
+          item.starting_balance,
+          gasoline || '',
+          diesel || '',
+          item.quantity, // Consume
+          item.starting_balance, // Finished Balance
+          item.price, // Price/L
+          {
+            stack: [
+              { text: amount.toString() },
+              {
+                text: '(Add’l * Price)',
+                color: 'yellow',
+                fontSize: 7,
+                italics: true,
+              },
+            ],
+          },
+        ])
+      })
+
+      // Totals row
+      tableBody.push([
+        { text: 'TOTAL', colSpan: 4, alignment: 'right', bold: true },
+        {},
+        {},
+        {},
+        { text: totalGasoline.toString(), bold: true },
+        { text: totalDiesel.toString(), bold: true },
+        { text: totalConsume.toString(), bold: true },
+        '', // Finished Balance
+        '', // Price/L
+        { text: totalAmount.toString(), bold: true },
+      ])
+
+      content.push(
+        { text: 'FUEL CONSUMPTION REPORT', style: 'header' },
+        { text: vehicleName, style: 'subHeader', margin: [0, 0, 0, 10] },
+        {
+          table: {
+            headerRows: 2,
+            widths: [
+              'auto',
+              '*',
+              '*',
+              'auto',
+              'auto',
+              'auto',
+              'auto',
+              'auto',
+              'auto',
+              'auto',
+            ],
+            body: tableBody,
+          },
+          layout: {
+            hLineWidth: () => 0.5,
+            vLineWidth: () => 0.5,
+            hLineColor: () => '#000000',
+            vLineColor: () => '#000000',
+          },
+        },
+        { text: '\n\n' },
+        {
+          columns: [
+            {
+              width: '50%',
+              stack: [
+                {
+                  text: 'ARFEL HOPE L. BOMES',
+                  bold: true,
+                  decoration: 'underline',
+                  alignment: 'center',
+                },
+                { text: 'MMO STAFF', alignment: 'center' },
+              ],
+            },
+            {
+              width: '50%',
+              stack: [
+                {
+                  text: 'CERTIFIED CORRECT:',
+                  alignment: 'center',
+                  margin: [0, 0, 0, 5],
+                },
+                {
+                  text: 'MERCY FE DE GUZMAN',
+                  bold: true,
+                  decoration: 'underline',
+                  alignment: 'center',
+                },
+                { text: 'GSO', alignment: 'center' },
+              ],
+            },
+          ],
+        },
+        ...(idx < Object.keys(grouped).length - 1
+          ? [{ text: '', pageBreak: 'after' }]
+          : [])
+      )
+    })
+
+    const docDefinition: any = {
+      pageOrientation: 'landscape',
+      pageSize: 'A4',
+      content,
+      styles: {
+        header: {
+          fontSize: 14,
+          bold: true,
+          alignment: 'center',
+          margin: [0, 0, 0, 5],
+        },
+        subHeader: {
+          fontSize: 12,
+          bold: true,
+          alignment: 'center',
+          margin: [0, 0, 0, 10],
+        },
+        tableHeader: {
+          bold: true,
+          alignment: 'center',
+        },
+      },
+      defaultStyle: {
+        fontSize: 9,
+        alignment: 'center',
+      },
+    }
+
+    pdfMake.createPdf(docDefinition).download('FuelConsumptionReport.pdf')
     setDownloading(false)
   }
 
@@ -418,9 +641,10 @@ const Page: React.FC = () => {
             <CustomButton
               containerStyles="app__btn_blue"
               isDisabled={downloading}
-              title={downloading ? 'Downloading...' : 'Export To Excel'}
+              title={downloading ? 'Downloading...' : 'Summary by Vehicle'}
               btnType="button"
-              handleClick={handleDownloadExcel}
+              // handleClick={handleDownloadExcel}
+              handleClick={handleDownloadPDF}
             />
           </div>
 
