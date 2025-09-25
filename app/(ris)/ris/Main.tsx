@@ -278,8 +278,21 @@ const Page: React.FC = () => {
         { text: 'Consume', rowSpan: 2, style: 'tableHeader' },
         { text: 'Finished Balance', rowSpan: 2, style: 'tableHeader' },
         { text: 'Price/L', rowSpan: 2, style: 'tableHeader' },
-        { text: 'Amount', rowSpan: 2, style: 'tableHeader' },
+        {
+          stack: [
+            { text: 'Amount', style: 'tableHeader' },
+            {
+              text: '(Add’l * Price)',
+              fontSize: 7,
+              italics: true,
+              color: 'black',
+            },
+          ],
+          rowSpan: 2,
+        },
       ])
+
+      // Second row
       tableBody.push([
         {},
         {},
