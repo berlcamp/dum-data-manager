@@ -349,9 +349,9 @@ const Page: React.FC = () => {
         {},
         {},
         {},
-        { text: totalGasoline.toString(), bold: true },
-        { text: totalDiesel.toString(), bold: true },
-        { text: totalConsume.toString(), bold: true },
+        { text: totalGasoline.toFixed(2), bold: true },
+        { text: totalDiesel.toFixed(2), bold: true },
+        { text: totalConsume.toFixed(2), bold: true },
         '', // Finished Balance
         '', // Price/L
         { text: totalAmount.toFixed(2), bold: true }, // Amount (2 decimals)
