@@ -34,6 +34,7 @@ import { format } from 'date-fns'
 import { TDocumentDefinitions } from 'pdfmake/interfaces'
 import { useDispatch, useSelector } from 'react-redux'
 import AddEditModal from './AddEditModal'
+import DepartmentModal from './DepartmentModal'
 import PrintAllChecked from './PrintAllChecked'
 
 const Page: React.FC = () => {
@@ -41,6 +42,7 @@ const Page: React.FC = () => {
   const [downloading, setDownloading] = useState(false)
 
   // Modals
+  const [showDepartmentModal, setShowDepartmentModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RisTypes | null>(null)
   const [selectedItems, setSelectedItems] = useState<RisTypes[]>([])
@@ -458,7 +460,7 @@ const Page: React.FC = () => {
     setDownloading(false)
   }
 
-  const handleDownloadPDFByDepartment = async () => {
+  const handleDownloadPDFByDepartment = async (deptName: string) => {
     setDownloading(true)
 
     const result = await fetchRis(
@@ -478,177 +480,155 @@ const Page: React.FC = () => {
 
     const risData: RisTypes[] = result.data
 
-    // Group by department
-    const groupedByDept: Record<string, RisTypes[]> = {}
-    risData.forEach((item) => {
-      const deptName = item.department?.name || 'Unknown Department'
-      if (!groupedByDept[deptName]) {
-        groupedByDept[deptName] = []
-      }
-      groupedByDept[deptName].push(item)
-    })
+    // Sort by date
+    const sortedItems = risData.sort(
+      (a, b) =>
+        new Date(a.date_requested).getTime() -
+        new Date(b.date_requested).getTime()
+    )
 
     const content: any[] = []
 
-    Object.entries(groupedByDept).forEach(([deptName, items], deptIndex) => {
-      // 🔹 Sort items by date ascending
-      const sortedItems = items.sort(
-        (a, b) =>
-          new Date(a.date_requested).getTime() -
-          new Date(b.date_requested).getTime()
-      )
-
-      // Title and department name
-      content.push(
-        {
-          text: 'FUEL CONSUMPTION REPORT',
-          style: 'title',
-          alignment: 'center',
-        },
-        {
-          text: `DEPARTMENT: ${deptName}`,
-          style: 'subTitle',
-          alignment: 'center',
-          margin: [0, 0, 0, 10],
-        }
-      )
-
-      // Build table
-      const tableBody: any[] = []
-
-      // Headers (2 rows) — added "Vehicle"
-      tableBody.push([
-        { text: 'Date Requested', rowSpan: 2, style: 'tableHeader' },
-        { text: 'Vehicle', rowSpan: 2, style: 'tableHeader' },
-        { text: 'Purpose', rowSpan: 2, style: 'tableHeader' },
-        { text: 'Destination', rowSpan: 2, style: 'tableHeader' },
-        { text: 'Starting Balance', rowSpan: 2, style: 'tableHeader' },
-        {
-          text: 'Additional',
-          colSpan: 2,
-          alignment: 'center',
-          style: 'tableHeader',
-        },
-        {},
-        { text: 'Consume', rowSpan: 2, style: 'tableHeader' },
-        { text: 'Finished Balance', rowSpan: 2, style: 'tableHeader' },
-        { text: 'Price/L', rowSpan: 2, style: 'tableHeader' },
-        {
-          stack: [
-            { text: 'Amount', style: 'tableHeader' },
-            { text: '(Add’l * Price)', fontSize: 7, color: 'black' },
-          ],
-          rowSpan: 2,
-        },
-      ])
-
-      // Second row for "Additional"
-      tableBody.push([
-        {},
-        {},
-        {},
-        {},
-        {},
-        { text: 'Gasoline', style: 'tableHeader' },
-        { text: 'Diesel', style: 'tableHeader' },
-        {},
-        {},
-        {},
-        {},
-      ])
-
-      // Rows
-      sortedItems.forEach((item) => {
-        const gasoline =
-          item.type?.toLowerCase() === 'gasoline' ? item.quantity : 0
-        const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
-        const amount = item.price * item.quantity
-
-        tableBody.push([
-          format(new Date(item.date_requested), 'MM/dd/yyyy'),
-          `${item.vehicle?.name || ''} - ${item.vehicle?.plate_number || ''}`, // Vehicle
-          item.purpose,
-          item.destination || '',
-          item.starting_balance,
-          gasoline || '',
-          diesel || '',
-          item.quantity, // Consume
-          item.starting_balance, // Finished Balance
-          item.price, // Price/L
-          amount.toFixed(2), // Amount with 2 decimals
-        ])
-      })
-
-      content.push({
-        table: {
-          headerRows: 2,
-          widths: [
-            'auto', // Date
-            '*', // Vehicle
-            '*', // Purpose
-            '*', // Destination
-            'auto', // Starting Balance
-            'auto', // Gasoline
-            'auto', // Diesel
-            'auto', // Consume
-            'auto', // Finished Balance
-            'auto', // Price/L
-            'auto', // Amount
-          ],
-          body: tableBody,
-        },
-        layout: {
-          fillColor: () => '#FFFFFF',
-          hLineWidth: () => 1,
-          vLineWidth: () => 1,
-          hLineColor: () => '#000000',
-          vLineColor: () => '#000000',
-        },
-        margin: [0, 0, 0, 20], // 🔹 Extra space before signatories
-      })
-
-      // Signatories (keep together, push to next page if cut)
-      content.push({
-        unbreakable: true, // 🔹 Prevents splitting signatories across pages
-        columns: [
-          {
-            width: '50%',
-            stack: [
-              {
-                text: 'ARFEL HOPE L. BOMES',
-                bold: true,
-                decoration: 'underline',
-                margin: [0, 20, 0, 0],
-                alignment: 'center',
-              },
-              { text: 'MMO STAFF', alignment: 'center' },
-            ],
-          },
-          {
-            width: '50%',
-            stack: [
-              {
-                text: 'CERTIFIED CORRECT:',
-                margin: [0, 20, 0, 10],
-                alignment: 'center',
-              },
-              {
-                text: 'MERCY FE DE GUZMAN',
-                bold: true,
-                decoration: 'underline',
-                alignment: 'center',
-              },
-              { text: 'GSO', alignment: 'center' },
-            ],
-          },
-        ],
-        margin: [0, 40, 0, 0],
-      })
-
-      // Page break after each department except last
-      if (deptIndex < Object.keys(groupedByDept).length - 1) {
-        content.push({ text: '', pageBreak: 'after' })
+    // Title
+    content.push(
+      {
+        text: 'FUEL CONSUMPTION REPORT',
+        style: 'title',
+        alignment: 'center',
+      },
+      {
+        text: `DEPARTMENT: ${deptName}`,
+        style: 'subTitle',
+        alignment: 'center',
+        margin: [0, 0, 0, 10],
       }
+    )
+
+    // Table
+    const tableBody: any[] = []
+
+    tableBody.push([
+      { text: 'Date Requested', rowSpan: 2, style: 'tableHeader' },
+      { text: 'Vehicle', rowSpan: 2, style: 'tableHeader' },
+      { text: 'Purpose', rowSpan: 2, style: 'tableHeader' },
+      { text: 'Destination', rowSpan: 2, style: 'tableHeader' },
+      { text: 'Starting Balance', rowSpan: 2, style: 'tableHeader' },
+      {
+        text: 'Additional',
+        colSpan: 2,
+        style: 'tableHeader',
+        alignment: 'center',
+      },
+      {},
+      { text: 'Consume', rowSpan: 2, style: 'tableHeader' },
+      { text: 'Finished Balance', rowSpan: 2, style: 'tableHeader' },
+      { text: 'Price/L', rowSpan: 2, style: 'tableHeader' },
+      {
+        stack: [
+          { text: 'Amount', style: 'tableHeader' },
+          { text: '(Add’l * Price)', fontSize: 7, color: 'black' },
+        ],
+        rowSpan: 2,
+      },
+    ])
+
+    tableBody.push([
+      {},
+      {},
+      {},
+      {},
+      {},
+      { text: 'Gasoline', style: 'tableHeader' },
+      { text: 'Diesel', style: 'tableHeader' },
+      {},
+      {},
+      {},
+      {},
+    ])
+
+    sortedItems.forEach((item) => {
+      const gasoline =
+        item.type?.toLowerCase() === 'gasoline' ? item.quantity : 0
+      const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
+      const amount = item.price * item.quantity
+
+      tableBody.push([
+        format(new Date(item.date_requested), 'MM/dd/yyyy'),
+        `${item.vehicle?.name || ''} - ${item.vehicle?.plate_number || ''}`,
+        item.purpose,
+        item.destination || '',
+        item.starting_balance,
+        gasoline || '',
+        diesel || '',
+        item.quantity,
+        item.starting_balance, // ⚠️ You might need to compute "finished balance"
+        item.price,
+        amount.toFixed(2),
+      ])
+    })
+
+    content.push({
+      table: {
+        headerRows: 2,
+        widths: [
+          'auto',
+          '*',
+          '*',
+          '*',
+          'auto',
+          'auto',
+          'auto',
+          'auto',
+          'auto',
+          'auto',
+          'auto',
+        ],
+        body: tableBody,
+      },
+      layout: {
+        hLineWidth: () => 1,
+        vLineWidth: () => 1,
+        hLineColor: () => '#000000',
+        vLineColor: () => '#000000',
+      },
+      margin: [0, 0, 0, 20],
+    })
+
+    // Signatories
+    content.push({
+      columns: [
+        {
+          width: '50%',
+          stack: [
+            {
+              text: 'ARFEL HOPE L. BOMES',
+              bold: true,
+              decoration: 'underline',
+              margin: [0, 20, 0, 0],
+              alignment: 'center',
+            },
+            { text: 'MMO STAFF', alignment: 'center' },
+          ],
+        },
+        {
+          width: '50%',
+          stack: [
+            {
+              text: 'CERTIFIED CORRECT:',
+              margin: [0, 20, 0, 10],
+              alignment: 'center',
+            },
+            {
+              text: 'MERCY FE DE GUZMAN',
+              bold: true,
+              decoration: 'underline',
+              alignment: 'center',
+            },
+            { text: 'GSO', alignment: 'center' },
+          ],
+        },
+      ],
+      margin: [0, 40, 0, 0],
     })
 
     const docDefinition: TDocumentDefinitions = {
@@ -665,7 +645,7 @@ const Page: React.FC = () => {
 
     pdfMake
       .createPdf(docDefinition)
-      .download('Fuel_Consumption_Report_By_Department.pdf')
+      .download(`Fuel_Consumption_Report_${deptName}.pdf`)
     setDownloading(false)
   }
 
@@ -875,7 +855,15 @@ const Page: React.FC = () => {
               title={downloading ? 'Downloading...' : 'Summary by Department'}
               btnType="button"
               // handleClick={handleDownloadExcel}
-              handleClick={handleDownloadPDFByDepartment}
+              handleClick={() => setShowDepartmentModal(true)}
+            />
+            <DepartmentModal
+              isOpen={showDepartmentModal}
+              onClose={() => setShowDepartmentModal(false)}
+              onConfirm={(deptName) => {
+                setShowDepartmentModal(false)
+                handleDownloadPDFByDepartment(deptName)
+              }}
             />
           </div>
 

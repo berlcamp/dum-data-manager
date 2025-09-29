@@ -139,7 +139,7 @@ const RisToPrint: React.FC<ChildProps> = ({ forwardedRef, ris }) => {
             <td
               colSpan={3}
               className="border text-center border-gray-700">
-              <div className="mt-10 font-bold">RAPHAEL CLAUDE A. ROUSSEAU</div>
+              <div className="mt-10 font-bold">MERCY FE DE GUZMAN</div>
               <div className="italic">GSO Designee</div>
             </td>
             <td
