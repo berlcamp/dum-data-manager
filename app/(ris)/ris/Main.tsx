@@ -546,11 +546,21 @@ const Page: React.FC = () => {
       {},
     ])
 
+    let totalGasoline = 0
+    let totalDiesel = 0
+    let totalConsume = 0
+    let totalAmount = 0
+
     sortedItems.forEach((item) => {
       const gasoline =
         item.type?.toLowerCase() === 'gasoline' ? item.quantity : 0
       const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
       const amount = item.price * item.quantity
+
+      totalGasoline += gasoline
+      totalDiesel += diesel
+      totalConsume += item.quantity
+      totalAmount += amount
 
       tableBody.push([
         format(new Date(item.date_requested), 'MM/dd/yyyy'),
@@ -561,11 +571,26 @@ const Page: React.FC = () => {
         gasoline || '',
         diesel || '',
         item.quantity,
-        item.starting_balance, // ⚠️ You might need to compute "finished balance"
+        item.starting_balance, // ⚠️ might need to compute finished balance
         item.price,
         amount.toFixed(2),
       ])
     })
+
+    // ➕ Totals row
+    tableBody.push([
+      { text: 'TOTAL', colSpan: 5, alignment: 'right', bold: true },
+      {},
+      {},
+      {},
+      {},
+      { text: totalGasoline.toString(), bold: true },
+      { text: totalDiesel.toString(), bold: true },
+      { text: totalConsume.toString(), bold: true },
+      {}, // finished balance not totaled
+      {}, // price not totaled
+      { text: totalAmount.toFixed(2), bold: true },
+    ])
 
     content.push({
       table: {
@@ -841,6 +866,14 @@ const Page: React.FC = () => {
                 <PrintAllChecked selectedRis={selectedItems} />
               </>
             )}
+            <CustomButton
+              containerStyles="app__btn_blue"
+              isDisabled={downloading}
+              title={downloading ? 'Downloading...' : 'Export to Excel'}
+              btnType="button"
+              handleClick={handleDownloadExcel}
+              // handleClick={handleDownloadPDF}
+            />
             <CustomButton
               containerStyles="app__btn_blue"
               isDisabled={downloading}
