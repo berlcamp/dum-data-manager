@@ -584,9 +584,9 @@ const Page: React.FC = () => {
       {},
       {},
       {},
-      { text: totalGasoline.toString(), bold: true },
-      { text: totalDiesel.toString(), bold: true },
-      { text: totalConsume.toString(), bold: true },
+      { text: totalGasoline.toFixed(2), bold: true },
+      { text: totalDiesel.toFixed(2), bold: true },
+      { text: totalConsume.toFixed(2), bold: true },
       {}, // finished balance not totaled
       {}, // price not totaled
       { text: totalAmount.toFixed(2), bold: true },
@@ -596,17 +596,17 @@ const Page: React.FC = () => {
       table: {
         headerRows: 2,
         widths: [
-          'auto',
-          '*',
-          '*',
-          '*',
-          'auto',
-          'auto',
-          'auto',
-          'auto',
-          'auto',
-          'auto',
-          'auto',
+          60, // Date Requested
+          90, // Vehicle
+          120, // Purpose
+          120, // Destination
+          60, // Starting Balance
+          50, // Gasoline
+          50, // Diesel
+          50, // Consume
+          70, // Finished Balance
+          50, // Price/L
+          70, // Amount
         ],
         body: tableBody,
       },
@@ -619,8 +619,9 @@ const Page: React.FC = () => {
       margin: [0, 0, 0, 20],
     })
 
-    // Signatories
+    // ✅ Signatories (kept together)
     content.push({
+      unbreakable: true, // prevents splitting across pages
       columns: [
         {
           width: '50%',
@@ -657,7 +658,7 @@ const Page: React.FC = () => {
     })
 
     const docDefinition: TDocumentDefinitions = {
-      pageSize: 'A4',
+      pageSize: 'LEGAL', // 📄 switched from A4 to LEGAL
       pageOrientation: 'landscape',
       content,
       styles: {
