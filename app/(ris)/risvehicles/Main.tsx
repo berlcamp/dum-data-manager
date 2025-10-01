@@ -166,6 +166,7 @@ const Page: React.FC = () => {
                 <tr>
                   <th className="app__th">Vehicle</th>
                   <th className="app__th">Plate Number</th>
+                  <th className="app__th">Category</th>
                   <th className="app__th"></th>
                 </tr>
               </thead>
@@ -177,6 +178,7 @@ const Page: React.FC = () => {
                       className="app__tr">
                       <td className="app__td">{item.name}</td>
                       <td className="app__td">{item.plate_number}</td>
+                      <td className="app__td">{item.category}</td>
                       <td className="app__td">
                         <div className="flex space-x-2 items-center">
                           <button

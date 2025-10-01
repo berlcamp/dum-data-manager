@@ -268,3 +268,17 @@ export const barangays = [
 ]
 
 export const services = ['TUPAD Beneficiary', 'DSWD Food For Work']
+
+export const trucks = [
+  'Motorcycle',
+  'Small Car (Sedan / Hatchback)',
+  'SUV',
+  'Pickup Truck',
+  'Van',
+  'Dump Truck',
+  'Light Truck',
+  'Medium Truck',
+  'Big Truck',
+  'Trailer / Prime Mover',
+  'Heavy Equipment',
+]

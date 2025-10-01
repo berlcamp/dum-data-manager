@@ -217,6 +217,7 @@ export interface RisTypes {
 export interface RisVehicleTypes {
   id: string
   name: string
+  category: string
   plate_number: string
 }
 

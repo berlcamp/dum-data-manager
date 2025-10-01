@@ -21,6 +21,14 @@ import { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { trucks } from '@/constants/TrackerConstants'
 import type { RisVehicleTypes } from '@/types'
 
 const FormSchema = z.object({
@@ -29,6 +37,9 @@ const FormSchema = z.object({
   }),
   plate_number: z.string().min(1, {
     message: 'Plate No is required.',
+  }),
+  category: z.string().min(1, {
+    message: 'Category required.',
   }),
 })
 
@@ -52,6 +63,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     defaultValues: {
       vehicle_name: editData ? editData.name : '',
       plate_number: editData ? editData.plate_number : '',
+      category: editData?.category ?? '',
     },
   })
 
@@ -68,6 +80,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       const newData = {
         name: formdata.vehicle_name,
         plate_number: formdata.plate_number,
+        category: formdata.category,
       }
 
       const { data, error } = await supabase
@@ -101,6 +114,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       const newData = {
         name: formdata.vehicle_name,
         plate_number: formdata.plate_number,
+        category: formdata.category,
       }
 
       const { data, error } = await supabase
@@ -197,6 +211,39 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               placeholder="Plate Number"
                               {...field}
                             />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Plate Number
+                          </FormLabel>
+                          <FormControl>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select Category" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {trucks.map((t, i) => (
+                                  <SelectItem
+                                    key={i}
+                                    value={t}>
+                                    {t}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
