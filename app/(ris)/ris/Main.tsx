@@ -353,7 +353,7 @@ const Page: React.FC = () => {
         {},
         { text: totalGasoline.toFixed(2), bold: true },
         { text: totalDiesel.toFixed(2), bold: true },
-        { text: totalConsume.toFixed(2), bold: true },
+        {},
         '', // Finished Balance
         '', // Price/L
         { text: totalAmount.toFixed(2), bold: true }, // Amount (2 decimals)
@@ -586,7 +586,7 @@ const Page: React.FC = () => {
       {},
       { text: totalGasoline.toFixed(2), bold: true },
       { text: totalDiesel.toFixed(2), bold: true },
-      { text: totalConsume.toFixed(2), bold: true },
+      {},
       {}, // finished balance not totaled
       {}, // price not totaled
       { text: totalAmount.toFixed(2), bold: true },
