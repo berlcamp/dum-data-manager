@@ -447,34 +447,49 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     }
   }
 
-  const handleUploadFiles = async (id: string) => {
-    const newAttachments: any = []
+  const sanitizeFileName = (name: string) => {
+    return name
+      .replace(/[^a-zA-Z0-9.\-_]/g, '_') // keep only safe chars
+      .replace(/_+/g, '_') // collapse multiple underscores
+  }
 
-    // Upload attachments
+  const handleUploadFiles = async (id: string) => {
+    const newAttachments: any[] = []
+
     await Promise.all(
       selectedImages.map(async (file: File) => {
-        const fileName = `${generateRandomNumber(2)}_${file.name}`
+        const safeName = sanitizeFileName(file.name)
+        const fileName = `${generateRandomNumber(2)}_${safeName}`
         const { error } = await supabase.storage
           .from('ddm_documents')
           .upload(`tracker/${id}/${fileName}`, file)
 
         if (error) {
-          console.log(error)
+          console.error(error)
         } else {
           newAttachments.push({ name: fileName })
         }
       })
     )
 
-    // Update attachments on database column
-    if (newAttachments.length > 0) {
-      const { error } = await supabase
-        .from('ddm_trackers')
-        .update({ attachments: newAttachments })
-        .eq('id', id)
-    }
+    if (newAttachments.length === 0) return []
 
-    return newAttachments
+    const { data: tracker } = await supabase
+      .from('ddm_trackers')
+      .select('attachments')
+      .eq('id', id)
+      .single()
+
+    const existingAttachments = tracker?.attachments || []
+    const updatedAttachments = [...existingAttachments, ...newAttachments]
+
+    const { error: updateError } = await supabase
+      .from('ddm_trackers')
+      .update({ attachments: updatedAttachments })
+      .eq('id', id)
+
+    if (updateError) console.error(updateError)
+    return updatedAttachments
   }
 
   const deleteFile = (file: FileWithPath) => {
