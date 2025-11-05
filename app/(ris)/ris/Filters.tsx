@@ -46,6 +46,7 @@ interface FilterTypes {
   setFilterDateFrom: (date: Date | undefined) => void
   setFilterDateTo: (date: Date | undefined) => void
   setFilterKeyword: (keyword: string) => void
+  setFilterThreshold: (v: string) => void
 }
 
 const FormSchema = z.object({
@@ -58,6 +59,7 @@ const FormSchema = z.object({
   department: z.string().optional(),
   purchase_order: z.string().optional(),
   cash_advance: z.string().optional(),
+  threshold: z.string().optional(),
 })
 
 const Filters = ({
@@ -70,6 +72,7 @@ const Filters = ({
   setFilterDateFrom,
   setFilterDateTo,
   setFilterKeyword,
+  setFilterThreshold,
 }: FilterTypes) => {
   const [appropriations, setAppropriations] = useState<
     RisAppropriationTypes[] | []
@@ -92,6 +95,7 @@ const Filters = ({
       purchase_order: '',
       cash_advance: '',
       keyword: '',
+      threshold: '',
     },
   })
 
@@ -105,6 +109,7 @@ const Filters = ({
     setFilterDateFrom(data.dateFrom)
     setFilterDateTo(data.dateTo)
     setFilterKeyword(data.keyword || '')
+    setFilterThreshold(data.threshold || '')
   }
 
   // clear all filters
@@ -119,6 +124,7 @@ const Filters = ({
     setFilterDateFrom(undefined)
     setFilterDateTo(undefined)
     setFilterKeyword('')
+    setFilterThreshold('')
   }
 
   useEffect(() => {
@@ -443,6 +449,25 @@ const Filters = ({
                         <SelectItem value="Approved">Approved</SelectItem>
                       </SelectContent>
                     </Select>
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="items-center inline-flex app__filter_field_container">
+              <FormField
+                control={form.control}
+                name="threshold"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="app__form_label">
+                      Amount Threshold
+                    </FormLabel>
+                    <Input
+                      placeholder="Amount Threshold"
+                      className="w-[200px]"
+                      type="number"
+                      {...field}
+                    />
                   </FormItem>
                 )}
               />

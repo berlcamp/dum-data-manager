@@ -60,6 +60,7 @@ const Page: React.FC = () => {
     undefined
   )
   const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined)
+  const [filterThreshold, setFilterThreshold] = useState('')
   const [filterKeyword, setFilterKeyword] = useState('')
 
   // List
@@ -198,12 +199,28 @@ const Page: React.FC = () => {
     )
 
     const risData: RisTypes[] = result.data
+    const sortedItems = risData.sort(
+      (a, b) =>
+        new Date(a.date_requested).getTime() -
+        new Date(b.date_requested).getTime()
+    )
 
     // Data for the Excel file
+    // Data for the Excel file
     const data: any[] = []
-    risData.forEach((item, index) => {
+    const threshold = Number(filterThreshold) || 0
+    let runningTotal = 0
+
+    for (let i = 0; i < sortedItems.length; i++) {
+      const item = sortedItems[i]
+      const amount = item.price * item.quantity
+
+      // if (threshold && runningTotal + amount > threshold) break
+
+      runningTotal += amount
+
       data.push({
-        no: index + 1,
+        no: i + 1,
         date: format(new Date(item.date_requested), 'MM/dd/yyyy'),
         vehicle: `${item.vehicle.name}-${item.vehicle.plate_number}`,
         purpose: `${item.purpose}`,
@@ -216,7 +233,7 @@ const Page: React.FC = () => {
         requester: `${item.requester}`,
         department: `${item.department.name}`,
       })
-    })
+    }
 
     data.forEach((item) => {
       worksheet.addRow(item)
@@ -252,7 +269,7 @@ const Page: React.FC = () => {
 
     const risData: RisTypes[] = result.data
 
-    // Group by vehicle
+    // Group by vehicle (for layout only)
     const grouped: Record<string, RisTypes[]> = {}
     risData.forEach((item) => {
       const key = `${item.vehicle.name}-${item.vehicle.plate_number}`
@@ -262,10 +279,17 @@ const Page: React.FC = () => {
 
     const content: any[] = []
 
-    Object.entries(grouped).forEach(([vehicleName, items], idx) => {
+    const threshold = Number(filterThreshold) || 0
+    let runningTotal = 0
+    let thresholdReached = false
+
+    // Loop through all vehicles
+    for (const [vehicleName, items] of Object.entries(grouped)) {
+      if (thresholdReached) break // stop if global threshold reached
+
       const tableBody: any[] = []
 
-      // Headers (2 rows)
+      // Header rows
       tableBody.push([
         { text: 'Date Requested', rowSpan: 2, style: 'tableHeader' },
         { text: 'Purpose', rowSpan: 2, style: 'tableHeader' },
@@ -295,7 +319,7 @@ const Page: React.FC = () => {
         },
       ])
 
-      // Second row
+      // Second header row
       tableBody.push([
         {},
         {},
@@ -320,12 +344,19 @@ const Page: React.FC = () => {
           new Date(b.date_requested).getTime()
       )
 
-      sortedItems.forEach((item) => {
+      for (const item of sortedItems) {
         const gasoline =
-          item.type.toLowerCase() === 'gasoline' ? item.quantity : 0
-        const diesel = item.type.toLowerCase() === 'diesel' ? item.quantity : 0
+          item.type?.toLowerCase() === 'gasoline' ? item.quantity : 0
+        const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
         const amount = item.price * item.quantity
 
+        // Check global threshold
+        if (threshold && runningTotal + amount > threshold) {
+          thresholdReached = true
+          break
+        }
+
+        runningTotal += amount
         totalGasoline += gasoline
         totalDiesel += diesel
         totalConsume += item.quantity
@@ -343,7 +374,10 @@ const Page: React.FC = () => {
           item.price, // Price/L
           amount.toFixed(2), // Amount (2 decimals)
         ])
-      })
+      }
+
+      // Skip empty vehicles (no data after threshold reached)
+      if (tableBody.length <= 2) continue
 
       // Totals row
       tableBody.push([
@@ -359,6 +393,7 @@ const Page: React.FC = () => {
         { text: totalAmount.toFixed(2), bold: true }, // Amount (2 decimals)
       ])
 
+      // Push this vehicle’s section into content
       content.push(
         { text: 'FUEL CONSUMPTION REPORT', style: 'header' },
         { text: vehicleName, style: 'subHeader', margin: [0, 0, 0, 10] },
@@ -386,9 +421,9 @@ const Page: React.FC = () => {
             vLineColor: () => '#000000',
           },
         },
-        { text: '\n\n' }, // extra space before signatories
+        { text: '\n\n' }, // space before signatories
         {
-          unbreakable: true, // keep signatories together
+          unbreakable: true,
           columns: [
             {
               width: '50%',
@@ -398,7 +433,7 @@ const Page: React.FC = () => {
                   bold: true,
                   decoration: 'underline',
                   alignment: 'center',
-                  margin: [0, 20, 0, 0], // extra spacing above name
+                  margin: [0, 20, 0, 0],
                 },
                 { text: 'MMO STAFF', alignment: 'center' },
               ],
@@ -409,7 +444,7 @@ const Page: React.FC = () => {
                 {
                   text: 'CERTIFIED CORRECT:',
                   alignment: 'center',
-                  margin: [0, 20, 0, 20], // more spacing below label
+                  margin: [0, 20, 0, 20],
                 },
                 {
                   text: 'MERCY FE DE GUZMAN',
@@ -422,11 +457,11 @@ const Page: React.FC = () => {
             },
           ],
         },
-        ...(idx < Object.keys(grouped).length - 1
-          ? [{ text: '', pageBreak: 'after' }]
-          : [])
+        ...(thresholdReached
+          ? [] // stop if threshold reached
+          : [{ text: '', pageBreak: 'after' }])
       )
-    })
+    }
 
     const docDefinition: any = {
       pageOrientation: 'landscape',
@@ -551,11 +586,19 @@ const Page: React.FC = () => {
     let totalConsume = 0
     let totalAmount = 0
 
+    const threshold = Number(filterThreshold) || 0
+    let runningTotal = 0
+
     sortedItems.forEach((item) => {
       const gasoline =
         item.type?.toLowerCase() === 'gasoline' ? item.quantity : 0
       const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
       const amount = item.price * item.quantity
+
+      // ⛔ Stop adding if threshold exceeded
+      if (threshold && runningTotal + amount > threshold) return
+
+      runningTotal += amount
 
       totalGasoline += gasoline
       totalDiesel += diesel
@@ -571,7 +614,7 @@ const Page: React.FC = () => {
         gasoline || '',
         diesel || '',
         item.quantity,
-        item.starting_balance, // ⚠️ might need to compute finished balance
+        item.starting_balance, // ⚠️ you can compute ending balance if needed
         item.price,
         amount.toFixed(2),
       ])
@@ -825,6 +868,7 @@ const Page: React.FC = () => {
               setFilterCa={setFilterCa}
               setFilterDateFrom={setFilterDateFrom}
               setFilterDateTo={setFilterDateTo}
+              setFilterThreshold={setFilterThreshold}
             />
           </div>
 
