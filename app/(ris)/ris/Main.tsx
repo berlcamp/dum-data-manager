@@ -268,9 +268,32 @@ const Page: React.FC = () => {
 
     const risData: RisTypes[] = result.data
 
+    const sortedItems = risData.sort(
+      (a, b) =>
+        new Date(a.date_requested).getTime() -
+        new Date(b.date_requested).getTime()
+    )
+
+    let filteredRisData: RisTypes[] = []
+
+    const threshold = Number(filterThreshold) || 0
+    let runningTotal = 0
+
+    for (let i = 0; i < sortedItems.length; i++) {
+      const item = sortedItems[i]
+      const amount = item.price * item.quantity
+
+      // ⛔ Stop adding if threshold exceeded
+      if (threshold && runningTotal + amount > threshold) break
+      runningTotal += amount
+      filteredRisData[i] = sortedItems[i]
+    }
+
+    console.log('filteredRisData', filteredRisData)
+
     // Group by vehicle (for layout only)
     const grouped: Record<string, RisTypes[]> = {}
-    risData.forEach((item) => {
+    filteredRisData.forEach((item) => {
       const key = `${item.vehicle.name}-${item.vehicle.plate_number}`
       if (!grouped[key]) grouped[key] = []
       grouped[key].push(item)
@@ -278,14 +301,8 @@ const Page: React.FC = () => {
 
     const content: any[] = []
 
-    const threshold = Number(filterThreshold) || 0
-    let runningTotal = 0
-    let thresholdReached = false
-
     // Loop through all vehicles
     for (const [vehicleName, items] of Object.entries(grouped)) {
-      if (thresholdReached) break // stop if global threshold reached
-
       const tableBody: any[] = []
 
       // Header rows
@@ -337,25 +354,12 @@ const Page: React.FC = () => {
       let totalConsume = 0
       let totalAmount = 0
 
-      const sortedItems = items.sort(
-        (a, b) =>
-          new Date(a.date_requested).getTime() -
-          new Date(b.date_requested).getTime()
-      )
-
-      for (const item of sortedItems) {
+      for (const item of items) {
         const gasoline =
           item.type?.toLowerCase() === 'gasoline' ? item.quantity : 0
         const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
         const amount = item.price * item.quantity
 
-        // Check global threshold
-        if (threshold && runningTotal + amount > threshold) {
-          thresholdReached = true
-          break
-        }
-
-        runningTotal += amount
         totalGasoline += gasoline
         totalDiesel += diesel
         totalConsume += item.quantity
@@ -456,9 +460,7 @@ const Page: React.FC = () => {
             },
           ],
         },
-        ...(thresholdReached
-          ? [] // stop if threshold reached
-          : [{ text: '', pageBreak: 'after' }])
+        [{ text: '', pageBreak: 'after' }]
       )
     }
 
