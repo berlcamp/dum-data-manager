@@ -206,7 +206,6 @@ const Page: React.FC = () => {
     )
 
     // Data for the Excel file
-    // Data for the Excel file
     const data: any[] = []
     const threshold = Number(filterThreshold) || 0
     let runningTotal = 0
@@ -589,14 +588,15 @@ const Page: React.FC = () => {
     const threshold = Number(filterThreshold) || 0
     let runningTotal = 0
 
-    sortedItems.forEach((item) => {
+    for (let i = 0; i < sortedItems.length; i++) {
+      const item = sortedItems[i]
       const gasoline =
         item.type?.toLowerCase() === 'gasoline' ? item.quantity : 0
       const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
       const amount = item.price * item.quantity
 
       // ⛔ Stop adding if threshold exceeded
-      if (threshold && runningTotal + amount > threshold) return
+      if (threshold && runningTotal + amount > threshold) break
 
       runningTotal += amount
 
@@ -618,7 +618,8 @@ const Page: React.FC = () => {
         item.price,
         amount.toFixed(2),
       ])
-    })
+    }
+    // zzzz
 
     // ➕ Totals row
     tableBody.push([
