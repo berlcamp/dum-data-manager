@@ -111,6 +111,7 @@ export interface DocumentTypes {
   date_received: string
   user_id: string
   recent_remarks: DocumentRemarksTypes
+  recent_remark: DocumentRemarksTypes
   ddm_user: AccountTypes
   attachments: { name: string }[]
   amount: string

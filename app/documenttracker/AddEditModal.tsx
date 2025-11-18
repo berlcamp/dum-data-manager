@@ -161,7 +161,17 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
     const type = documentTypes.find((t) => t.type === formdata.type)?.shortcut
     const routingNo = await getLatestRoutingNo(formdata.type)
-    const routingSlipNo = `${type || 'DOC'}-${routingNo}`
+
+    // Get current year and month
+    const now = new Date()
+    const yearMonth = `${now.getFullYear()}${String(
+      now.getMonth() + 1
+    ).padStart(2, '0')}`
+
+    // Compose the routing slip number
+    const routingSlipNo = `${type || 'DOC'}-${yearMonth}-${routingNo}`
+
+    // const routingSlipNo = `${type || 'DOC'}-${routingNo}`
 
     try {
       const newData = {
@@ -248,7 +258,15 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
     if (editData.type !== formdata.type) {
       routingNo = await getLatestRoutingNo(formdata.type)
-      routingSlipNo = `${type || 'DOC'}-${routingNo}`
+
+      // Get current year and month
+      const now = new Date()
+      const yearMonth = `${now.getFullYear()}${String(
+        now.getMonth() + 1
+      ).padStart(2, '0')}`
+
+      // Compose the routing slip number
+      routingSlipNo = `${type || 'DOC'}-${yearMonth}-${routingNo}`
     } else {
       routingNo = editData.routing_no
       routingSlipNo = `${type || 'DOC'}-${routingNo}`

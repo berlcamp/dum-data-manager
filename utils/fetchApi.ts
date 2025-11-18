@@ -71,13 +71,15 @@ export async function fetchDocuments(
       trackerIds.push('99999')
     }
 
+    console.log('trackerIds', trackerIds)
+
     // Advance filters
     if (filters.filterDateForwardedFrom || filters.filterDateForwardedTo) {
       let query1 = supabase
         .from('ddm_tracker_routes')
-        .select('tracker_id')
+        .select('date,tracker_id')
         .limit(900)
-        .in('id', trackerIds)
+        .in('tracker_id', trackerIds)
 
       if (filters.filterRoute && filters.filterRoute !== '') {
         query1 = query1.eq('title', filters.filterRoute)
@@ -101,16 +103,23 @@ export async function fetchDocuments(
         if (data1.length > 0) {
           data1.forEach((d) => newTrackerIds.push(d.tracker_id))
         }
+        console.log('data1', data1)
       }
     } else {
       newTrackerIds = trackerIds
     }
-
-    console.log('newTrackerIds', userDepartment, newTrackerIds)
-
+    console.log('newTrackerIds', newTrackerIds)
     let query = supabase
       .from('ddm_trackers')
-      .select('*', { count: 'exact' })
+      .select(
+        `*,ddm_tracker_remarks(
+      user_id,
+      "user",
+      remarks,
+      timestamp
+    )`,
+        { count: 'exact' }
+      )
       .eq('archived', false)
 
     // Full text search
@@ -167,7 +176,7 @@ export async function fetchDocuments(
     query = query.range(from, to)
 
     // Order By
-    query = query.order('created_at', { ascending: false })
+    query = query.order('date_received', { ascending: false })
 
     const { data, count, error } = await query
 
@@ -175,7 +184,28 @@ export async function fetchDocuments(
       throw new Error(error.message)
     }
 
-    return { data, count }
+    // Format the result so i will display the recent remarks
+    const formattedTrackers = data.map((tracker) => {
+      // Ensure ddm_tracker_remarks is always an array
+      const remarksArray = tracker.ddm_tracker_remarks ?? []
+
+      const latestRemark = remarksArray.length
+        ? remarksArray.reduce(
+            (
+              prev: { timestamp: string | number | Date },
+              curr: { timestamp: string | number | Date }
+            ) =>
+              new Date(curr.timestamp) > new Date(prev.timestamp) ? curr : prev
+          )
+        : null
+
+      return {
+        ...tracker,
+        recent_remark: latestRemark, // null if no remarks
+      }
+    })
+
+    return { data: formattedTrackers, count }
   } catch (error) {
     console.error('fetch tracker error', error)
     return { data: [], count: 0 }
