@@ -11,13 +11,15 @@ import {
   TopBar,
   Unauthorized,
 } from '@/components/index'
-import { fetchRisAppropriations } from '@/utils/fetchApi'
+import { fetchPurchaseOrders, fetchRisAppropriations } from '@/utils/fetchApi'
+import Excel from 'exceljs'
+import { saveAs } from 'file-saver'
 import React, { useEffect, useState } from 'react'
 
 import Filters from './Filters'
 
 // Types
-import type { RisAppropriationTypes } from '@/types'
+import type { RisAppropriationTypes, RisTypes } from '@/types'
 
 // Redux imports
 import { updateList } from '@/GlobalRedux/Features/listSlice'
@@ -29,6 +31,7 @@ import AddEditModal from './AddEditModal'
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
@@ -111,35 +114,116 @@ const Page: React.FC = () => {
     setSelectedItem(item)
   }
 
+  const handleDownloadPOReport = async (item: RisAppropriationTypes) => {
+    setDownloading(true)
+
+    try {
+      // Create a new workbook and add a worksheet
+      const workbook = new Excel.Workbook()
+      const worksheet = workbook.addWorksheet('Sheet 1')
+
+      // Add data to the worksheet
+      worksheet.columns = [
+        { header: '#', key: 'no', width: 10 },
+        { header: 'P.O. number', key: 'po_number', width: 30 },
+        { header: 'PO Amount', key: 'amount', width: 20 },
+        { header: 'Remaining amount', key: 'remaining_amount', width: 20 },
+      ]
+
+      // Fetch all purchase orders for this appropriation
+      const result = await fetchPurchaseOrders(
+        {
+          filterAppropriation: item.id,
+        },
+        99999,
+        0
+      )
+
+      const poData = result.data || []
+
+      console.log(poData, item.id)
+
+      // Sort by ID to maintain consistent order
+      const sortedPOs = poData.sort((a, b) => Number(a.id) - Number(b.id))
+
+      // Calculate remaining amount for each PO
+      const appropriationAmount = Number(item.amount) || 0
+      let cumulativeAmount = 0
+
+      // Data for the Excel file
+      const data: any[] = []
+      sortedPOs.forEach((po, index) => {
+        // Calculate PO amount from approved RIS items
+        let poAmount = 0
+        if (po.ddm_ris) {
+          po.ddm_ris.forEach((ris: RisTypes) => {
+            if (ris.status === 'Approved') {
+              poAmount += Number(ris.quantity) * Number(ris.price)
+            }
+          })
+        }
+        cumulativeAmount += poAmount
+        const remainingAmount = appropriationAmount - cumulativeAmount
+
+        data.push({
+          no: index + 1,
+          po_number: po.po_number || '',
+          amount: poAmount.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }),
+          remaining_amount: remainingAmount.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }),
+        })
+      })
+
+      // Add rows to worksheet
+      data.forEach((row) => {
+        worksheet.addRow(row)
+      })
+
+      // Generate the Excel file
+      await workbook.xlsx.writeBuffer().then((buffer) => {
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+        const fileName = `PO_Report_${item.name.replace(
+          /[^a-z0-9]/gi,
+          '_'
+        )}.xlsx`
+        saveAs(blob, fileName)
+      })
+    } catch (error) {
+      console.error('Error downloading PO report:', error)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   const countRemainingAmount = (item: RisAppropriationTypes) => {
-    const totalAmountUsed = item.ddm_ris_purchase_orders
-      ? item.ddm_ris_purchase_orders.reduce(
-          (accumulator, po) => accumulator + Number(po.amount),
-          0
-        )
-      : 0
-    const remainingAmount = Number(item.amount) - totalAmountUsed
-
-    if (isNaN(remainingAmount)) return ''
-
-    if (remainingAmount < 1000) {
+    let totalAmount = 0
+    if (item.ddm_ris_purchase_orders) {
+      item.ddm_ris_purchase_orders.forEach((po) => {
+        if (po.ddm_ris) {
+          po.ddm_ris.forEach((ris) => {
+            if (ris.status === 'Approved') {
+              totalAmount += Number(ris.quantity) * Number(ris.price)
+            }
+          })
+        }
+      })
+    }
+    const remainingAmount = Number(item.amount) - totalAmount
+    if (remainingAmount < 100) {
       return (
         <span style={{ color: 'red', fontWeight: 'bold' }}>
-          {remainingAmount.toLocaleString('en-US', {
-            minimumFractionDigits: 2, // Minimum number of decimal places
-            maximumFractionDigits: 2, // Maximum number of decimal places
-          })}
+          {remainingAmount.toFixed(2)}
         </span>
       )
     } else {
-      return (
-        <span>
-          {remainingAmount.toLocaleString('en-US', {
-            minimumFractionDigits: 2, // Minimum number of decimal places
-            maximumFractionDigits: 2, // Maximum number of decimal places
-          })}
-        </span>
-      )
+      return <span>{remainingAmount.toFixed(2)}</span>
     }
   }
 
@@ -223,6 +307,12 @@ const Page: React.FC = () => {
                             onClick={() => handleEdit(item)}
                             className="app__btn_green_xs">
                             Edit
+                          </button>
+                          <button
+                            onClick={() => handleDownloadPOReport(item)}
+                            disabled={downloading}
+                            className="app__btn_green_xs">
+                            {downloading ? 'Downloading...' : 'PO Report'}
                           </button>
                         </div>
                       </td>

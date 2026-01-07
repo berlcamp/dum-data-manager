@@ -540,11 +540,9 @@ export async function fetchPurchaseOrders(
       query = query.eq('type', filters.filterType)
     }
     // Filter appropriation
-    if (
-      filters.filterAppropriation &&
-      filters.filterAppropriation.trim() !== 'All'
-    ) {
+    if (filters.filterAppropriation && filters.filterAppropriation !== 'All') {
       query = query.eq('appropriation', filters.filterAppropriation)
+      console.log('filters.filterAppropriation', filters.filterAppropriation)
     }
 
     // Perform count before paginations
@@ -1065,7 +1063,7 @@ export async function fetchRisAppropriations(
   try {
     let query = supabase
       .from('ddm_ris_appropriations')
-      .select('*,ddm_ris_purchase_orders(amount)', { count: 'exact' })
+      .select('*,ddm_ris_purchase_orders(*, ddm_ris(*))', { count: 'exact' })
 
     // Full text search
     if (
