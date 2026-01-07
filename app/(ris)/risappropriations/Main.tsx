@@ -312,7 +312,7 @@ const Page: React.FC = () => {
                             onClick={() => handleDownloadPOReport(item)}
                             disabled={downloading}
                             className="app__btn_green_xs">
-                            {downloading ? 'Downloading...' : 'PO Report'}
+                            {downloading ? 'Downloading...' : 'PO Summary'}
                           </button>
                         </div>
                       </td>
