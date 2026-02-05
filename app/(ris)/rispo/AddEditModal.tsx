@@ -37,7 +37,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { Input } from '@/components/ui/input'
-import type { AccountTypes, RisAppropriationTypes, RisPoTypes } from '@/types'
+import type {
+  AccountTypes,
+  RisAppropriationTypes,
+  RisDepartmentTypes,
+  RisPoTypes,
+} from '@/types'
 import { format } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
 
@@ -50,6 +55,9 @@ const FormSchema = z.object({
   }),
   appropriation: z.string().min(1, {
     message: 'Appropriation No is required.',
+  }),
+  department_id: z.string().min(1, {
+    message: 'Department is required.',
   }),
   quantity: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
     .number({
@@ -94,6 +102,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     RisAppropriationTypes[] | []
   >([])
 
+  const [departments, setDepartments] = useState<RisDepartmentTypes[] | []>([])
+
   const user: AccountTypes = systemUsers.find(
     (user: AccountTypes) => user.id === session.user.id
   )
@@ -110,6 +120,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       type: editData ? editData.type : '',
       po_number: editData ? editData.po_number : '',
       appropriation: editData ? editData.appropriation?.toString() || '' : '',
+      department_id: editData ? editData.department_id?.toString() || '' : '',
       gasoline_price: editData ? editData.gasoline_price : 0,
       diesel_price: editData ? editData.diesel_price : 0,
       total_amount: editData ? editData.amount : 0,
@@ -171,6 +182,12 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
             (a) => a.id.toString() === formdata.appropriation.toString()
           )?.name,
         },
+        department: {
+          id: formdata.department_id,
+          name: departments.find(
+            (d) => d.id.toString() === formdata.department_id.toString()
+          )?.name,
+        },
       }
       dispatch(updateList([updatedData, ...globallist]))
 
@@ -201,6 +218,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         description: formdata.description,
         po_number: formdata.po_number,
         appropriation: formdata.appropriation,
+        department_id: formdata.department_id,
         diesel_price: formdata.diesel_price,
         gasoline_price: formdata.gasoline_price,
         quantity: formdata.quantity,
@@ -229,6 +247,12 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           id: formdata.appropriation,
           name: appropriations.find(
             (a) => a.id.toString() === formdata.appropriation.toString()
+          )?.name,
+        },
+        department: {
+          id: formdata.department_id,
+          name: departments.find(
+            (d) => d.id.toString() === formdata.department_id.toString()
           )?.name,
         },
       }
@@ -288,6 +312,13 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         })
       }
       setAppropriations(updatedData)
+
+      // Fetch departments
+      const { data: deptData } = await supabase
+        .from('ddm_ris_departments')
+        .select()
+        .order('name', { ascending: true })
+      if (deptData) setDepartments(deptData)
     })()
   }, [])
 
@@ -414,6 +445,37 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                     }
                                   )}
                                   )
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="department_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Department
+                          </FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value.toString()}
+                            defaultValue={field.value.toString()}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choose Department" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {departments?.map((d, i) => (
+                                <SelectItem
+                                  key={i}
+                                  value={d.id.toString()}>
+                                  {d.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>

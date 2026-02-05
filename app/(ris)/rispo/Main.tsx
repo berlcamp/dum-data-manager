@@ -413,6 +413,12 @@ const Page: React.FC = () => {
                               {item.ddm_ris_appropriation?.name}
                             </span>
                           </div>
+                          <div>
+                            <span className="font-light">Department:</span>{' '}
+                            <span className="font-medium">
+                              {item.department?.name}
+                            </span>
+                          </div>
                           {item.type !== 'Fuel' && (
                             <div>
                               <span className="font-light">

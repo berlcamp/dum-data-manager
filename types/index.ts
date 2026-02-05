@@ -130,6 +130,7 @@ export interface AccountTypes {
   status: string
   password: string
   department: string
+  department_id: string
   avatar_url: string
   email: string
   org_id: string
@@ -159,6 +160,7 @@ export interface RisPoTypes {
   id: string
   po_number: string
   appropriation: string
+  department_id: string
   type: string
   quantity: number
   amount: number
@@ -173,6 +175,7 @@ export interface RisPoTypes {
   ddm_ris: RisTypes[]
   remaining_quantity?: string
   ddm_ris_appropriation: RisAppropriationTypes
+  department: RisDepartmentTypes
 }
 
 export interface RisCaTypes {

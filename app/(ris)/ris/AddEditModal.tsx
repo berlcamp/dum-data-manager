@@ -82,9 +82,7 @@ const FormSchema = z.object({
   vehicle_id: z.coerce.string().min(1, {
     message: 'Vehicle is required.',
   }),
-  transaction_type: z.string().min(1, {
-    message: 'Transaction Type is required',
-  }),
+  transaction_type: z.string().default('Purchase Order'),
   type: z.string().min(1, {
     message: 'Type is required',
   }),
@@ -141,6 +139,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     (user: AccountTypes) => user.id === session.user.id
   )
 
+  console.log('editData', user)
+
   const wrapperRef = useRef<HTMLDivElement>(null)
 
   // Redux staff
@@ -154,7 +154,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       destination: editData ? editData.destination : '',
       department_id: editData ? editData.department_id : '',
       vehicle_id: editData ? editData.vehicle_id : '',
-      transaction_type: editData ? editData.transaction_type : '',
+      transaction_type: editData ? editData.transaction_type : 'Purchase Order',
       type: editData ? editData.type : '',
       po_id: editData ? editData.po_id || '' : '',
       ca_id: editData ? editData.ca_id || '' : '',
@@ -167,15 +167,14 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   })
 
   const onSubmit = async (formdata: z.infer<typeof FormSchema>) => {
+    // Set transaction_type to Purchase Order by default
+    formdata.transaction_type = 'Purchase Order'
+
     if (
       formdata.transaction_type === 'Purchase Order' &&
       formdata.po_id === ''
     ) {
       setErrorMessage('Please select P.O.')
-      return
-    }
-    if (formdata.transaction_type === 'Cash Advance' && formdata.ca_id === '') {
-      setErrorMessage('Please select C.A.')
       return
     }
     setErrorMessage('')
@@ -441,23 +440,272 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           <div className="app__modal_body">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
-                <div className="md:grid md:grid-cols-2 md:gap-4 mb-4">
+                <div className="md:grid md:grid-cols-2 md:gap-4">
                   <FormField
                     control={form.control}
-                    name="transaction_type"
+                    name="date_requested"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className="app__form_label">
+                          Date Requested
+                        </FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={'outline'}
+                                className={cn(
+                                  'pl-3 text-left font-normal',
+                                  !field.value && 'text-muted-foreground'
+                                )}>
+                                {field.value ? (
+                                  format(field.value, 'PPP')
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-auto p-0"
+                            align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) => date < new Date('1900-01-01')}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="requester"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="app__form_label">Type</FormLabel>
+                        <FormLabel className="app__form_label">
+                          Requester
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Requester Name"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="po_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Purchase Order
+                        </FormLabel>
                         <Select
                           onValueChange={(value) => {
-                            form.setValue('transaction_type', value)
-                            form.setValue('po_id', '')
-                            form.setValue('ca_id', '')
+                            const po = purchaseOrders?.find(
+                              (po) => po.id.toString() === value
+                            )
+                            form.setValue('po_id', value)
+                            if (po) {
+                              // Automatically set the requesting department to the P.O.'s department
+                              if (po.department_id) {
+                                form.setValue(
+                                  'department_id',
+                                  po.department_id.toString()
+                                )
+                              }
+                              if (po.type !== 'Fuel') {
+                                form.setValue('type', po.type)
+                              }
+                              setDieselPrice(po.diesel_price || 0)
+                              setGasolinePrice(po.gasoline_price || 0)
+                            }
                           }}
                           defaultValue={
                             editData
-                              ? editData.transaction_type.toString()
+                              ? editData.po_id
+                                ? editData.po_id.toString()
+                                : field.value
                               : field.value
+                          }>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose P.O." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {purchaseOrders
+                              ?.filter((po) => {
+                                if (!user) return false
+                                // Allow specific emails to see all purchase orders
+                                if (
+                                  user.email === 'arfel@ddm.com' ||
+                                  user.email === 'berlcamp@gmail.com'
+                                ) {
+                                  return true
+                                }
+                                // Otherwise, filter by department_id
+                                return po.department_id === user.department_id
+                              })
+                              .map((po, idx) => (
+                                <SelectItem
+                                  key={idx}
+                                  value={po.id.toString()}>
+                                  {po.po_number}-{po.type}
+                                  {po.remaining_quantity}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        {errorMessage !== '' && (
+                          <div className="text-red-500 text-sm font-medium">
+                            {errorMessage}
+                          </div>
+                        )}
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="department_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Requesting Department
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={
+                            editData
+                              ? editData.department_id.toString()
+                              : field.value
+                          }>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose Department" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {departments?.map((department, idx) => (
+                              <SelectItem
+                                key={idx}
+                                value={department.id.toString()}>
+                                {department.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="vehicle_id"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className="app__form_label">
+                          Vehicle
+                        </FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  'w-full justify-between',
+                                  !field.value && 'text-muted-foreground'
+                                )}>
+                                {field.value
+                                  ? `${
+                                      vehicles.find(
+                                        (vehicle) =>
+                                          vehicle.id.toString() ===
+                                          field.value.toString()
+                                      )?.name
+                                    }-${
+                                      vehicles.find(
+                                        (vehicle) =>
+                                          vehicle.id.toString() ===
+                                          field.value.toString()
+                                      )?.plate_number
+                                    }`
+                                  : 'Select Vehicle'}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-full p-0">
+                            <Command>
+                              <CommandInput placeholder="Search vehicle..." />
+                              <CommandList>
+                                <CommandEmpty>No vehicle found.</CommandEmpty>
+                                <CommandGroup>
+                                  {vehicles.map((vehicle) => (
+                                    <CommandItem
+                                      value={vehicle.id}
+                                      key={vehicle.id}
+                                      onSelect={() => {
+                                        form.setValue(
+                                          'vehicle_id',
+                                          field.value.toString() === vehicle.id
+                                            ? ''
+                                            : vehicle.id
+                                        )
+                                      }}>
+                                      {vehicle.name}-{vehicle.plate_number}
+                                      <Check
+                                        className={cn(
+                                          'ml-auto',
+                                          vehicle.id.toString() ===
+                                            field.value.toString()
+                                            ? 'opacity-100'
+                                            : 'opacity-0'
+                                        )}
+                                      />
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Fuel Type
+                        </FormLabel>
+                        <Select
+                          onValueChange={(value) => {
+                            form.setValue('type', value)
+                            if (value === 'Diesel') {
+                              form.setValue('price', dieselPrice)
+                            }
+                            if (value === 'Gasoline') {
+                              form.setValue('price', gasolinePrice)
+                            }
+                          }}
+                          value={field.value}
+                          defaultValue={
+                            editData ? editData.type.toString() : field.value
                           }>
                           <FormControl>
                             <SelectTrigger>
@@ -465,438 +713,111 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Purchase Order">
-                              Purchase Order
-                            </SelectItem>
-                            <SelectItem value="Cash Advance">
-                              Cash Advance
-                            </SelectItem>
+                            <SelectItem value="Diesel">Diesel</SelectItem>
+                            <SelectItem value="Gasoline">Gasoline</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
-                <div className="md:grid md:grid-cols-2 md:gap-4">
-                  {(editData || form.watch('transaction_type') !== '') && (
-                    <>
-                      <FormField
-                        control={form.control}
-                        name="date_requested"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel className="app__form_label">
-                              Date Requested
-                            </FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant={'outline'}
-                                    className={cn(
-                                      'pl-3 text-left font-normal',
-                                      !field.value && 'text-muted-foreground'
-                                    )}>
-                                    {field.value ? (
-                                      format(field.value, 'PPP')
-                                    ) : (
-                                      <span>Pick a date</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className="w-auto p-0"
-                                align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={field.onChange}
-                                  disabled={(date) =>
-                                    date < new Date('1900-01-01')
-                                  }
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="requester"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="app__form_label">
-                              Requester
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Requester Name"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      {form.getValues('transaction_type') ===
-                        'Purchase Order' && (
-                        <FormField
-                          control={form.control}
-                          name="po_id"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="app__form_label">
-                                Purchase Order
-                              </FormLabel>
-                              <Select
-                                onValueChange={(value) => {
-                                  const po = purchaseOrders?.find(
-                                    (po) => po.id.toString() === value
-                                  )
-                                  form.setValue('po_id', value)
-                                  if (po) {
-                                    if (po.type !== 'Fuel') {
-                                      form.setValue('type', po.type)
-                                    }
-                                    setDieselPrice(po.diesel_price || 0)
-                                    setGasolinePrice(po.gasoline_price || 0)
-                                  }
-                                }}
-                                defaultValue={
-                                  editData
-                                    ? editData.po_id
-                                      ? editData.po_id.toString()
-                                      : field.value
-                                    : field.value
-                                }>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Choose P.O." />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {purchaseOrders?.map((po, idx) => (
-                                    <SelectItem
-                                      key={idx}
-                                      value={po.id.toString()}>
-                                      {po.po_number}-{po.type}
-                                      {po.remaining_quantity}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                              {errorMessage !== '' && (
-                                <div className="text-red-500 text-sm font-medium">
-                                  {errorMessage}
-                                </div>
-                              )}
-                            </FormItem>
-                          )}
-                        />
-                      )}
-                      {form.getValues('transaction_type') ===
-                        'Cash Advance' && (
-                        <FormField
-                          control={form.control}
-                          name="ca_id"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="app__form_label">
-                                Cash Advance
-                              </FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={
-                                  editData
-                                    ? editData.ca_id
-                                      ? editData.ca_id.toString()
-                                      : field.value
-                                    : field.value
-                                }>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Choose C.A." />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {cashAdvances?.map((ca, idx) => (
-                                    <SelectItem
-                                      key={idx}
-                                      value={ca.id.toString()}>
-                                      {ca.ca_number}-( Available:{' '}
-                                      {ca.remaining_amount})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                              {errorMessage !== '' && (
-                                <div className="text-red-500 text-sm font-medium">
-                                  {errorMessage}
-                                </div>
-                              )}
-                            </FormItem>
-                          )}
-                        />
-                      )}
-                      <FormField
-                        control={form.control}
-                        name="department_id"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="app__form_label">
-                              Requesting Department
-                            </FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={
-                                editData
-                                  ? editData.department_id.toString()
-                                  : field.value
-                              }>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Choose Department" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {departments?.map((department, idx) => (
-                                  <SelectItem
-                                    key={idx}
-                                    value={department.id.toString()}>
-                                    {department.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="vehicle_id"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel className="app__form_label">
-                              Vehicle
-                            </FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    className={cn(
-                                      'w-full justify-between',
-                                      !field.value && 'text-muted-foreground'
-                                    )}>
-                                    {field.value
-                                      ? `${
-                                          vehicles.find(
-                                            (vehicle) =>
-                                              vehicle.id.toString() ===
-                                              field.value.toString()
-                                          )?.name
-                                        }-${
-                                          vehicles.find(
-                                            (vehicle) =>
-                                              vehicle.id.toString() ===
-                                              field.value.toString()
-                                          )?.plate_number
-                                        }`
-                                      : 'Select Vehicle'}
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-full p-0">
-                                <Command>
-                                  <CommandInput placeholder="Search vehicle..." />
-                                  <CommandList>
-                                    <CommandEmpty>
-                                      No vehicle found.
-                                    </CommandEmpty>
-                                    <CommandGroup>
-                                      {vehicles.map((vehicle) => (
-                                        <CommandItem
-                                          value={vehicle.id}
-                                          key={vehicle.id}
-                                          onSelect={() => {
-                                            form.setValue(
-                                              'vehicle_id',
-                                              field.value.toString() ===
-                                                vehicle.id
-                                                ? ''
-                                                : vehicle.id
-                                            )
-                                          }}>
-                                          {vehicle.name}-{vehicle.plate_number}
-                                          <Check
-                                            className={cn(
-                                              'ml-auto',
-                                              vehicle.id.toString() ===
-                                                field.value.toString()
-                                                ? 'opacity-100'
-                                                : 'opacity-0'
-                                            )}
-                                          />
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </CommandList>
-                                </Command>
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="type"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="app__form_label">
-                              Fuel Type
-                            </FormLabel>
-                            <Select
-                              onValueChange={(value) => {
-                                form.setValue('type', value)
-                                if (value === 'Diesel') {
-                                  form.setValue('price', dieselPrice)
-                                }
-                                if (value === 'Gasoline') {
-                                  form.setValue('price', gasolinePrice)
-                                }
-                              }}
-                              value={field.value}
-                              defaultValue={
-                                editData
-                                  ? editData.type.toString()
-                                  : field.value
-                              }>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Choose Type" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="Diesel">Diesel</SelectItem>
-                                <SelectItem value="Gasoline">
-                                  Gasoline
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="quantity"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="app__form_label">
-                              Quantity (Liters)
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="Quantity"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                  <FormField
+                    control={form.control}
+                    name="quantity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Quantity (Liters)
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Quantity"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                      <FormField
-                        control={form.control}
-                        name="price"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="app__form_label">
-                              Price per Liter
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="any"
-                                placeholder="Price per Liter"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="starting_balance"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="app__form_label">
-                              Starting Balance (Liters)
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="any"
-                                placeholder="Starting Balance (Liters)"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="purpose"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="app__form_label">
-                              Purpose
-                            </FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Purpose"
-                                className="resize-none"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="destination"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="app__form_label">
-                              Destination
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Destination"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </>
-                  )}
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Price per Liter
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="any"
+                            placeholder="Price per Liter"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="starting_balance"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Starting Balance (Liters)
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="any"
+                            placeholder="Starting Balance (Liters)"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="purpose"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Purpose
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Purpose"
+                            className="resize-none"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="destination"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Destination
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Destination"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
                 <hr className="my-4" />
                 <div className="app__modal_footer">

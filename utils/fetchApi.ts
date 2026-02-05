@@ -518,7 +518,7 @@ export async function fetchPurchaseOrders(
     let query = supabase
       .from('ddm_ris_purchase_orders')
       .select(
-        '*, ddm_user:created_by(*), ddm_ris(id,quantity,price,status), ddm_ris_appropriation:appropriation(*)',
+        '*, ddm_user:created_by(*), ddm_ris(id,quantity,price,status), ddm_ris_appropriation:appropriation(*), department:department_id(*)',
         { count: 'exact' }
       )
 
@@ -631,9 +631,15 @@ export async function fetchRis(
     filterDateTo?: Date | undefined
   },
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
+  userEmail?: string,
+  userDepartmentId?: string
 ) {
   try {
+    // Admin emails that can see all records
+    const adminEmails = ['arfel@ddm.com', 'berlcamp@gmail.com']
+    const isAdmin = userEmail && adminEmails.includes(userEmail)
+
     // Appropriation filters
     const poIds: string[] = []
     if (filters.filterAppropriation && filters.filterAppropriation !== 'All') {
@@ -650,6 +656,24 @@ export async function fetchRis(
         } else {
           poIds.push('99999999')
         }
+      }
+    }
+
+    // For non-admin users, filter by purchase order department_id
+    // Only show RIS records where the purchase_order's department_id matches user's department_id
+    const departmentFilteredPoIds: string[] = []
+    if (!isAdmin && userDepartmentId) {
+      const { data: poData } = await supabase
+        .from('ddm_ris_purchase_orders')
+        .select('id')
+        .eq('department_id', userDepartmentId)
+        .limit(500)
+
+      if (poData && poData.length > 0) {
+        poData.forEach((d) => departmentFilteredPoIds.push(d.id))
+      } else {
+        // If no POs match user's department, return empty result
+        departmentFilteredPoIds.push('99999999')
       }
     }
 
@@ -706,6 +730,12 @@ export async function fetchRis(
     // From Appropriation filters
     if (poIds.length > 0) {
       query = query.in('po_id', poIds)
+    }
+
+    // For non-admin users, filter by purchase order department_id
+    // Only show RIS records where po_id matches the filtered PO IDs
+    if (!isAdmin && departmentFilteredPoIds.length > 0) {
+      query = query.in('po_id', departmentFilteredPoIds)
     }
 
     // Filter date from

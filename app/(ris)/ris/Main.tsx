@@ -73,7 +73,7 @@ const Page: React.FC = () => {
 
   const [zeroPrices, setZeroPrices] = useState<RisTypes[] | []>([])
 
-  const { supabase, session } = useSupabase()
+  const { supabase, session, currentUser } = useSupabase()
   const { hasAccess, setToast } = useFilter()
 
   // Works whether it's under pdfMake.vfs or directly vfs
@@ -100,7 +100,9 @@ const Page: React.FC = () => {
           filterDateTo,
         },
         perPageCount,
-        0
+        0,
+        session?.user?.email,
+        currentUser?.department_id
       )
 
       // update the list in redux
@@ -133,7 +135,9 @@ const Page: React.FC = () => {
           filterDateTo,
         },
         perPageCount,
-        list.length
+        list.length,
+        session?.user?.email,
+        currentUser?.department_id
       )
 
       // update the list in redux
@@ -195,7 +199,9 @@ const Page: React.FC = () => {
         filterDateTo,
       },
       99999,
-      0
+      0,
+      session?.user?.email,
+      currentUser?.department_id
     )
 
     const risData: RisTypes[] = result.data
@@ -263,7 +269,9 @@ const Page: React.FC = () => {
         filterDateTo,
       },
       99999,
-      0
+      0,
+      session?.user?.email,
+      currentUser?.department_id
     )
 
     const risData: RisTypes[] = result.data
@@ -511,7 +519,9 @@ const Page: React.FC = () => {
         filterDateTo,
       },
       99999,
-      0
+      0,
+      session?.user?.email,
+      currentUser?.department_id
     )
 
     const risData: RisTypes[] = result.data

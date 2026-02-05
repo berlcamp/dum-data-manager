@@ -21,7 +21,7 @@ import { Menu, Transition } from '@headlessui/react'
 import React, { Fragment, useEffect, useState } from 'react'
 import Filters from './Filters'
 // Types
-import type { AccountTypes } from '@/types'
+import type { AccountTypes, RisDepartmentTypes } from '@/types'
 
 // Redux imports
 import { updateList } from '@/GlobalRedux/Features/listSlice'
@@ -33,6 +33,7 @@ import AddEditModal from './AddEditModal'
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [list, setList] = useState<AccountTypes[]>([])
+  const [risDepartments, setRisDepartments] = useState<RisDepartmentTypes[]>([])
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [showConfirmInactiveModal, setShowConfirmInactiveModal] =
@@ -172,6 +173,17 @@ const Page: React.FC = () => {
     }
   }
 
+  // Fetch RIS departments
+  useEffect(() => {
+    ;(async () => {
+      const { data } = await supabase
+        .from('ddm_ris_departments')
+        .select()
+        .order('name', { ascending: true })
+      if (data) setRisDepartments(data)
+    })()
+  }, [supabase])
+
   // Update list whenever list in redux updates
   useEffect(() => {
     setList(globallist)
@@ -184,6 +196,13 @@ const Page: React.FC = () => {
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [perPageCount, filterStatus])
+
+  // Helper function to get RIS department name from ID
+  const getRisDepartmentName = (id: string | undefined): string => {
+    if (!id) return '-'
+    const department = risDepartments.find((d) => d.id === id)
+    return department ? department.name : '-'
+  }
 
   const isDataEmpty = !Array.isArray(list) || list.length < 1 || !list
 
@@ -233,6 +252,9 @@ const Page: React.FC = () => {
                     Temporary Password
                   </th>
                   <th className="hidden md:table-cell app__th">Department</th>
+                  <th className="hidden md:table-cell app__th">
+                    RIS Department
+                  </th>
                   <th className="hidden md:table-cell app__th">Status</th>
                 </tr>
               </thead>
@@ -326,6 +348,12 @@ const Page: React.FC = () => {
                               {item.department}
                             </div>
                             <div>
+                              <span className="app_td_mobile_label">
+                                RIS Department:
+                              </span>{' '}
+                              {getRisDepartmentName(item.department_id)}
+                            </div>
+                            <div>
                               {item.status === 'Inactive' ? (
                                 <span className="app__status_container_red">
                                   Inactive
@@ -350,6 +378,9 @@ const Page: React.FC = () => {
                         <div>{item.department}</div>
                       </td>
                       <td className="hidden md:table-cell app__td">
+                        <div>{getRisDepartmentName(item.department_id)}</div>
+                      </td>
+                      <td className="hidden md:table-cell app__td">
                         {item.status === 'Inactive' ? (
                           <span className="app__status_container_red">
                             Inactive
@@ -364,7 +395,7 @@ const Page: React.FC = () => {
                   ))}
                 {loading && (
                   <TableRowLoading
-                    cols={6}
+                    cols={7}
                     rows={2}
                   />
                 )}

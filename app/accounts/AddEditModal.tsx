@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
 // Types
-import type { AccountTypes } from '@/types'
+import type { AccountTypes, RisDepartmentTypes } from '@/types'
 
 // Redux imports
 import { updateList } from '@/GlobalRedux/Features/listSlice'
@@ -23,6 +23,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
   const { setToast } = useFilter()
   const [saving, setSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [risDepartments, setRisDepartments] = useState<RisDepartmentTypes[]>([])
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
   const serviceRoleKey = process.env.NEXT_PUBLIC_SERVICE_ROLE_KEY ?? ''
@@ -67,6 +68,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
         middlename: formdata.middlename,
         lastname: formdata.lastname,
         department: formdata.department,
+        department_id: formdata.department_id,
         status: 'Active',
         email: formdata.email,
         temp_password: tempPassword.toString(),
@@ -133,6 +135,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
       middlename: formdata.middlename,
       lastname: formdata.lastname,
       department: formdata.department,
+      department_id: formdata.department_id,
       temp_password:
         formdata.password !== '' ? formdata.password : editData.temp_password,
     }
@@ -180,6 +183,17 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
     }
   }
 
+  // Fetch RIS departments
+  useEffect(() => {
+    ;(async () => {
+      const { data } = await supabase
+        .from('ddm_ris_departments')
+        .select()
+        .order('name', { ascending: true })
+      if (data) setRisDepartments(data)
+    })()
+  }, [])
+
   // manually set the defaultValues of use-form-hook whenever the component receives new props.
   useEffect(() => {
     reset({
@@ -187,6 +201,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
       middlename: editData ? editData.middlename : '',
       lastname: editData ? editData.lastname : '',
       department: editData ? editData.department : '',
+      department_id: editData ? editData.department_id : '',
     })
   }, [editData, reset])
 
@@ -272,6 +287,25 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
                               key={i}
                               value={d.office}>
                               {d.office}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="app__form_field_container">
+                    <div className="w-full">
+                      <div className="app__label_standard">RIS Department</div>
+                      <div>
+                        <select
+                          {...register('department_id')}
+                          className="app__select_standard">
+                          <option value="">Choose RIS department</option>
+                          {risDepartments.map((d, i) => (
+                            <option
+                              key={i}
+                              value={d.id}>
+                              {d.name}
                             </option>
                           ))}
                         </select>

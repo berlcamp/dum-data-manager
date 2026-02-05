@@ -63,7 +63,7 @@ const Page: React.FC = () => {
   const [downloading, setDownloading] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const { supabase, session } = useSupabase()
+  const { supabase, session, currentUser } = useSupabase()
   const { hasAccess, setToast } = useFilter()
 
   const colors = [
@@ -108,7 +108,9 @@ const Page: React.FC = () => {
           filterDateTo,
         },
         9999,
-        0
+        0,
+        session?.user?.email,
+        currentUser?.department_id
       )
 
       const dataSetsData: any = []
