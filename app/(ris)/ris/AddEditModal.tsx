@@ -520,7 +520,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               if (po.department_id) {
                                 form.setValue(
                                   'department_id',
-                                  po.department_id.toString()
+                                  po.department_id.toString(),
+                                  { shouldValidate: true }
                                 )
                               }
                               if (po.type !== 'Fuel') {
@@ -530,13 +531,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               setGasolinePrice(po.gasoline_price || 0)
                             }
                           }}
-                          defaultValue={
-                            editData
-                              ? editData.po_id
-                                ? editData.po_id.toString()
-                                : field.value
-                              : field.value
-                          }>
+                          value={field.value?.toString() || ''}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Choose P.O." />
@@ -585,11 +580,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         </FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          defaultValue={
-                            editData
-                              ? editData.department_id.toString()
-                              : field.value
-                          }>
+                          value={field.value?.toString() || ''}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Choose Department" />
