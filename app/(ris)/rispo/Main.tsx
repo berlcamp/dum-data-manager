@@ -173,7 +173,11 @@ const Page: React.FC = () => {
     if (item.ddm_ris) {
       item.ddm_ris.forEach((ris) => {
         if (ris.status === 'Approved') {
-          totalAmount += Number(ris.total_amount || 0)
+          // Use total_amount if available, otherwise calculate from quantity * price
+          const risAmount = Number(
+            ris.total_amount || ris.quantity * ris.price || 0,
+          )
+          totalAmount += risAmount
         }
       })
     }
@@ -185,7 +189,11 @@ const Page: React.FC = () => {
     if (item.ddm_ris) {
       item.ddm_ris.forEach((ris) => {
         if (ris.status === 'Approved') {
-          totalAmount += Number(ris.total_amount || 0)
+          // Use total_amount if available, otherwise calculate from quantity * price
+          const risAmount = Number(
+            ris.total_amount || ris.quantity * ris.price || 0,
+          )
+          totalAmount += risAmount
         }
       })
     }
@@ -209,7 +217,7 @@ const Page: React.FC = () => {
       })
     }
 
-    const remainingQuantity = Number(item.quantity) - totalQuantityUsed
+    const remainingQuantity = Math.max(0, Number(item.quantity) - totalQuantityUsed)
     if (remainingQuantity < 100) {
       return (
         <span style={{ color: 'red', fontWeight: 'bold' }}>
@@ -231,7 +239,7 @@ const Page: React.FC = () => {
       })
     }
 
-    return Number(item.quantity) - totalQuantityUsed
+    return Math.max(0, Number(item.quantity) - totalQuantityUsed)
   }
 
   const countRemainingAmount = (item: RisPoTypes) => {
@@ -239,20 +247,20 @@ const Page: React.FC = () => {
     if (item.ddm_ris) {
       item.ddm_ris.forEach((ris) => {
         if (ris.status === 'Approved') {
-          totalAmount += Number(ris.total_amount || 0)
+          // Use total_amount if available, otherwise calculate from quantity * price
+          const risAmount = Number(
+            ris.total_amount || ris.quantity * ris.price || 0,
+          )
+          totalAmount += risAmount
         }
       })
     }
-    const remainingAmount = Number(item.amount) - totalAmount
-    if (remainingAmount < 100) {
-      return (
-        <span style={{ color: 'red', fontWeight: 'bold' }}>
-          {remainingAmount.toFixed(2)}
-        </span>
-      )
-    } else {
-      return <span>{remainingAmount.toFixed(2)}</span>
-    }
+    const remainingAmount = Math.max(0, Number(item.amount) - totalAmount)
+    return (
+      <span style={{ color: 'green', fontWeight: 'bold' }}>
+        {remainingAmount.toFixed(2)}
+      </span>
+    )
   }
 
   const countRemainingAmountFigure = (item: RisPoTypes) => {
@@ -260,11 +268,35 @@ const Page: React.FC = () => {
     if (item.ddm_ris) {
       item.ddm_ris.forEach((ris) => {
         if (ris.status === 'Approved') {
-          totalAmount += Number(ris.total_amount || 0)
+          // Use total_amount if available, otherwise calculate from quantity * price
+          const risAmount = Number(
+            ris.total_amount || ris.quantity * ris.price || 0,
+          )
+          totalAmount += risAmount
         }
       })
     }
-    return Number(item.amount) - totalAmount
+    return Math.max(0, Number(item.amount) - totalAmount)
+  }
+
+  // Overconsumed Amount function (for Fuel)
+  const countOverconsumedAmount = (item: RisPoTypes) => {
+    const consumedAmount = countConsumedAmountFigure(item)
+    const allocatedAmount = Number(item.amount)
+    const overconsumed = consumedAmount - allocatedAmount
+    return overconsumed > 0 ? overconsumed : 0
+  }
+
+  const countOverconsumedAmountDisplay = (item: RisPoTypes) => {
+    const overconsumed = countOverconsumedAmount(item)
+    if (overconsumed > 0) {
+      return (
+        <span style={{ color: 'red', fontWeight: 'bold' }}>
+          {overconsumed.toFixed(2)}
+        </span>
+      )
+    }
+    return <span>0.00</span>
   }
 
   const handleDownloadExcel = async () => {
@@ -285,6 +317,7 @@ const Page: React.FC = () => {
       { header: 'Allocated Amount', key: 'allocated_amount', width: 20 },
       { header: 'Consumed Amount', key: 'consumed_amount', width: 20 },
       { header: 'Remaining Amount', key: 'remaining_amount', width: 20 },
+      { header: 'Overconsumed Amount', key: 'overconsumed_amount', width: 20 },
       { header: 'Allocated Quantity', key: 'allocated_quantity', width: 20 },
       { header: 'Consumed Quantity', key: 'consumed_quantity', width: 20 },
       { header: 'Remaining Quantity', key: 'remaining_quantity', width: 20 },
@@ -321,6 +354,7 @@ const Page: React.FC = () => {
       const remAmt = countRemainingAmountFigure(item)
       const consumedQty = countConsumedQuantityFigure(item)
       const consumedAmt = countConsumedAmountFigure(item)
+      const overconsumedAmt = countOverconsumedAmount(item)
 
       data.push({
         no: index + 1,
@@ -332,6 +366,7 @@ const Page: React.FC = () => {
         allocated_amount: item.type === 'Fuel' ? `${item.amount}` : '',
         consumed_amount: item.type === 'Fuel' ? `${consumedAmt}` : '',
         remaining_amount: item.type === 'Fuel' ? `${remAmt}` : '',
+        overconsumed_amount: item.type === 'Fuel' ? `${overconsumedAmt}` : '',
         allocated_quantity:
           item.type === 'Diesel' || item.type === 'Gasoline'
             ? `${item.quantity}`
@@ -475,14 +510,16 @@ const Page: React.FC = () => {
                               {item.department?.name}
                             </span>
                           </div>
-                          {/* Display for Fuel type: Allocated Amount, Consumed Amount, Remaining Amount */}
+                          {/* Display for Fuel type: Allocated Amount, Consumed Amount, Remaining Amount, Overconsumed Amount */}
                           {item.type === 'Fuel' && (
                             <>
                               <div>
                                 <span className="font-light">
                                   Allocated Amount:
                                 </span>{' '}
-                                <span className="font-medium">
+                                <span
+                                  className="font-medium"
+                                  style={{ color: 'blue', fontWeight: 'bold' }}>
                                   {item.amount}
                                 </span>
                               </div>
@@ -502,6 +539,16 @@ const Page: React.FC = () => {
                                   {countRemainingAmount(item)}
                                 </span>
                               </div>
+                              {countOverconsumedAmount(item) > 0 && (
+                                <div>
+                                  <span className="font-light">
+                                    Overconsumed Amount:
+                                  </span>{' '}
+                                  <span className="font-medium">
+                                    {countOverconsumedAmountDisplay(item)}
+                                  </span>
+                                </div>
+                              )}
                             </>
                           )}
                           {/* Display for Diesel/Gasoline: Allocated Quantity, Consumed Quantity, Remaining Quantity */}
