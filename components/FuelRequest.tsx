@@ -150,7 +150,7 @@ export default function FuelRequest() {
       console.log(code, data[0])
     } else {
       setSelectedItem(null)
-      setErrorMessage('This code is inactive or does not exist')
+      setErrorMessage('This code does not exist')
     }
   }
 

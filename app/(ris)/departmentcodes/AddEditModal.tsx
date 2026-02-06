@@ -41,6 +41,9 @@ const FormSchema = z.object({
   department_id: z.string().min(1, {
     message: 'Department is required.',
   }),
+  status: z.string().min(1, {
+    message: 'Status is required.',
+  }),
 })
 
 interface ModalProps {
@@ -65,6 +68,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     defaultValues: {
       po_id: editData ? editData.po_id.toString() : '',
       department_id: editData ? editData.department_id.toString() : '',
+      status: editData ? editData.status : 'Active',
     },
   })
 
@@ -82,7 +86,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         code: generateRandomAlphaNumber(5),
         po_id: formdata.po_id,
         department_id: formdata.department_id,
-        status: 'Active',
+        status: formdata.status,
       }
 
       const { data, error } = await supabase
@@ -122,6 +126,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       const newData = {
         po_id: formdata.po_id,
         department_id: formdata.department_id,
+        status: formdata.status,
       }
 
       const { data, error } = await supabase
@@ -304,6 +309,33 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                   {po.remaining_quantity}
                                 </SelectItem>
                               ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Status
+                          </FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={
+                              editData ? editData.status : field.value
+                            }>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choose Status" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Active">Active</SelectItem>
+                              <SelectItem value="Inactive">Inactive</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />

@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  ConfirmModal,
   CustomButton,
   PerPage,
   RisSidebar,
@@ -32,7 +33,11 @@ const Page: React.FC = () => {
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RisDepartmentTypes | null>(
+    null
+  )
+  const [itemToDelete, setItemToDelete] = useState<RisDepartmentTypes | null>(
     null
   )
 
@@ -45,8 +50,8 @@ const Page: React.FC = () => {
   const [showingCount, setShowingCount] = useState<number>(0)
   const [resultsCount, setResultsCount] = useState<number>(0)
 
-  const { session } = useSupabase()
-  const { hasAccess } = useFilter()
+  const { session, supabase } = useSupabase()
+  const { hasAccess, setToast } = useFilter()
 
   // Redux staff
   const globallist = useSelector((state: any) => state.list.value)
@@ -110,6 +115,46 @@ const Page: React.FC = () => {
   const handleEdit = (item: RisDepartmentTypes) => {
     setShowAddModal(true)
     setSelectedItem(item)
+  }
+
+  const handleDelete = (item: RisDepartmentTypes) => {
+    setItemToDelete(item)
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return
+
+    try {
+      const { error } = await supabase
+        .from('ddm_ris_departments')
+        .delete()
+        .eq('id', itemToDelete.id)
+
+      if (error) throw new Error(error.message)
+
+      // Update data in redux
+      const items = [...list]
+      const updatedList = items.filter(
+        (item) => item.id.toString() !== itemToDelete.id.toString()
+      )
+      dispatch(updateList(updatedList))
+      setList(updatedList)
+
+      // Update counts
+      setResultsCount(resultsCount - 1)
+      setShowingCount(showingCount - 1)
+
+      // Show success message
+      setToast('success', 'Successfully Deleted!')
+
+      // Hide modal and reset
+      setShowDeleteModal(false)
+      setItemToDelete(null)
+    } catch (e) {
+      console.error(e)
+      setToast('error', 'Error deleting department')
+    }
   }
 
   // Update list whenever list in redux updates
@@ -184,6 +229,11 @@ const Page: React.FC = () => {
                             className="app__btn_green_xs">
                             Edit
                           </button>
+                          <button
+                            onClick={() => handleDelete(item)}
+                            className="app__btn_red_xs">
+                            Delete
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -211,6 +261,20 @@ const Page: React.FC = () => {
             <AddEditModal
               editData={selectedItem}
               hideModal={() => setShowAddModal(false)}
+            />
+          )}
+
+          {/* Delete Confirmation Modal */}
+          {showDeleteModal && (
+            <ConfirmModal
+              header="Confirm Delete"
+              btnText="Delete"
+              message={`Are you sure you want to delete "${itemToDelete?.name}"? This action cannot be undone.`}
+              onConfirm={handleConfirmDelete}
+              onCancel={() => {
+                setShowDeleteModal(false)
+                setItemToDelete(null)
+              }}
             />
           )}
         </div>
