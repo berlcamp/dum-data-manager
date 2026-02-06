@@ -57,7 +57,7 @@ const Page: React.FC = () => {
   const { hasAccess, setToast } = useFilter()
 
   const user: AccountTypes = systemUsers.find(
-    (user: AccountTypes) => user.id === session.user.id
+    (user: AccountTypes) => user.id === session.user.id,
   )
 
   // Redux staff
@@ -75,7 +75,7 @@ const Page: React.FC = () => {
           filterAppropriation,
         },
         perPageCount,
-        0
+        0,
       )
 
       // Update amount (delete this)
@@ -116,7 +116,7 @@ const Page: React.FC = () => {
           filterAppropriation,
         },
         perPageCount,
-        list.length
+        list.length,
       )
 
       // update the list in redux
@@ -140,6 +140,56 @@ const Page: React.FC = () => {
   const handleEdit = (item: RisPoTypes) => {
     setShowAddModal(true)
     setSelectedItem(item)
+  }
+
+  // Consumed Quantity functions (for Diesel/Gasoline)
+  const countConsumedQuantity = (item: RisPoTypes) => {
+    let totalQuantityUsed = 0
+    if (item.ddm_ris) {
+      item.ddm_ris.forEach((ris) => {
+        if (ris.status === 'Approved') {
+          totalQuantityUsed += Number(ris.quantity)
+        }
+      })
+    }
+    return totalQuantityUsed.toFixed(2)
+  }
+
+  const countConsumedQuantityFigure = (item: RisPoTypes) => {
+    let totalQuantityUsed = 0
+    if (item.ddm_ris) {
+      item.ddm_ris.forEach((ris) => {
+        if (ris.status === 'Approved') {
+          totalQuantityUsed += Number(ris.quantity)
+        }
+      })
+    }
+    return totalQuantityUsed
+  }
+
+  // Consumed Amount functions (for Fuel)
+  const countConsumedAmount = (item: RisPoTypes) => {
+    let totalAmount = 0
+    if (item.ddm_ris) {
+      item.ddm_ris.forEach((ris) => {
+        if (ris.status === 'Approved') {
+          totalAmount += Number(ris.quantity) * Number(ris.price)
+        }
+      })
+    }
+    return totalAmount.toFixed(2)
+  }
+
+  const countConsumedAmountFigure = (item: RisPoTypes) => {
+    let totalAmount = 0
+    if (item.ddm_ris) {
+      item.ddm_ris.forEach((ris) => {
+        if (ris.status === 'Approved') {
+          totalAmount += Number(ris.quantity) * Number(ris.price)
+        }
+      })
+    }
+    return totalAmount
   }
 
   const countRemainingQuantity = (item: RisPoTypes) => {
@@ -232,8 +282,11 @@ const Page: React.FC = () => {
       { header: 'Description', key: 'description', width: 20 },
       { header: 'Type', key: 'type', width: 20 },
       { header: 'Appropriation', key: 'appropriation', width: 20 },
-      { header: 'Amount', key: 'amount', width: 20 },
+      { header: 'Allocated Amount', key: 'allocated_amount', width: 20 },
+      { header: 'Consumed Amount', key: 'consumed_amount', width: 20 },
       { header: 'Remaining Amount', key: 'remaining_amount', width: 20 },
+      { header: 'Allocated Quantity', key: 'allocated_quantity', width: 20 },
+      { header: 'Consumed Quantity', key: 'consumed_quantity', width: 20 },
       { header: 'Remaining Quantity', key: 'remaining_quantity', width: 20 },
       // Add more columns based on your data structure
     ]
@@ -256,7 +309,7 @@ const Page: React.FC = () => {
         filterAppropriation,
       },
       99999,
-      0
+      0,
     )
 
     const risData: RisPoTypes[] = result.data
@@ -264,11 +317,10 @@ const Page: React.FC = () => {
     // Data for the Excel file
     const data: any[] = []
     risData.forEach((item, index) => {
-      let remQty = 0
-      if (item.type !== 'Fuel') {
-        remQty = countRemainingQuantityFigure(item)
-      }
+      const remQty = countRemainingQuantityFigure(item)
       const remAmt = countRemainingAmountFigure(item)
+      const consumedQty = countConsumedQuantityFigure(item)
+      const consumedAmt = countConsumedAmountFigure(item)
 
       data.push({
         no: index + 1,
@@ -277,9 +329,21 @@ const Page: React.FC = () => {
         description: `${item.description}`,
         type: `${item.type}`,
         appropriation: `${approp}`,
-        amount: `${item.amount}`,
-        remaining_amount: `${remAmt}`,
-        remaining_quantity: `${remQty !== 0 ? remQty : ''}`,
+        allocated_amount: item.type === 'Fuel' ? `${item.amount}` : '',
+        consumed_amount: item.type === 'Fuel' ? `${consumedAmt}` : '',
+        remaining_amount: item.type === 'Fuel' ? `${remAmt}` : '',
+        allocated_quantity:
+          item.type === 'Diesel' || item.type === 'Gasoline'
+            ? `${item.quantity}`
+            : '',
+        consumed_quantity:
+          item.type === 'Diesel' || item.type === 'Gasoline'
+            ? `${consumedQty}`
+            : '',
+        remaining_quantity:
+          item.type === 'Diesel' || item.type === 'Gasoline'
+            ? `${remQty}`
+            : '',
       })
     })
 
@@ -392,14 +456,6 @@ const Page: React.FC = () => {
                             <span className="font-light">Type:</span>{' '}
                             <span className="font-medium">{item.type}</span>
                           </div>
-                          {item.type !== 'Fuel' && (
-                            <div>
-                              <span className="font-light">Quantity (L):</span>{' '}
-                              <span className="font-medium">
-                                {item.quantity}
-                              </span>
-                            </div>
-                          )}
                           <div>
                             <span className="font-light">Po Date:</span>{' '}
                             <span className="font-medium">
@@ -419,28 +475,64 @@ const Page: React.FC = () => {
                               {item.department?.name}
                             </span>
                           </div>
-                          {item.type !== 'Fuel' && (
-                            <div>
-                              <span className="font-light">
-                                Remaining Quantity (L):
-                              </span>{' '}
-                              <span className="font-medium">
-                                {countRemainingQuantity(item)}
-                              </span>
-                            </div>
+                          {/* Display for Fuel type: Allocated Amount, Consumed Amount, Remaining Amount */}
+                          {item.type === 'Fuel' && (
+                            <>
+                              <div>
+                                <span className="font-light">
+                                  Allocated Amount:
+                                </span>{' '}
+                                <span className="font-medium">
+                                  {item.amount}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-light">
+                                  Consumed Amount:
+                                </span>{' '}
+                                <span className="font-medium">
+                                  {countConsumedAmount(item)}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-light">
+                                  Remaining Amount:
+                                </span>{' '}
+                                <span className="font-medium">
+                                  {countRemainingAmount(item)}
+                                </span>
+                              </div>
+                            </>
                           )}
-                          <div>
-                            <span className="font-light">Amount:</span>{' '}
-                            <span className="font-medium">{item.amount}</span>
-                          </div>
-                          <div>
-                            <span className="font-light">
-                              Remaining Amount:
-                            </span>{' '}
-                            <span className="font-medium">
-                              {countRemainingAmount(item)}
-                            </span>
-                          </div>
+                          {/* Display for Diesel/Gasoline: Allocated Quantity, Consumed Quantity, Remaining Quantity */}
+                          {(item.type === 'Diesel' || item.type === 'Gasoline') && (
+                            <>
+                              <div>
+                                <span className="font-light">
+                                  Allocated Quantity (L):
+                                </span>{' '}
+                                <span className="font-medium">
+                                  {item.quantity}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-light">
+                                  Consumed Quantity (L):
+                                </span>{' '}
+                                <span className="font-medium">
+                                  {countConsumedQuantity(item)}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-light">
+                                  Remaining Quantity (L):
+                                </span>{' '}
+                                <span className="font-medium">
+                                  {countRemainingQuantity(item)}
+                                </span>
+                              </div>
+                            </>
+                          )}
                           <div>
                             <span className="font-light">Description:</span>{' '}
                             <span className="font-medium">

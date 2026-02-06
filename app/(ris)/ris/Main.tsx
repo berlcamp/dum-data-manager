@@ -891,6 +891,49 @@ const Page: React.FC = () => {
             />
           </div>
 
+          {/* Summary Widgets */}
+          <div className="mx-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Total Approved Requests */}
+              <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+                <div className="text-sm text-gray-600 mb-1">Total Approved Requests</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {list.filter((item) => item.status === 'Approved').length}
+                </div>
+              </div>
+
+              {/* Total Liters */}
+              <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+                <div className="text-sm text-gray-600 mb-1">Total Liters</div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {list
+                    .filter((item) => item.status === 'Approved')
+                    .reduce((sum, item) => sum + (item.quantity || 0), 0)
+                    .toFixed(2)}
+                </div>
+              </div>
+
+              {/* Total Amount */}
+              <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+                <div className="text-sm text-gray-600 mb-1">Total Amount</div>
+                <div className="text-2xl font-bold text-purple-600">
+                  ₱
+                  {list
+                    .filter((item) => item.status === 'Approved')
+                    .reduce(
+                      (sum, item) =>
+                        sum + (item.price || 0) * (item.quantity || 0),
+                      0
+                    )
+                    .toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Warning Message */}
           {zeroPrices.length > 0 && (
             <div className="mx-4 mb-4">

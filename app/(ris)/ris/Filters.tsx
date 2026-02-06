@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useSupabase } from '@/context/SupabaseProvider'
+import { useFilter } from '@/context/FilterContext'
 import { cn } from '@/lib/utils'
 import {
   RisAppropriationTypes,
@@ -82,7 +83,9 @@ const Filters = ({
   const [cashAdvances, setCashAdvances] = useState<RisCaTypes[] | []>([])
   const [vehicles, setVehicles] = useState<RisVehicleTypes[] | []>([])
 
-  const { supabase } = useSupabase()
+  const { supabase, session, currentUser } = useSupabase()
+  const { hasAccess } = useFilter()
+  const hasRisAdminAccess = hasAccess('ris_admin')
 
   const form = useForm<z.infer<typeof FormSchema>>({
     defaultValues: {
@@ -144,13 +147,47 @@ const Filters = ({
         .order('name', { ascending: true })
       setDepartments(data)
     })()
-    // Fetch POs
+    // Fetch POs - filter by user access
     ;(async () => {
-      const { data } = await supabase
-        .from('ddm_ris_purchase_orders')
-        .select()
-        .order('po_number', { ascending: true })
-      setPurchaseOrders(data)
+      if (!session?.user?.email) return
+
+      // Admin emails that can see all records
+      const adminEmails = ['arfel@ddm.com', 'berlcamp@gmail.com']
+      const isAdmin =
+        adminEmails.includes(session.user.email) || hasRisAdminAccess
+
+      console.log('PO Filter Debug:', {
+        email: session.user.email,
+        isAdmin,
+        hasRisAdminAccess,
+        currentUserDepartmentId: currentUser?.department_id,
+      })
+
+      // For non-admin users, filter by department_id
+      if (!isAdmin) {
+        if (currentUser?.department_id) {
+          const { data, error } = await supabase
+            .from('ddm_ris_purchase_orders')
+            .select()
+            .eq('department_id', currentUser.department_id)
+            .order('po_number', { ascending: true })
+          
+          console.log('Non-admin PO query result:', { data, error, count: data?.length })
+          setPurchaseOrders(data || [])
+        } else {
+          // No department_id available, show empty list
+          console.log('No department_id for non-admin user')
+          setPurchaseOrders([])
+        }
+      } else {
+        // Admin users see all Purchase Orders
+        const { data } = await supabase
+          .from('ddm_ris_purchase_orders')
+          .select()
+          .order('po_number', { ascending: true })
+        console.log('Admin PO query result:', { count: data?.length })
+        setPurchaseOrders(data || [])
+      }
     })()
     // Fetch CAa
     ;(async () => {
@@ -169,7 +206,7 @@ const Filters = ({
       setVehicles(data)
     })()
     console.log('filter data fetched successfully')
-  }, [])
+  }, [session?.user?.email, currentUser?.department_id, hasRisAdminAccess])
 
   return (
     <div className="">

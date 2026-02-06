@@ -46,7 +46,16 @@ import type {
   RisVehicleTypes,
 } from '@/types'
 import { format } from 'date-fns'
-import { CalendarIcon, Check, ChevronsUpDown } from 'lucide-react'
+import {
+  AlertCircle,
+  CalendarIcon,
+  Check,
+  CheckCircle2,
+  ChevronsUpDown,
+  DollarSign,
+  Droplet,
+  Fuel,
+} from 'lucide-react'
 
 import {
   Command,
@@ -120,7 +129,8 @@ interface ModalProps {
 
 export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const { setToast, hasAccess } = useFilter()
-  const { supabase, session, systemUsers } = useSupabase()
+  const { supabase, session, systemUsers, currentUser } = useSupabase()
+  const hasRisAdminAccess = hasAccess('ris_admin')
 
   const [vehicles, setVehicles] = useState<RisVehicleTypes[] | []>([])
   const [departments, setDepartments] = useState<RisDepartmentTypes[] | []>([])
@@ -131,6 +141,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const [value, setValue] = useState('')
   const [dieselPrice, setDieselPrice] = useState(0)
   const [gasolinePrice, setGasolinePrice] = useState(0)
+  const [remainingLiters, setRemainingLiters] = useState<number | null>(null)
+  const [remainingAmount, setRemainingAmount] = useState<number | null>(null)
+  const [selectedPO, setSelectedPO] = useState<RisPoTypes | null>(null)
 
   // Error message
   const [errorMessage, setErrorMessage] = useState('')
@@ -166,6 +179,32 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     },
   })
 
+  // Helper function to calculate total amount based on quantity and price
+  const getTotalAmount = (): number => {
+    const quantity = form.watch('quantity') || 0
+    const price = form.watch('price') || 0
+    return Number(quantity) * Number(price)
+  }
+
+  // Helper function to calculate maximum quantity based on type
+  const getMaxQuantity = (): number | null => {
+    if (!selectedPO) return null
+
+    const currentType = form.watch('type')
+
+    // For Fuel PO type: return remaining amount (not liters)
+    if (selectedPO.type === 'Fuel') {
+      return remainingAmount !== null ? remainingAmount : null
+    }
+
+    // For Diesel or Gasoline form type: use remaining liters
+    if (currentType === 'Diesel' || currentType === 'Gasoline') {
+      return remainingLiters !== null ? remainingLiters : null
+    }
+
+    return null
+  }
+
   const onSubmit = async (formdata: z.infer<typeof FormSchema>) => {
     // Set transaction_type to Purchase Order by default
     formdata.transaction_type = 'Purchase Order'
@@ -179,6 +218,32 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     }
     setErrorMessage('')
 
+    // Validate quantity/total amount against maximum based on type
+    const maxQuantity = getMaxQuantity()
+
+    if (selectedPO?.type === 'Fuel') {
+      // For Fuel PO type: validate total amount against available amount
+      const totalAmount = (formdata.quantity || 0) * (formdata.price || 0)
+      if (maxQuantity !== null && totalAmount > maxQuantity) {
+        const errorMessage = `Total amount (₱${totalAmount.toFixed(2)}) cannot exceed available amount (₱${maxQuantity.toFixed(2)})`
+        form.setError('quantity', {
+          type: 'manual',
+          message: errorMessage,
+        })
+        return
+      }
+    } else {
+      // For Diesel/Gasoline: validate quantity against remaining liters
+      if (maxQuantity !== null && formdata.quantity > maxQuantity) {
+        const errorMessage = `Quantity cannot exceed available liters (${maxQuantity.toFixed(2)} L)`
+        form.setError('quantity', {
+          type: 'manual',
+          message: errorMessage,
+        })
+        return
+      }
+    }
+
     if (editData) {
       await handleUpdate(formdata)
     } else {
@@ -188,6 +253,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
   const handleCreate = async (formdata: z.infer<typeof FormSchema>) => {
     try {
+      const totalAmount = (formdata.quantity || 0) * (formdata.price || 0)
+
       const newData = {
         requester: formdata.requester,
         destination: formdata.destination,
@@ -204,6 +271,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         quantity: formdata.quantity,
         starting_balance: formdata.starting_balance,
         price: formdata.price,
+        total_amount: totalAmount,
         status: 'Approved',
         purpose: formdata.purpose,
         date_requested: format(new Date(formdata.date_requested), 'yyyy-MM-dd'),
@@ -250,6 +318,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     if (!editData) return
 
     try {
+      const totalAmount = (formdata.quantity || 0) * (formdata.price || 0)
+
       const newData = {
         requester: formdata.requester,
         destination: formdata.destination,
@@ -266,6 +336,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         quantity: formdata.quantity,
         starting_balance: formdata.starting_balance,
         price: formdata.price,
+        total_amount: totalAmount,
         purpose: formdata.purpose,
         date_requested: format(new Date(formdata.date_requested), 'yyyy-MM-dd'),
       }
@@ -327,29 +398,80 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       setDepartments(data)
     })()
 
-    // Fetch purchase orders
+    // Fetch purchase orders - filter by user access
     ;(async () => {
-      const { data } = await supabase
-        .from('ddm_ris_purchase_orders')
-        .select('*, ddm_ris_appropriation:appropriation(*),ddm_ris(quantity)')
-        .order('po_number', { ascending: true })
+      if (!session?.user?.email) return
+
+      // Admin emails that can see all records
+      const adminEmails = ['arfel@ddm.com', 'berlcamp@gmail.com']
+      const isAdmin =
+        adminEmails.includes(session.user.email) || hasRisAdminAccess
+
+      let data
+      // For non-admin users, filter by department_id
+      if (!isAdmin) {
+        if (currentUser?.department_id) {
+          const result = await supabase
+            .from('ddm_ris_purchase_orders')
+            .select(
+              '*, ddm_ris_appropriation:appropriation(*),ddm_ris(quantity)',
+            )
+            .eq('department_id', currentUser.department_id)
+            .order('po_number', { ascending: true })
+          data = result.data
+        } else {
+          // No department_id available, show empty list
+          data = []
+        }
+      } else {
+        // Admin users see all Purchase Orders
+        const result = await supabase
+          .from('ddm_ris_purchase_orders')
+          .select(
+            '*, ddm_ris_appropriation:appropriation(*),ddm_ris(quantity, total_amount, price)',
+          )
+          .order('po_number', { ascending: true })
+        data = result.data
+      }
 
       // setPurchaseOrders(data)
 
-      // Mutate the data to get the remaining quantity
+      // Mutate the data to get the remaining quantity/amount
       const updatedData: RisPoTypes[] = []
       if (data) {
         data.forEach((item: RisPoTypes) => {
-          const totalQuantityUsed = item.ddm_ris
-            ? item.ddm_ris.reduce(
-                (accumulator, ris) => accumulator + Number(ris.quantity),
-                0,
-              )
-            : 0
-          const remainingQuantity = Number(item.quantity) - totalQuantityUsed
+          // For Fuel type: calculate remaining amount
+          if (item.type === 'Fuel') {
+            const totalAmountUsed = item.ddm_ris
+              ? item.ddm_ris.reduce(
+                  (accumulator, ris) =>
+                    accumulator +
+                    Number(ris.total_amount || ris.quantity * ris.price || 0),
+                  0,
+                )
+              : 0
+            const remainingAmount = Number(item.amount) - totalAmountUsed
 
-          // Exclude on list if remain quantity is 0
-          if (item.type !== 'Fuel') {
+            // Show "Overused" if negative, otherwise show "Available"
+            const amountLabel =
+              remainingAmount < 0
+                ? ` (Overused: ₱${Math.abs(remainingAmount).toFixed(2)})`
+                : ` (Available: ₱${remainingAmount.toFixed(2)})`
+            updatedData.push({
+              ...item,
+              remaining_quantity: amountLabel,
+            })
+          } else {
+            // For Diesel/Gasoline: calculate remaining quantity
+            const totalQuantityUsed = item.ddm_ris
+              ? item.ddm_ris.reduce(
+                  (accumulator, ris) => accumulator + Number(ris.quantity),
+                  0,
+                )
+              : 0
+            const remainingQuantity = Number(item.quantity) - totalQuantityUsed
+
+            // Exclude on list if remain quantity is 0
             if (remainingQuantity > 0) {
               updatedData.push({
                 ...item,
@@ -358,11 +480,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                 )} Liters)`,
               })
             }
-          } else {
-            updatedData.push({
-              ...item,
-              remaining_quantity: '',
-            })
           }
         })
       }
@@ -405,7 +522,54 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       }
       setCashAdvances(updatedData)
     })()
-  }, [])
+  }, [session?.user?.email, currentUser?.department_id, hasRisAdminAccess])
+
+  // Initialize remaining liters when editing
+  useEffect(() => {
+    if (editData && editData.po_id && purchaseOrders.length > 0) {
+      const po = purchaseOrders.find(
+        (po) => po.id.toString() === editData.po_id?.toString(),
+      )
+      if (po) {
+        setSelectedPO(po)
+
+        // For Fuel PO type: calculate remaining amount
+        if (po.type === 'Fuel') {
+          const availableAmount = po.amount || 0
+          // Calculate total amount used
+          const totalAmountUsed = po.ddm_ris
+            ? po.ddm_ris.reduce(
+                (accumulator, ris) =>
+                  accumulator +
+                  Number(ris.total_amount || ris.quantity * ris.price || 0),
+                0,
+              )
+            : 0
+          // Add back the current record's amount since we're editing
+          const currentAmount = Number(
+            editData.total_amount || editData.quantity * editData.price || 0,
+          )
+          const remaining = availableAmount - totalAmountUsed + currentAmount
+          setRemainingAmount(remaining)
+          setRemainingLiters(null)
+        } else {
+          // For Diesel/Gasoline: calculate remaining liters
+          const totalQuantityUsed = po.ddm_ris
+            ? po.ddm_ris.reduce(
+                (accumulator, ris) => accumulator + Number(ris.quantity),
+                0,
+              )
+            : 0
+          // Add back the current record's quantity since we're editing
+          const currentQuantity = Number(editData.quantity)
+          const remaining =
+            Number(po.quantity) - totalQuantityUsed + currentQuantity
+          setRemainingLiters(remaining)
+          setRemainingAmount(null)
+        }
+      }
+    }
+  }, [editData, purchaseOrders])
 
   // const handleKeyDown = (event: KeyboardEvent) => {
   //   if (event.key === 'Escape') {
@@ -515,6 +679,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               (po) => po.id.toString() === value,
                             )
                             form.setValue('po_id', value)
+                            setSelectedPO(po || null)
                             if (po) {
                               // Automatically set the requesting department to the P.O.'s department
                               if (po.department_id) {
@@ -529,6 +694,65 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               }
                               setDieselPrice(po.diesel_price || 0)
                               setGasolinePrice(po.gasoline_price || 0)
+
+                              // For Fuel PO type: calculate remaining amount
+                              if (po.type === 'Fuel') {
+                                const availableAmount = po.amount || 0
+                                // Calculate total amount used
+                                const totalAmountUsed = po.ddm_ris
+                                  ? po.ddm_ris.reduce(
+                                      (accumulator, ris) =>
+                                        accumulator +
+                                        Number(
+                                          ris.total_amount ||
+                                            ris.quantity * ris.price ||
+                                            0,
+                                        ),
+                                      0,
+                                    )
+                                  : 0
+                                // If editing, add back the current record's amount
+                                const currentAmount =
+                                  editData &&
+                                  editData.po_id === po.id.toString()
+                                    ? Number(
+                                        editData.total_amount ||
+                                          editData.quantity * editData.price ||
+                                          0,
+                                      )
+                                    : 0
+                                const remaining =
+                                  availableAmount -
+                                  totalAmountUsed +
+                                  currentAmount
+                                setRemainingAmount(remaining)
+                                setRemainingLiters(null)
+                              } else {
+                                // Calculate and store remaining liters for Diesel/Gasoline types
+                                const totalQuantityUsed = po.ddm_ris
+                                  ? po.ddm_ris.reduce(
+                                      (accumulator, ris) =>
+                                        accumulator + Number(ris.quantity),
+                                      0,
+                                    )
+                                  : 0
+                                // If editing, add back the current record's quantity
+                                const currentQuantity =
+                                  editData &&
+                                  editData.po_id === po.id.toString()
+                                    ? Number(editData.quantity)
+                                    : 0
+                                const remaining =
+                                  Number(po.quantity) -
+                                  totalQuantityUsed +
+                                  currentQuantity
+                                setRemainingLiters(remaining)
+                                setRemainingAmount(null)
+                              }
+                            } else {
+                              setRemainingLiters(null)
+                              setRemainingAmount(null)
+                              setSelectedPO(null)
                             }
                           }}
                           value={field.value?.toString() || ''}>
@@ -557,10 +781,82 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               ))}
                           </SelectContent>
                         </Select>
+                        {(() => {
+                          const currentType = form.watch('type')
+                          if (!selectedPO) return null
+
+                          // For Fuel PO type: display available amount
+                          if (
+                            selectedPO.type === 'Fuel' &&
+                            remainingAmount !== null
+                          ) {
+                            // Show "Overused" if negative, otherwise show "Available"
+                            const isOverused = remainingAmount < 0
+                            const amountLabel = isOverused
+                              ? 'Overused Amount'
+                              : 'Available Amount'
+                            const bgColor = isOverused
+                              ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+                              : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
+                            const textColor = isOverused
+                              ? 'text-red-700 dark:text-red-400'
+                              : 'text-blue-700 dark:text-blue-400'
+
+                            return (
+                              <div
+                                className={`flex items-center gap-2 px-3 py-2 rounded-md border ${bgColor} ${textColor} text-sm font-medium mt-2`}>
+                                {isOverused ? (
+                                  <AlertCircle className="h-4 w-4" />
+                                ) : (
+                                  <CheckCircle2 className="h-4 w-4" />
+                                )}
+                                <span>
+                                  {amountLabel}: ₱
+                                  {Math.abs(remainingAmount).toFixed(2)}
+                                </span>
+                              </div>
+                            )
+                          }
+
+                          // For Diesel or Gasoline form type: display available liters
+                          if (
+                            (currentType === 'Diesel' ||
+                              currentType === 'Gasoline') &&
+                            remainingLiters !== null
+                          ) {
+                            // Show "Overused" if negative, otherwise show "Available"
+                            const isOverused = remainingLiters < 0
+                            const label = isOverused ? 'Overused' : 'Available'
+                            const bgColor = isOverused
+                              ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+                              : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
+                            const textColor = isOverused
+                              ? 'text-red-700 dark:text-red-400'
+                              : 'text-blue-700 dark:text-blue-400'
+
+                            return (
+                              <div
+                                className={`flex items-center gap-2 px-3 py-2 rounded-md border ${bgColor} ${textColor} text-sm font-medium mt-2`}>
+                                {isOverused ? (
+                                  <AlertCircle className="h-4 w-4" />
+                                ) : (
+                                  <Droplet className="h-4 w-4" />
+                                )}
+                                <span>
+                                  {label}:{' '}
+                                  {Math.abs(remainingLiters).toFixed(2)} Liters
+                                </span>
+                              </div>
+                            )
+                          }
+
+                          return null
+                        })()}
                         <FormMessage />
                         {errorMessage !== '' && (
-                          <div className="text-red-500 text-sm font-medium">
-                            {errorMessage}
+                          <div className="flex items-center gap-2 px-3 py-2 mt-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-400 text-sm font-medium">
+                            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                            <span>{errorMessage}</span>
                           </div>
                         )}
                       </FormItem>
@@ -677,7 +973,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                     name="type"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="app__form_label">
+                        <FormLabel className="app__form_label flex items-center gap-2">
+                          <Fuel className="h-4 w-4" />
                           Fuel Type
                         </FormLabel>
                         <Select
@@ -700,53 +997,196 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Diesel">Diesel</SelectItem>
-                            <SelectItem value="Gasoline">Gasoline</SelectItem>
+                            <SelectItem value="Diesel">
+                              <div className="flex items-center gap-2">
+                                <Droplet className="h-4 w-4 text-blue-500" />
+                                <span>Diesel</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="Gasoline">
+                              <div className="flex items-center gap-2">
+                                <Droplet className="h-4 w-4 text-orange-500" />
+                                <span>Gasoline</span>
+                              </div>
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  {/* Calculation Section */}
+                  <div className="md:col-span-2 pt-2 pb-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+                      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        Calculation Details
+                      </span>
+                      <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+                    </div>
+                  </div>
+
                   <FormField
                     control={form.control}
                     name="quantity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="app__form_label">
-                          Quantity (Liters)
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="Quantity"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const maxQty = getMaxQuantity()
+                      const fieldValue =
+                        typeof field.value === 'number'
+                          ? field.value
+                          : parseFloat(String(field.value || 0))
+                      const currentValue = fieldValue || 0
+                      const isNearLimit =
+                        maxQty !== null && currentValue > maxQty * 0.9
+                      const exceedsLimit =
+                        maxQty !== null && currentValue > maxQty
+
+                      return (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Quantity (Liters)
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                placeholder={'Enter quantity'}
+                                max={maxQty !== null ? maxQty : undefined}
+                                className={cn(
+                                  exceedsLimit &&
+                                    'border-red-500 focus-visible:ring-red-500',
+                                  isNearLimit &&
+                                    !exceedsLimit &&
+                                    'border-yellow-500 focus-visible:ring-yellow-500',
+                                )}
+                                {...field}
+                                onChange={(e) => {
+                                  const value = e.target.value
+                                  if (
+                                    maxQty !== null &&
+                                    parseFloat(value) > maxQty
+                                  ) {
+                                    field.onChange(maxQty.toString())
+                                  } else {
+                                    field.onChange(value)
+                                  }
+                                }}
+                              />
+
+                              <Droplet className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )
+                    }}
                   />
 
                   <FormField
                     control={form.control}
                     name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="app__form_label">
-                          Price per Liter
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="any"
-                            placeholder="Price per Liter"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const totalAmount = getTotalAmount()
+                      const quantity = form.watch('quantity') || 0
+                      const price = form.watch('price') || 0
+                      const maxAmount =
+                        selectedPO?.type === 'Fuel' ? remainingAmount : null
+                      const exceedsAvailable =
+                        maxAmount !== null && totalAmount > maxAmount
+                      const hasTotalAmount = quantity > 0 && price > 0
+
+                      return (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Price per Liter (₱)
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                step="any"
+                                placeholder="0.00"
+                                className={cn(
+                                  exceedsAvailable &&
+                                    'border-red-500 focus-visible:ring-red-500',
+                                )}
+                                {...field}
+                              />
+                              <DollarSign className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            </div>
+                          </FormControl>
+                          {hasTotalAmount && (
+                            <div
+                              className={cn(
+                                'mt-3 p-4 rounded-lg border-2 transition-all',
+                                exceedsAvailable
+                                  ? 'bg-red-50 dark:bg-red-950/20 border-red-300 dark:border-red-800'
+                                  : 'bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-800',
+                              )}>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  {exceedsAvailable ? (
+                                    <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                                  ) : (
+                                    <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                  )}
+                                  <span
+                                    className={cn(
+                                      'text-sm font-semibold',
+                                      exceedsAvailable
+                                        ? 'text-red-700 dark:text-red-400'
+                                        : 'text-green-700 dark:text-green-400',
+                                    )}>
+                                    Total Amount
+                                  </span>
+                                </div>
+                                <span
+                                  className={cn(
+                                    'text-lg font-bold',
+                                    exceedsAvailable
+                                      ? 'text-red-700 dark:text-red-400'
+                                      : 'text-green-700 dark:text-green-400',
+                                  )}>
+                                  ₱{totalAmount.toFixed(2)}
+                                </span>
+                              </div>
+                              {selectedPO?.type === 'Fuel' &&
+                                maxAmount !== null && (
+                                  <div
+                                    className={cn(
+                                      'mt-2 pt-2 border-t text-xs flex items-center justify-between',
+                                      exceedsAvailable
+                                        ? 'border-red-200 dark:border-red-800'
+                                        : 'border-green-200 dark:border-green-800',
+                                    )}>
+                                    <span
+                                      className={cn(
+                                        exceedsAvailable
+                                          ? 'text-red-600 dark:text-red-400'
+                                          : 'text-gray-600 dark:text-gray-400',
+                                      )}>
+                                      {exceedsAvailable
+                                        ? '⚠ Exceeds Available'
+                                        : 'Available Amount'}
+                                    </span>
+                                    <span
+                                      className={cn(
+                                        'font-semibold',
+                                        exceedsAvailable
+                                          ? 'text-red-700 dark:text-red-400'
+                                          : 'text-gray-700 dark:text-gray-300',
+                                      )}>
+                                      ₱{maxAmount.toFixed(2)}
+                                    </span>
+                                  </div>
+                                )}
+                            </div>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )
+                    }}
                   />
                   <FormField
                     control={form.control}
@@ -757,12 +1197,15 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                           Starting Balance (Liters)
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            step="any"
-                            placeholder="Starting Balance (Liters)"
-                            {...field}
-                          />
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              step="any"
+                              placeholder="0.00"
+                              {...field}
+                            />
+                            <Droplet className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
