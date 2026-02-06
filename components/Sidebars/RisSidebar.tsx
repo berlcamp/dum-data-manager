@@ -1,5 +1,4 @@
-import { useSupabase } from '@/context/SupabaseProvider'
-import { AccountTypes } from '@/types'
+import { useFilter } from '@/context/FilterContext'
 import { Cog8ToothIcon } from '@heroicons/react/20/solid'
 import { ListChecks } from 'lucide-react'
 import Link from 'next/link'
@@ -7,15 +6,7 @@ import { usePathname } from 'next/navigation'
 
 export default function RisSidebar() {
   const currentRoute = usePathname()
-
-  const { systemUsers, session } = useSupabase()
-  const user: AccountTypes = systemUsers.find(
-    (user: AccountTypes) => user.id === session.user.id
-  )
-
-  // Check if user has full access
-  const hasFullAccess =
-    user?.email === 'arfel@ddm.com' || user?.email === 'berlcamp@gmail.com'
+  const { hasAccess } = useFilter()
 
   return (
     <div className="px-2 mt-12">
@@ -37,7 +28,7 @@ export default function RisSidebar() {
             </span>
           </Link>
         </li>
-        {hasFullAccess && (
+        {hasAccess('ris_admin') && (
           <>
             <li>
               <Link

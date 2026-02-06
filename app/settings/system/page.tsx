@@ -71,6 +71,12 @@ const Page: React.FC = () => {
                 />
                 <ChooseUsers
                   multiple={true}
+                  type="ris_admin"
+                  users={users}
+                  title="R.I.S. System Admin"
+                />
+                <ChooseUsers
+                  multiple={true}
                   type="lcr"
                   users={users}
                   title="Who can access LCR System"

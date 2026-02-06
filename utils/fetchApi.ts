@@ -633,12 +633,13 @@ export async function fetchRis(
   perPageCount: number,
   rangeFrom: number,
   userEmail?: string,
-  userDepartmentId?: string
+  userDepartmentId?: string,
+  hasRisAdminAccess?: boolean
 ) {
   try {
     // Admin emails that can see all records
     const adminEmails = ['arfel@ddm.com', 'berlcamp@gmail.com']
-    const isAdmin = userEmail && adminEmails.includes(userEmail)
+    const isAdmin = (userEmail && adminEmails.includes(userEmail)) || hasRisAdminAccess
 
     // Appropriation filters
     const poIds: string[] = []

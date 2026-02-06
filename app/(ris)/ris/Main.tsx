@@ -75,6 +75,7 @@ const Page: React.FC = () => {
 
   const { supabase, session, currentUser } = useSupabase()
   const { hasAccess, setToast } = useFilter()
+  const hasRisAdminAccess = hasAccess('ris_admin')
 
   // Works whether it's under pdfMake.vfs or directly vfs
   pdfMake.vfs = pdfFonts.pdfMake?.vfs || pdfFonts.vfs
@@ -102,7 +103,8 @@ const Page: React.FC = () => {
         perPageCount,
         0,
         session?.user?.email,
-        currentUser?.department_id
+        currentUser?.department_id,
+        hasRisAdminAccess
       )
 
       // update the list in redux
@@ -137,7 +139,8 @@ const Page: React.FC = () => {
         perPageCount,
         list.length,
         session?.user?.email,
-        currentUser?.department_id
+        currentUser?.department_id,
+        hasRisAdminAccess
       )
 
       // update the list in redux
@@ -201,7 +204,8 @@ const Page: React.FC = () => {
       99999,
       0,
       session?.user?.email,
-      currentUser?.department_id
+      currentUser?.department_id,
+      hasRisAdminAccess
     )
 
     const risData: RisTypes[] = result.data
@@ -271,7 +275,8 @@ const Page: React.FC = () => {
       99999,
       0,
       session?.user?.email,
-      currentUser?.department_id
+      currentUser?.department_id,
+      hasRisAdminAccess
     )
 
     const risData: RisTypes[] = result.data
@@ -521,7 +526,8 @@ const Page: React.FC = () => {
       99999,
       0,
       session?.user?.email,
-      currentUser?.department_id
+      currentUser?.department_id,
+      hasRisAdminAccess
     )
 
     const risData: RisTypes[] = result.data

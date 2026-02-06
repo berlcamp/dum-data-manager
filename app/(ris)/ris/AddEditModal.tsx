@@ -119,7 +119,7 @@ interface ModalProps {
 }
 
 export default function AddEditModal({ hideModal, editData }: ModalProps) {
-  const { setToast } = useFilter()
+  const { setToast, hasAccess } = useFilter()
   const { supabase, session, systemUsers } = useSupabase()
 
   const [vehicles, setVehicles] = useState<RisVehicleTypes[] | []>([])
@@ -136,7 +136,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const [errorMessage, setErrorMessage] = useState('')
 
   const user: AccountTypes = systemUsers.find(
-    (user: AccountTypes) => user.id === session.user.id
+    (user: AccountTypes) => user.id === session.user.id,
   )
 
   console.log('editData', user)
@@ -224,13 +224,13 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         date_requested: data[0].date_requested,
         ddm_user: user,
         department: departments?.find(
-          (d) => d.id.toString() === formdata.department_id
+          (d) => d.id.toString() === formdata.department_id,
         ),
         purchase_order: purchaseOrders?.find(
-          (p) => p.id.toString() === formdata.po_id
+          (p) => p.id.toString() === formdata.po_id,
         ),
         cash_advance: cashAdvances?.find(
-          (p) => p.id.toString() === formdata.ca_id
+          (p) => p.id.toString() === formdata.ca_id,
         ),
         vehicle: vehicles?.find((v) => v.id.toString() === formdata.vehicle_id),
       }
@@ -284,13 +284,13 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         id: editData.id,
         date_requested: format(new Date(formdata.date_requested), 'yyyy-MM-dd'),
         department: departments?.find(
-          (d) => d.id.toString() === formdata.department_id
+          (d) => d.id.toString() === formdata.department_id,
         ),
         purchase_order: purchaseOrders?.find(
-          (p) => p.id.toString() === formdata.po_id
+          (p) => p.id.toString() === formdata.po_id,
         ),
         cash_advance: cashAdvances?.find(
-          (p) => p.id.toString() === formdata.ca_id
+          (p) => p.id.toString() === formdata.ca_id,
         ),
         vehicle: vehicles?.find((v) => v.id.toString() === formdata.vehicle_id),
       }
@@ -343,7 +343,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           const totalQuantityUsed = item.ddm_ris
             ? item.ddm_ris.reduce(
                 (accumulator, ris) => accumulator + Number(ris.quantity),
-                0
+                0,
               )
             : 0
           const remainingQuantity = Number(item.quantity) - totalQuantityUsed
@@ -354,7 +354,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
               updatedData.push({
                 ...item,
                 remaining_quantity: ` (Available: ${remainingQuantity.toFixed(
-                  2
+                  2,
                 )} Liters)`,
               })
             }
@@ -382,7 +382,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           const totalAmountUsed = item.ddm_ris
             ? item.ddm_ris.reduce(
                 (accumulator, ris) => accumulator + Number(ris.total_amount),
-                0
+                0,
               )
             : 0
           const remainingAmount = Number(item.amount) - totalAmountUsed
@@ -456,7 +456,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                 variant={'outline'}
                                 className={cn(
                                   'pl-3 text-left font-normal',
-                                  !field.value && 'text-muted-foreground'
+                                  !field.value && 'text-muted-foreground',
                                 )}>
                                 {field.value ? (
                                   format(field.value, 'PPP')
@@ -512,7 +512,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         <Select
                           onValueChange={(value) => {
                             const po = purchaseOrders?.find(
-                              (po) => po.id.toString() === value
+                              (po) => po.id.toString() === value,
                             )
                             form.setValue('po_id', value)
                             if (po) {
@@ -521,7 +521,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                 form.setValue(
                                   'department_id',
                                   po.department_id.toString(),
-                                  { shouldValidate: true }
+                                  { shouldValidate: true },
                                 )
                               }
                               if (po.type !== 'Fuel') {
@@ -540,12 +540,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                           <SelectContent>
                             {purchaseOrders
                               ?.filter((po) => {
-                                if (!user) return false
-                                // Allow specific emails to see all purchase orders
-                                if (
-                                  user.email === 'arfel@ddm.com' ||
-                                  user.email === 'berlcamp@gmail.com'
-                                ) {
+                                // Allow ris_admin access to see all purchase orders
+                                if (hasAccess('ris_admin')) {
                                   return true
                                 }
                                 // Otherwise, filter by department_id
@@ -616,20 +612,20 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                 role="combobox"
                                 className={cn(
                                   'w-full justify-between',
-                                  !field.value && 'text-muted-foreground'
+                                  !field.value && 'text-muted-foreground',
                                 )}>
                                 {field.value
                                   ? `${
                                       vehicles.find(
                                         (vehicle) =>
                                           vehicle.id.toString() ===
-                                          field.value.toString()
+                                          field.value.toString(),
                                       )?.name
                                     }-${
                                       vehicles.find(
                                         (vehicle) =>
                                           vehicle.id.toString() ===
-                                          field.value.toString()
+                                          field.value.toString(),
                                       )?.plate_number
                                     }`
                                   : 'Select Vehicle'}
@@ -652,7 +648,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                           'vehicle_id',
                                           field.value.toString() === vehicle.id
                                             ? ''
-                                            : vehicle.id
+                                            : vehicle.id,
                                         )
                                       }}>
                                       {vehicle.name}-{vehicle.plate_number}
@@ -662,7 +658,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                           vehicle.id.toString() ===
                                             field.value.toString()
                                             ? 'opacity-100'
-                                            : 'opacity-0'
+                                            : 'opacity-0',
                                         )}
                                       />
                                     </CommandItem>
