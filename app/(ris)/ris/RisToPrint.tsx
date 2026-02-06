@@ -88,7 +88,7 @@ const RisToPrint: React.FC<ChildProps> = ({ forwardedRef, ris }) => {
             <td className="text-center border border-gray-700">Liters</td>
             <td className="text-center border border-gray-700">{ris.price}</td>
             <td className="text-center border border-gray-700">
-              {(ris.price * ris.quantity).toLocaleString('en-US', {
+              {(ris.total_amount || 0).toLocaleString('en-US', {
                 minimumFractionDigits: 2, // Minimum number of decimal places
                 maximumFractionDigits: 2, // Maximum number of decimal places
               })}

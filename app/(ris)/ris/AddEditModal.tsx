@@ -218,32 +218,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     }
     setErrorMessage('')
 
-    // Validate quantity/total amount against maximum based on type
-    const maxQuantity = getMaxQuantity()
-
-    if (selectedPO?.type === 'Fuel') {
-      // For Fuel PO type: validate total amount against available amount
-      const totalAmount = (formdata.quantity || 0) * (formdata.price || 0)
-      if (maxQuantity !== null && totalAmount > maxQuantity) {
-        const errorMessage = `Total amount (₱${totalAmount.toFixed(2)}) cannot exceed available amount (₱${maxQuantity.toFixed(2)})`
-        form.setError('quantity', {
-          type: 'manual',
-          message: errorMessage,
-        })
-        return
-      }
-    } else {
-      // For Diesel/Gasoline: validate quantity against remaining liters
-      if (maxQuantity !== null && formdata.quantity > maxQuantity) {
-        const errorMessage = `Quantity cannot exceed available liters (${maxQuantity.toFixed(2)} L)`
-        form.setError('quantity', {
-          type: 'manual',
-          message: errorMessage,
-        })
-        return
-      }
-    }
-
     if (editData) {
       await handleUpdate(formdata)
     } else {
@@ -1031,17 +1005,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                     control={form.control}
                     name="quantity"
                     render={({ field }) => {
-                      const maxQty = getMaxQuantity()
-                      const fieldValue =
-                        typeof field.value === 'number'
-                          ? field.value
-                          : parseFloat(String(field.value || 0))
-                      const currentValue = fieldValue || 0
-                      const isNearLimit =
-                        maxQty !== null && currentValue > maxQty * 0.9
-                      const exceedsLimit =
-                        maxQty !== null && currentValue > maxQty
-
                       return (
                         <FormItem>
                           <FormLabel className="app__form_label">
@@ -1052,26 +1015,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               <Input
                                 type="number"
                                 placeholder={'Enter quantity'}
-                                max={maxQty !== null ? maxQty : undefined}
-                                className={cn(
-                                  exceedsLimit &&
-                                    'border-red-500 focus-visible:ring-red-500',
-                                  isNearLimit &&
-                                    !exceedsLimit &&
-                                    'border-yellow-500 focus-visible:ring-yellow-500',
-                                )}
                                 {...field}
-                                onChange={(e) => {
-                                  const value = e.target.value
-                                  if (
-                                    maxQty !== null &&
-                                    parseFloat(value) > maxQty
-                                  ) {
-                                    field.onChange(maxQty.toString())
-                                  } else {
-                                    field.onChange(value)
-                                  }
-                                }}
                               />
 
                               <Droplet className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />

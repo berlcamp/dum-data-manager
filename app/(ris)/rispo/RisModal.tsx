@@ -39,6 +39,7 @@ export default function RisModal({ hideModal, po }: ModalProps) {
       { header: 'Type', key: 'type', width: 20 },
       { header: 'Quantity', key: 'quantity', width: 20 },
       { header: 'Price', key: 'price', width: 20 },
+      { header: 'Total Amount', key: 'total_amount', width: 20 },
       { header: 'Vehicle', key: 'vehicle', width: 20 },
       { header: 'Department', key: 'department', width: 20 },
       // Add more columns based on your data structure
@@ -58,6 +59,7 @@ export default function RisModal({ hideModal, po }: ModalProps) {
         type: `${item.type}`,
         quantity: `${item.quantity}`,
         price: `${item.price}`,
+        total_amount: `${item.total_amount || 0}`,
         vehicle: `${item.vehicle.name}-${item.vehicle.plate_number}`,
         department: `${item.department.name}`,
       })
@@ -180,7 +182,7 @@ export default function RisModal({ hideModal, po }: ModalProps) {
                         per Liter
                       </td>
                       <td className="app__td">
-                        {(item.price * item.quantity).toLocaleString('en-US', {
+                        {(item.total_amount || 0).toLocaleString('en-US', {
                           minimumFractionDigits: 2, // Minimum number of decimal places
                           maximumFractionDigits: 2, // Maximum number of decimal places
                         })}

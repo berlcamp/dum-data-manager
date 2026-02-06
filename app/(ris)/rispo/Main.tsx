@@ -173,7 +173,7 @@ const Page: React.FC = () => {
     if (item.ddm_ris) {
       item.ddm_ris.forEach((ris) => {
         if (ris.status === 'Approved') {
-          totalAmount += Number(ris.quantity) * Number(ris.price)
+          totalAmount += Number(ris.total_amount || 0)
         }
       })
     }
@@ -185,7 +185,7 @@ const Page: React.FC = () => {
     if (item.ddm_ris) {
       item.ddm_ris.forEach((ris) => {
         if (ris.status === 'Approved') {
-          totalAmount += Number(ris.quantity) * Number(ris.price)
+          totalAmount += Number(ris.total_amount || 0)
         }
       })
     }
@@ -239,7 +239,7 @@ const Page: React.FC = () => {
     if (item.ddm_ris) {
       item.ddm_ris.forEach((ris) => {
         if (ris.status === 'Approved') {
-          totalAmount += Number(ris.quantity) * Number(ris.price)
+          totalAmount += Number(ris.total_amount || 0)
         }
       })
     }
@@ -260,7 +260,7 @@ const Page: React.FC = () => {
     if (item.ddm_ris) {
       item.ddm_ris.forEach((ris) => {
         if (ris.status === 'Approved') {
-          totalAmount += Number(ris.quantity) * Number(ris.price)
+          totalAmount += Number(ris.total_amount || 0)
         }
       })
     }

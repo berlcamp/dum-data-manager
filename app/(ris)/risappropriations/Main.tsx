@@ -119,7 +119,7 @@ const Page: React.FC = () => {
         if (po.ddm_ris) {
           po.ddm_ris.forEach((ris) => {
             if (ris.status === 'Approved') {
-              totalAmount += Number(ris.quantity) * Number(ris.price)
+              totalAmount += Number(ris.total_amount || 0)
             }
           })
         }

@@ -71,6 +71,9 @@ const Page: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [checkAll, setCheckAll] = useState(false)
 
+  // Widget data - all results based on current filters
+  const [widgetData, setWidgetData] = useState<RisTypes[]>([])
+
   const [zeroPrices, setZeroPrices] = useState<RisTypes[] | []>([])
 
   const { supabase, session, currentUser } = useSupabase()
@@ -83,6 +86,35 @@ const Page: React.FC = () => {
   // Redux staff
   const globallist = useSelector((state: any) => state.list.value)
   const dispatch = useDispatch()
+
+  // Fetch all results for widget calculations
+  const fetchWidgetData = async () => {
+    try {
+      const result = await fetchRis(
+        {
+          filterKeyword,
+          filterAppropriation,
+          filterVehicle,
+          filterStatus,
+          filterDepartment,
+          filterPo,
+          filterCa,
+          filterDateFrom,
+          filterDateTo,
+        },
+        99999, // Fetch all results for widgets
+        0,
+        session?.user?.email,
+        currentUser?.department_id,
+        hasRisAdminAccess
+      )
+
+      setWidgetData(result.data || [])
+    } catch (e) {
+      console.error(e)
+      setWidgetData([])
+    }
+  }
 
   const fetchData = async () => {
     setLoading(true)
@@ -184,6 +216,7 @@ const Page: React.FC = () => {
       { header: 'Starting Balance', key: 'starting_balance', width: 20 },
       { header: 'Quantity', key: 'quantity', width: 20 },
       { header: 'Price', key: 'price', width: 20 },
+      { header: 'Total Amount', key: 'total_amount', width: 20 },
       { header: 'PO', key: 'po', width: 20 },
       { header: 'Requester', key: 'requester', width: 20 },
       { header: 'Department', key: 'department', width: 20 },
@@ -222,7 +255,7 @@ const Page: React.FC = () => {
 
     for (let i = 0; i < sortedItems.length; i++) {
       const item = sortedItems[i]
-      const amount = item.price * item.quantity
+      const amount = item.total_amount || 0
 
       // if (threshold && runningTotal + amount > threshold) break
 
@@ -238,6 +271,7 @@ const Page: React.FC = () => {
         starting_balance: `${item.starting_balance}`,
         quantity: `${item.quantity}`,
         price: `${item.price}`,
+        total_amount: `${item.total_amount || 0}`,
         po: `${item.purchase_order?.po_number || ''}`,
         requester: `${item.requester}`,
         department: `${item.department.name}`,
@@ -371,7 +405,7 @@ const Page: React.FC = () => {
         const gasoline =
           item.type?.toLowerCase() === 'gasoline' ? item.quantity : 0
         const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
-        const amount = item.price * item.quantity
+        const amount = item.total_amount || 0
 
         totalGasoline += gasoline
         totalDiesel += diesel
@@ -611,7 +645,7 @@ const Page: React.FC = () => {
       const gasoline =
         item.type?.toLowerCase() === 'gasoline' ? item.quantity : 0
       const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
-      const amount = item.price * item.quantity
+      const amount = item.total_amount || 0
 
       // ⛔ Stop adding if threshold exceeded
       if (threshold && runningTotal + amount > threshold) break
@@ -833,6 +867,21 @@ const Page: React.FC = () => {
     setList(globallist)
   }, [globallist])
 
+  // Fetch widget data whenever filters change
+  useEffect(() => {
+    void fetchWidgetData()
+  }, [
+    filterKeyword,
+    filterAppropriation,
+    filterVehicle,
+    filterStatus,
+    filterDepartment,
+    filterPo,
+    filterCa,
+    filterDateFrom,
+    filterDateTo,
+  ])
+
   // Featch data
   useEffect(() => {
     setList([])
@@ -898,7 +947,7 @@ const Page: React.FC = () => {
               <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
                 <div className="text-sm text-gray-600 mb-1">Total Approved Requests</div>
                 <div className="text-2xl font-bold text-green-600">
-                  {list.filter((item) => item.status === 'Approved').length}
+                  {widgetData.filter((item) => item.status === 'Approved').length}
                 </div>
               </div>
 
@@ -906,7 +955,7 @@ const Page: React.FC = () => {
               <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
                 <div className="text-sm text-gray-600 mb-1">Total Liters</div>
                 <div className="text-2xl font-bold text-blue-600">
-                  {list
+                  {widgetData
                     .filter((item) => item.status === 'Approved')
                     .reduce((sum, item) => sum + (item.quantity || 0), 0)
                     .toFixed(2)}
@@ -918,11 +967,11 @@ const Page: React.FC = () => {
                 <div className="text-sm text-gray-600 mb-1">Total Amount</div>
                 <div className="text-2xl font-bold text-purple-600">
                   ₱
-                  {list
+                  {widgetData
                     .filter((item) => item.status === 'Approved')
                     .reduce(
                       (sum, item) =>
-                        sum + (item.price || 0) * (item.quantity || 0),
+                        sum + (item.total_amount || 0),
                       0
                     )
                     .toLocaleString('en-US', {
@@ -1112,6 +1161,16 @@ const Page: React.FC = () => {
                           <div>
                             <span className="font-light">Price /L:</span>{' '}
                             <span className="font-medium">{item.price}</span>
+                          </div>
+                          <div>
+                            <span className="font-light">Total Amount:</span>{' '}
+                            <span className="font-medium">
+                              ₱
+                              {(item.total_amount || 0).toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </span>
                           </div>
                           <div>
                             <span className="font-light">Vehicle:</span>{' '}
