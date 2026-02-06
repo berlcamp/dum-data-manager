@@ -245,7 +245,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         quantity: formdata.quantity,
         starting_balance: formdata.starting_balance,
         price: formdata.price,
-        total_amount: totalAmount,
         status: 'Approved',
         purpose: formdata.purpose,
         date_requested: format(new Date(formdata.date_requested), 'yyyy-MM-dd'),
@@ -310,7 +309,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         quantity: formdata.quantity,
         starting_balance: formdata.starting_balance,
         price: formdata.price,
-        total_amount: totalAmount,
         purpose: formdata.purpose,
         date_requested: format(new Date(formdata.date_requested), 'yyyy-MM-dd'),
       }

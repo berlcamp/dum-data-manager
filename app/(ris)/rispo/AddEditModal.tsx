@@ -46,6 +46,9 @@ import type {
 import { format } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
 
+// Allow saving even if the total amount exceeds the appropriation's remaining amount
+const ALLOW_SAVE_WHEN_EXCEEDED = true
+
 const FormSchema = z.object({
   type: z.string().min(1, {
     message: 'Type is required.',
@@ -105,7 +108,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const [departments, setDepartments] = useState<RisDepartmentTypes[] | []>([])
 
   const user: AccountTypes = systemUsers.find(
-    (user: AccountTypes) => user.id === session.user.id
+    (user: AccountTypes) => user.id === session.user.id,
   )
 
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -157,7 +160,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         quantity: formdata.quantity,
         amount:
           formdata.type === 'Fuel'
-            ? formdata.total_amount
+            ? undefined // Backend handles total_amount calculation for Fuel type
             : Number(formdata.quantity) * Number(price),
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
         created_by: session.user.id,
@@ -179,13 +182,13 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         ddm_ris_appropriation: {
           id: formdata.appropriation,
           name: appropriations.find(
-            (a) => a.id.toString() === formdata.appropriation.toString()
+            (a) => a.id.toString() === formdata.appropriation.toString(),
           )?.name,
         },
         department: {
           id: formdata.department_id,
           name: departments.find(
-            (d) => d.id.toString() === formdata.department_id.toString()
+            (d) => d.id.toString() === formdata.department_id.toString(),
           )?.name,
         },
       }
@@ -213,7 +216,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         price = formdata.diesel_price
       }
 
-      const newData = {
+      const newData: any = {
         type: formdata.type,
         description: formdata.description,
         po_number: formdata.po_number,
@@ -222,10 +225,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         diesel_price: formdata.diesel_price,
         gasoline_price: formdata.gasoline_price,
         quantity: formdata.quantity,
-        amount:
-          formdata.type === 'Fuel'
-            ? formdata.total_amount
-            : Number(formdata.quantity) * Number(price),
+        // Don't include amount/total_amount in update - database calculates it via DEFAULT/trigger
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
         created_by: session.user.id,
       }
@@ -239,20 +239,26 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
       // Append new data in redux
       const items = [...globallist]
+      // Calculate amount for local state (database calculates total_amount automatically)
+      const calculatedAmount =
+        formdata.type === 'Fuel'
+          ? formdata.total_amount
+          : Number(formdata.quantity) * Number(price)
       const updatedData = {
         ...newData,
         id: editData.id,
+        amount: calculatedAmount,
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
         ddm_ris_appropriation: {
           id: formdata.appropriation,
           name: appropriations.find(
-            (a) => a.id.toString() === formdata.appropriation.toString()
+            (a) => a.id.toString() === formdata.appropriation.toString(),
           )?.name,
         },
         department: {
           id: formdata.department_id,
           name: departments.find(
-            (d) => d.id.toString() === formdata.department_id.toString()
+            (d) => d.id.toString() === formdata.department_id.toString(),
           )?.name,
         },
       }
@@ -290,7 +296,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           const totalUsed = item.ddm_ris_purchase_orders
             ? item.ddm_ris_purchase_orders.reduce(
                 (accumulator, po) => accumulator + Number(po.amount),
-                0
+                0,
               )
             : 0
           const remainingAmount = Number(item.amount) - totalUsed
@@ -367,7 +373,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                   variant={'outline'}
                                   className={cn(
                                     'pl-3 text-left font-normal',
-                                    !field.value && 'text-muted-foreground'
+                                    !field.value && 'text-muted-foreground',
                                   )}>
                                   {field.value ? (
                                     format(field.value, 'PPP')
@@ -442,7 +448,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                     {
                                       minimumFractionDigits: 2, // Minimum number of decimal places
                                       maximumFractionDigits: 2, // Maximum number of decimal places
-                                    }
+                                    },
                                   )}
                                   )
                                 </SelectItem>
