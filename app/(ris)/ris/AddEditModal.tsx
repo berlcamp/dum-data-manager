@@ -354,11 +354,40 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   useEffect(() => {
     // Fetch vehicles
     ;(async () => {
-      const { data } = await supabase
+      let query = supabase
         .from('ddm_ris_vehicles')
         .select()
-        .order('name', { ascending: true })
-      setVehicles(data)
+
+      // Filter by department if user doesn't have ris_admin access
+      if (!hasRisAdminAccess && currentUser?.department_id) {
+        // First try to filter by department_id if the field exists
+        query = query.eq('department_id', currentUser.department_id)
+      }
+
+      const { data } = await query.order('name', { ascending: true })
+      
+      // If no results and user doesn't have admin access, try filtering by vehicles used in RIS records for their department
+      if (!hasRisAdminAccess && currentUser?.department_id && (!data || data.length === 0)) {
+        const { data: risData } = await supabase
+          .from('ddm_ris')
+          .select('vehicle_id')
+          .eq('department_id', currentUser.department_id)
+        
+        if (risData && risData.length > 0) {
+          const vehicleIds = Array.from(new Set(risData.map((ris: { vehicle_id: string }) => ris.vehicle_id).filter(Boolean)))
+          if (vehicleIds.length > 0) {
+            const { data: vehicleData } = await supabase
+              .from('ddm_ris_vehicles')
+              .select()
+              .in('id', vehicleIds)
+              .order('name', { ascending: true })
+            setVehicles(vehicleData || [])
+            return
+          }
+        }
+      }
+      
+      setVehicles(data || [])
     })()
 
     // Fetch departments

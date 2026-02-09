@@ -12,7 +12,7 @@ import {
   TopBar,
   Unauthorized,
 } from '@/components/index'
-import { fetchRis } from '@/utils/fetchApi'
+import { fetchRis, fetchPurchaseOrders } from '@/utils/fetchApi'
 import Excel from 'exceljs'
 import { saveAs } from 'file-saver'
 import React, { useEffect, useState } from 'react'
@@ -23,7 +23,7 @@ import pdfFonts from 'pdfmake/build/vfs_fonts'
 import Filters from './Filters'
 
 // Types
-import type { RisTypes } from '@/types'
+import type { RisTypes, RisPoTypes } from '@/types'
 
 // Redux imports
 import { updateList } from '@/GlobalRedux/Features/listSlice'
@@ -76,6 +76,9 @@ const Page: React.FC = () => {
 
   const [zeroPrices, setZeroPrices] = useState<RisTypes[] | []>([])
 
+  // PO widget data for non-admin users
+  const [poWidgetData, setPoWidgetData] = useState<RisPoTypes[]>([])
+
   const { supabase, session, currentUser } = useSupabase()
   const { hasAccess, setToast } = useFilter()
   const hasRisAdminAccess = hasAccess('ris_admin')
@@ -114,6 +117,61 @@ const Page: React.FC = () => {
       console.error(e)
       setWidgetData([])
     }
+  }
+
+  // Fetch PO data for widget (only for non-admin users)
+  const fetchPoWidgetData = async () => {
+    if (hasRisAdminAccess) {
+      setPoWidgetData([])
+      return
+    }
+
+    try {
+      // For non-admin users, filter by their department
+      let query = supabase
+        .from('ddm_ris_purchase_orders')
+        .select(
+          '*, ddm_user:created_by(*), ddm_ris(id,quantity,price,status,total_amount), ddm_ris_appropriation:appropriation(*), department:department_id(*)'
+        )
+        .eq('type', 'Fuel') // Only show Fuel type POs
+
+      // Filter by department for non-admin users
+      if (currentUser?.department_id) {
+        query = query.eq('department_id', currentUser.department_id)
+      }
+
+      // Filter by appropriation if selected
+      if (filterAppropriation && filterAppropriation !== 'All') {
+        query = query.eq('appropriation', filterAppropriation)
+      }
+
+      query = query.order('id', { ascending: false })
+
+      const { data, error } = await query
+
+      if (error) throw new Error(error.message)
+
+      setPoWidgetData(data || [])
+    } catch (e) {
+      console.error(e)
+      setPoWidgetData([])
+    }
+  }
+
+  // Calculate remaining amount for PO (for Fuel type)
+  const countRemainingAmount = (item: RisPoTypes) => {
+    let totalAmount = 0
+    if (item.ddm_ris) {
+      item.ddm_ris.forEach((ris) => {
+        if (ris.status === 'Approved') {
+          const risAmount = Number(
+            ris.total_amount || ris.quantity * ris.price || 0
+          )
+          totalAmount += risAmount
+        }
+      })
+    }
+    return Math.max(0, Number(item.amount) - totalAmount)
   }
 
   const fetchData = async () => {
@@ -854,13 +912,17 @@ const Page: React.FC = () => {
     }
   }
 
-  // Get all RIS without price
+  // Get all RIS without price (only for admin users)
   useEffect(() => {
-    ;(async () => {
-      const { data } = await supabase.from('ddm_ris').select().eq('price', 0)
-      setZeroPrices(data)
-    })()
-  }, [])
+    if (hasRisAdminAccess) {
+      ;(async () => {
+        const { data } = await supabase.from('ddm_ris').select().eq('price', 0)
+        setZeroPrices(data || [])
+      })()
+    } else {
+      setZeroPrices([])
+    }
+  }, [hasRisAdminAccess, supabase])
 
   // Update list whenever list in redux updates
   useEffect(() => {
@@ -870,6 +932,7 @@ const Page: React.FC = () => {
   // Fetch widget data whenever filters change
   useEffect(() => {
     void fetchWidgetData()
+    void fetchPoWidgetData()
   }, [
     filterKeyword,
     filterAppropriation,
@@ -880,6 +943,8 @@ const Page: React.FC = () => {
     filterCa,
     filterDateFrom,
     filterDateTo,
+    hasRisAdminAccess,
+    currentUser?.department_id,
   ])
 
   // Featch data
@@ -983,8 +1048,8 @@ const Page: React.FC = () => {
             </div>
           </div>
 
-          {/* Warning Message */}
-          {zeroPrices.length > 0 && (
+          {/* Warning Message - Only show for admin users */}
+          {hasRisAdminAccess && zeroPrices.length > 0 && (
             <div className="mx-4 mb-4">
               <div className="text-xs">
                 <span className="text-red-500 font-bold">
@@ -997,6 +1062,61 @@ const Page: React.FC = () => {
                     {ris.id},{' '}
                   </span>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* PO List Widget - Only show for non-admin users */}
+          {!hasRisAdminAccess && (
+            <div className="mx-4 mb-4">
+              <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+                <div className="text-sm text-gray-600 mb-3 font-semibold">
+                  Purchase Orders - Remaining Amounts
+                </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {poWidgetData.length > 0 ? (
+                    poWidgetData.map((po) => {
+                      const remainingAmount = countRemainingAmount(po)
+                      return (
+                        <div
+                          key={po.id}
+                          className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                          <div className="flex-1">
+                            <span className="font-medium text-gray-800">
+                              {po.po_number}
+                            </span>
+                            {po.description && (
+                              <span className="text-gray-500 text-sm ml-2">
+                                - {po.description}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500">
+                              Remaining
+                            </div>
+                            <div
+                              className={`font-bold ${
+                                remainingAmount < 1000
+                                  ? 'text-red-600'
+                                  : 'text-green-600'
+                              }`}>
+                              ₱
+                              {remainingAmount.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="text-gray-500 text-sm py-2">
+                      No Purchase Orders found
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -1038,22 +1158,26 @@ const Page: React.FC = () => {
               // handleClick={handleDownloadExcel}
               handleClick={handleDownloadPDF}
             />
-            <CustomButton
-              containerStyles="app__btn_blue"
-              isDisabled={downloading}
-              title={downloading ? 'Downloading...' : 'Summary by Department'}
-              btnType="button"
-              // handleClick={handleDownloadExcel}
-              handleClick={() => setShowDepartmentModal(true)}
-            />
-            <DepartmentModal
-              isOpen={showDepartmentModal}
-              onClose={() => setShowDepartmentModal(false)}
-              onConfirm={(deptName) => {
-                setShowDepartmentModal(false)
-                handleDownloadPDFByDepartment(deptName)
-              }}
-            />
+            {hasRisAdminAccess && (
+              <>
+                <CustomButton
+                  containerStyles="app__btn_blue"
+                  isDisabled={downloading}
+                  title={downloading ? 'Downloading...' : 'Summary by Department'}
+                  btnType="button"
+                  // handleClick={handleDownloadExcel}
+                  handleClick={() => setShowDepartmentModal(true)}
+                />
+                <DepartmentModal
+                  isOpen={showDepartmentModal}
+                  onClose={() => setShowDepartmentModal(false)}
+                  onConfirm={(deptName) => {
+                    setShowDepartmentModal(false)
+                    handleDownloadPDFByDepartment(deptName)
+                  }}
+                />
+              </>
+            )}
           </div>
 
           {/* Per Page */}

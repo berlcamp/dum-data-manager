@@ -103,16 +103,28 @@ const Filters = ({
   })
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-    setFilterCa(data.cash_advance || 'All')
     setFilterPo(data.purchase_order || 'All')
-    setFilterAppropriation(data.appropriation || 'All')
-    setFilterVehicle(data.vehicle || 'All')
-    setFilterStatus(data.status || 'All')
-    setFilterDepartment(data.department || 'All')
     setFilterDateFrom(data.dateFrom)
     setFilterDateTo(data.dateTo)
     setFilterKeyword(data.keyword || '')
-    setFilterThreshold(data.threshold || '')
+    
+    // Only set admin-only filters if user has ris_admin access
+    if (hasRisAdminAccess) {
+      setFilterCa(data.cash_advance || 'All')
+      setFilterAppropriation(data.appropriation || 'All')
+      setFilterVehicle(data.vehicle || 'All')
+      setFilterStatus(data.status || 'All')
+      setFilterDepartment(data.department || 'All')
+      setFilterThreshold(data.threshold || '')
+    } else {
+      // Reset admin-only filters for non-admin users
+      setFilterCa('All')
+      setFilterAppropriation('All')
+      setFilterVehicle('All')
+      setFilterStatus('All')
+      setFilterDepartment('All')
+      setFilterThreshold('')
+    }
   }
 
   // clear all filters
@@ -199,11 +211,40 @@ const Filters = ({
     })()
     // Fetch vehicles
     ;(async () => {
-      const { data } = await supabase
+      let query = supabase
         .from('ddm_ris_vehicles')
         .select()
-        .order('name', { ascending: true })
-      setVehicles(data)
+
+      // Filter by department if user doesn't have ris_admin access
+      if (!hasRisAdminAccess && currentUser?.department_id) {
+        // First try to filter by department_id if the field exists
+        query = query.eq('department_id', currentUser.department_id)
+      }
+
+      const { data } = await query.order('name', { ascending: true })
+      
+      // If no results and user doesn't have admin access, try filtering by vehicles used in RIS records for their department
+      if (!hasRisAdminAccess && currentUser?.department_id && (!data || data.length === 0)) {
+        const { data: risData } = await supabase
+          .from('ddm_ris')
+          .select('vehicle_id')
+          .eq('department_id', currentUser.department_id)
+        
+        if (risData && risData.length > 0) {
+          const vehicleIds = Array.from(new Set(risData.map((ris: { vehicle_id: string }) => ris.vehicle_id).filter(Boolean)))
+          if (vehicleIds.length > 0) {
+            const { data: vehicleData } = await supabase
+              .from('ddm_ris_vehicles')
+              .select()
+              .in('id', vehicleIds)
+              .order('name', { ascending: true })
+            setVehicles(vehicleData || [])
+            return
+          }
+        }
+      }
+      
+      setVehicles(data || [])
     })()
     console.log('filter data fetched successfully')
   }, [session?.user?.email, currentUser?.department_id, hasRisAdminAccess])
@@ -341,174 +382,178 @@ const Filters = ({
                 )}
               />
             </div>
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="cash_advance"
-                render={({ field }) => (
-                  <FormItem className="w-[140px]">
-                    <FormLabel className="app__form_label">C.A.</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value?.toString()}
-                      defaultValue={field.value?.toString()}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="All" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {cashAdvances?.map((a, i) => (
-                          <SelectItem
-                            key={i}
-                            value={a.id.toString()}>
-                            {a.ca_number}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="department"
-                render={({ field }) => (
-                  <FormItem className="w-[140px]">
-                    <FormLabel className="app__form_label">
-                      Departments
-                    </FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value?.toString()}
-                      defaultValue={field.value?.toString()}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="All" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {departments?.map((item, idx) => (
-                          <SelectItem
-                            key={idx}
-                            value={item.id.toString()}>
-                            {item.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="appropriation"
-                render={({ field }) => (
-                  <FormItem className="w-[140px]">
-                    <FormLabel className="app__form_label">
-                      Appropriation
-                    </FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value?.toString()}
-                      defaultValue={field.value?.toString()}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="All" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {appropriations?.map((item, idx) => (
-                          <SelectItem
-                            key={idx}
-                            value={item.id.toString()}>
-                            {item.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="vehicle"
-                render={({ field }) => (
-                  <FormItem className="w-[140px]">
-                    <FormLabel className="app__form_label">Vehicle</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value?.toString()}
-                      defaultValue={field.value?.toString()}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="All" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {vehicles?.map((item, idx) => (
-                          <SelectItem
-                            key={idx}
-                            value={item.id.toString()}>
-                            {item.name} - {item.plate_number}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem className="w-[140px]">
-                    <FormLabel className="app__form_label">Status</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value?.toString()}
-                      defaultValue={field.value?.toString()}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="All" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Pending">Pending</SelectItem>
-                        <SelectItem value="Approved">Approved</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="threshold"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="app__form_label">
-                      Amount Threshold
-                    </FormLabel>
-                    <Input
-                      placeholder="Amount Threshold"
-                      className="w-[200px]"
-                      type="number"
-                      {...field}
-                    />
-                  </FormItem>
-                )}
-              />
-            </div>
+            {hasRisAdminAccess && (
+              <>
+                <div className="items-center inline-flex app__filter_field_container">
+                  <FormField
+                    control={form.control}
+                    name="cash_advance"
+                    render={({ field }) => (
+                      <FormItem className="w-[140px]">
+                        <FormLabel className="app__form_label">C.A.</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value?.toString()}
+                          defaultValue={field.value?.toString()}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="All" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {cashAdvances?.map((a, i) => (
+                              <SelectItem
+                                key={i}
+                                value={a.id.toString()}>
+                                {a.ca_number}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="items-center inline-flex app__filter_field_container">
+                  <FormField
+                    control={form.control}
+                    name="department"
+                    render={({ field }) => (
+                      <FormItem className="w-[140px]">
+                        <FormLabel className="app__form_label">
+                          Departments
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value?.toString()}
+                          defaultValue={field.value?.toString()}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="All" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {departments?.map((item, idx) => (
+                              <SelectItem
+                                key={idx}
+                                value={item.id.toString()}>
+                                {item.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="items-center inline-flex app__filter_field_container">
+                  <FormField
+                    control={form.control}
+                    name="appropriation"
+                    render={({ field }) => (
+                      <FormItem className="w-[140px]">
+                        <FormLabel className="app__form_label">
+                          Appropriation
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value?.toString()}
+                          defaultValue={field.value?.toString()}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="All" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {appropriations?.map((item, idx) => (
+                              <SelectItem
+                                key={idx}
+                                value={item.id.toString()}>
+                                {item.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="items-center inline-flex app__filter_field_container">
+                  <FormField
+                    control={form.control}
+                    name="vehicle"
+                    render={({ field }) => (
+                      <FormItem className="w-[140px]">
+                        <FormLabel className="app__form_label">Vehicle</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value?.toString()}
+                          defaultValue={field.value?.toString()}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="All" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {vehicles?.map((item, idx) => (
+                              <SelectItem
+                                key={idx}
+                                value={item.id.toString()}>
+                                {item.name} - {item.plate_number}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="items-center inline-flex app__filter_field_container">
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem className="w-[140px]">
+                        <FormLabel className="app__form_label">Status</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value?.toString()}
+                          defaultValue={field.value?.toString()}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="All" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Pending">Pending</SelectItem>
+                            <SelectItem value="Approved">Approved</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="items-center inline-flex app__filter_field_container">
+                  <FormField
+                    control={form.control}
+                    name="threshold"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className="app__form_label">
+                          Amount Threshold
+                        </FormLabel>
+                        <Input
+                          placeholder="Amount Threshold"
+                          className="w-[200px]"
+                          type="number"
+                          {...field}
+                        />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex items-center space-x-2 mt-4">
