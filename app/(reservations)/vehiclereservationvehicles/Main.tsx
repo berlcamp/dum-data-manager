@@ -16,7 +16,7 @@ import React, { useEffect, useState } from 'react'
 import Filters from './Filters'
 
 // Types
-import type { RisVehicleTypes } from '@/types'
+import type { ReservationVehicleTypes } from '@/types'
 
 // Redux imports
 import { updateList } from '@/GlobalRedux/Features/listSlice'
@@ -32,13 +32,14 @@ const Page: React.FC = () => {
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<RisVehicleTypes | null>(null)
+  const [selectedItem, setSelectedItem] =
+    useState<ReservationVehicleTypes | null>(null)
 
   // Filters
   const [filterKeyword, setFilterKeyword] = useState('')
 
   // List
-  const [list, setList] = useState<RisVehicleTypes[]>([])
+  const [list, setList] = useState<ReservationVehicleTypes[]>([])
   const [perPageCount, setPerPageCount] = useState<number>(10)
   const [showingCount, setShowingCount] = useState<number>(0)
   const [resultsCount, setResultsCount] = useState<number>(0)
@@ -105,7 +106,7 @@ const Page: React.FC = () => {
     setSelectedItem(null)
   }
 
-  const handleEdit = (item: RisVehicleTypes) => {
+  const handleEdit = (item: ReservationVehicleTypes) => {
     setShowAddModal(true)
     setSelectedItem(item)
   }
@@ -137,10 +138,10 @@ const Page: React.FC = () => {
           {/* Header */}
           <TopBar />
           <div className="app__title">
-            <Title title="Vehicles" />
+            <Title title="Units" />
             <CustomButton
               containerStyles="app__btn_green"
-              title="Add New Vehicle"
+              title="Add New Unit"
               btnType="button"
               handleClick={handleAdd}
             />
@@ -164,7 +165,8 @@ const Page: React.FC = () => {
             <table className="app__table">
               <thead className="app__thead">
                 <tr>
-                  <th className="app__th">Vehicle</th>
+                  <th className="app__th">Unit Name</th>
+                  <th className="app__th">Type</th>
                   <th className="app__th">Plate Number</th>
                   <th className="app__th"></th>
                 </tr>
@@ -176,7 +178,12 @@ const Page: React.FC = () => {
                       key={index}
                       className="app__tr">
                       <td className="app__td">{item.name}</td>
-                      <td className="app__td">{item.plate_number}</td>
+                      <td className="app__td">{item.type ?? '-'}</td>
+                      <td className="app__td">
+                        {item.type === 'Vehicle'
+                          ? item.plate_number ?? '-'
+                          : '-'}
+                      </td>
                       <td className="app__td">
                         <div className="flex space-x-2 items-center">
                           <button
@@ -190,7 +197,7 @@ const Page: React.FC = () => {
                   ))}
                 {loading && (
                   <TableRowLoading
-                    cols={3}
+                    cols={4}
                     rows={2}
                   />
                 )}

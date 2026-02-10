@@ -40,10 +40,10 @@ const Filters = ({ setFilterKeyword }: FilterTypes) => {
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel className="app__form_label">
-                      Search Vehicle.
+                      Search Units
                     </FormLabel>
                     <Input
-                      placeholder="Search Vehicle Name or Plate Number"
+                      placeholder="Search Unit Name, Type or Plate Number"
                       className="w-[340px]"
                       {...field}
                     />

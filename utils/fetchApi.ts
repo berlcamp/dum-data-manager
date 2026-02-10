@@ -878,30 +878,46 @@ export async function fetchRisDepartmentCodes(
 export async function fetchVehicleReservations(filters: {
   filterKeyword?: string
   filterVehicle?: string
-  filterDate?: Date | undefined
+  filterDateFrom?: Date | undefined
+  filterDateTo?: Date | undefined
+  filterStatus?: string
 }) {
   try {
     let query = supabase
       .from('ddm_reservations')
       .select('*, vehicle:vehicle_id(*)', { count: 'exact' })
 
-    // Full text search
+    // Full text search (requester, department, purpose)
     if (
       typeof filters.filterKeyword !== 'undefined' &&
       filters.filterKeyword.trim() !== ''
     ) {
+      const kw = filters.filterKeyword.trim()
       query = query.or(
-        `requester.ilike.%${filters.filterKeyword}%,department.ilike.%${filters.filterKeyword}%`
+        `requester.ilike.%${kw}%,department.ilike.%${kw}%,purpose.ilike.%${kw}%`
       )
     }
 
-    // Filter date
-    if (typeof filters.filterDate !== 'undefined') {
-      query = query.eq(
-        'date',
-        format(new Date(filters.filterDate), 'yyyy-MM-dd')
-      )
+    // Filter date range
+    if (
+      typeof filters.filterDateFrom !== 'undefined' ||
+      typeof filters.filterDateTo !== 'undefined'
+    ) {
+      // Date range
+      if (typeof filters.filterDateFrom !== 'undefined') {
+        query = query.gte(
+          'date',
+          format(new Date(filters.filterDateFrom), 'yyyy-MM-dd')
+        )
+      }
+      if (typeof filters.filterDateTo !== 'undefined') {
+        query = query.lte(
+          'date',
+          format(new Date(filters.filterDateTo), 'yyyy-MM-dd')
+        )
+      }
     } else {
+      // Default: show 2 days ago to 5 days ahead (week view)
       const d = new Date()
       const currentDate = subDays(d, 2)
       const newDate = addDays(d, 5)
@@ -914,7 +930,13 @@ export async function fetchVehicleReservations(filters: {
       query = query.eq('vehicle_id', filters.filterVehicle)
     }
 
+    // Filter status
+    if (filters.filterStatus && filters.filterStatus.trim() !== '') {
+      query = query.eq('status', filters.filterStatus)
+    }
+
     // Order By
+    query = query.order('date', { ascending: true })
     query = query.order('time', { ascending: true })
 
     const { data, count, error } = await query
@@ -948,7 +970,7 @@ export async function fetchReservationVehicles(
       filters.filterKeyword.trim() !== ''
     ) {
       query = query.or(
-        `name.ilike.%${filters.filterKeyword}%,plate_number.ilike.%${filters.filterKeyword}%`
+        `name.ilike.%${filters.filterKeyword}%,plate_number.ilike.%${filters.filterKeyword}%,type.ilike.%${filters.filterKeyword}%`
       )
     }
 

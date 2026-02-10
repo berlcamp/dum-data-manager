@@ -40,7 +40,7 @@ export default function VehicleReservationSidebar() {
                 ? 'app_menu_link_active'
                 : ''
             }`}>
-            <span className="flex-1 ml-3 whitespace-nowrap">Vehicles</span>
+            <span className="flex-1 ml-3 whitespace-nowrap">Units</span>
           </Link>
         </li>
       </ul>

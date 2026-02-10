@@ -358,7 +358,8 @@ export interface ReservationTypes {
 export interface ReservationVehicleTypes {
   id: string
   name: string
-  plate_number: string
+  plate_number: string | null
+  type: string | null
 }
 
 export interface HoursTypes {

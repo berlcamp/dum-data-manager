@@ -405,7 +405,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               <SelectItem
                                 key={idx}
                                 value={vehicle.id.toString()}>
-                                {vehicle.name} - {vehicle.plate_number}
+                                {vehicle.name}
+                            {vehicle.plate_number ? ` - ${vehicle.plate_number}` : ''}
                               </SelectItem>
                             ))}
                           </SelectContent>

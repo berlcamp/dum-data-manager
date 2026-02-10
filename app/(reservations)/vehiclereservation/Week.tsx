@@ -1,166 +1,183 @@
+'use client'
+
+import { Card, CardContent } from '@/components/ui/card'
+import { reservationStatusColors } from '@/lib/constants'
+import { cn } from '@/lib/utils'
 import { HoursTypes, ListTypes, ReservationTypes } from '@/types'
 import { generateTimeArray } from '@/utils/text-helper'
 import {
   addDays,
   addHours,
+  endOfWeek,
   format,
   isAfter,
   isBefore,
   isEqual,
+  isSameDay,
   parse,
-  subDays,
+  startOfWeek,
 } from 'date-fns'
 import { useEffect, useState } from 'react'
-import AddEditModal from './AddEditModal'
 import ListModal from './ListModal'
 
-interface PageProps {
+interface WeekProps {
   data: ReservationTypes[]
+  currentDate: Date
+  onEdit: (item: ReservationTypes) => void
 }
 
-export default function Week({ data }: PageProps) {
-  // List
+export default function Week({ data, currentDate, onEdit }: WeekProps) {
   const [list, setList] = useState<ListTypes[] | []>([])
-
-  // Modals
   const [showListModal, setShowListModal] = useState(false)
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<ReservationTypes | null>(
-    null
-  )
-  const [selectedItems, setSelectedItems] = useState<ReservationTypes[] | []>(
-    []
-  )
+  const [selectedItems, setSelectedItems] = useState<ReservationTypes[]>([])
+
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 })
+  const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 })
+  const hours = generateTimeArray(true)
+
+  useEffect(() => {
+    const listArray: ListTypes[] = []
+    let day = weekStart
+
+    while (day <= weekEnd) {
+      const hoursArray: HoursTypes[] = hours.map((h) => {
+        const filtered = data.filter((i: ReservationTypes) => {
+          const time1 = parse(i.time, 'h:mm a', new Date('1970-01-01'))
+          const time2 = parse(h, 'h a', new Date('1970-01-01'))
+          const time3 = addHours(
+            parse(h, 'h a', new Date('1970-01-01')),
+            1
+          )
+
+          const areTimesEqual = isEqual(time1, time2)
+          const isTime1AfterTime2 = isAfter(time1, time2)
+          const isTime1BeforeTime3 = isBefore(time1, time3)
+
+          return (
+            format(new Date(i.date), 'yyyy-MM-dd') ===
+              format(day, 'yyyy-MM-dd') &&
+            (areTimesEqual || (isTime1AfterTime2 && isTime1BeforeTime3))
+          )
+        })
+
+        return { hour: h, reservations: filtered }
+      })
+
+      listArray.push({
+        date: format(day, 'yyyy-MM-dd'),
+        hours: hoursArray,
+      })
+      day = addDays(day, 1)
+    }
+
+    setList(listArray)
+  }, [data, currentDate])
 
   const handleEdit = (item: ReservationTypes) => {
-    setShowAddModal(true)
-    setSelectedItem(item)
+    onEdit(item)
   }
 
-  // Update list whenever list in redux updates
-  useEffect(() => {
-    // Create 7 days list
-    const d = new Date()
-    let currentDate = subDays(d, 2)
-    const newDate = addDays(d, 5)
-    const listArray: ListTypes[] = []
-    const hours = generateTimeArray(true)
+  const handleShowAll = (items: ReservationTypes[]) => {
+    setSelectedItems(items)
+    setShowListModal(true)
+  }
 
-    while (currentDate < newDate) {
-      if (data && data.length > 0) {
-        const hoursArray: HoursTypes[] = []
-        hours.forEach((h) => {
-          const filtered = data.filter((i: ReservationTypes) => {
-            const time1 = parse(i.time, 'h:mm a', new Date('1970-01-01'))
-            const time2 = parse(h, 'h a', new Date('1970-01-01'))
-            const time3 = addHours(parse(h, 'h a', new Date('1970-01-01')), 1)
-
-            const areTimesEqual = isEqual(time1, time2) // Check if the times are equal
-            const isTime1AfterTime2 = isAfter(time1, time2) // Check if time1 is after time2
-            const isTime1BeforeTime3 = isBefore(time1, time3) // Check if time1 is before time3
-            if (
-              format(new Date(i.date), 'yyyy-MM-dd') ===
-                format(new Date(currentDate), 'yyyy-MM-dd') &&
-              (areTimesEqual || (isTime1AfterTime2 && isTime1BeforeTime3))
-            ) {
-              return true
-            } else {
-              return false
-            }
-          })
-          hoursArray.push({
-            hour: h,
-            reservations: filtered,
-          })
-        })
-
-        listArray.push({
-          date: format(new Date(currentDate), 'yyyy-MM-dd'),
-          hours: hoursArray,
-        })
-      }
-      currentDate = addDays(currentDate, 1)
-    }
-    setList(listArray)
-  }, [data])
+  const handleListModalEdit = (item: ReservationTypes) => {
+    onEdit(item)
+    setShowListModal(false)
+  }
 
   return (
-    <div className="mx-4 grid grid-cols-8">
-      <div className="text-right">
-        <div className="h-20 border-r"></div>
-        {generateTimeArray(true).map((h) => (
-          <div
-            key={h}
-            className="h-24 pr-1 border-r border-t">
-            {h}
-          </div>
-        ))}
-      </div>
-      {list.map((item, idx) => (
-        <div
-          key={idx}
-          className="border-r border-t">
-          <div className="h-20 border-b text-center space-y-2">
-            <div>{format(new Date(item.date), 'EEE')}</div>
-            <div>
-              <span
-                className={`${
-                  format(new Date(item.date), 'dd') === format(new Date(), 'dd')
-                    ? 'bg-blue-500 rounded-full p-2 text-lg font-bold text-white'
-                    : 'p-2 text-lg'
-                }`}>
-                {format(new Date(item.date), 'dd')}
-              </span>
-            </div>
-          </div>
-          {item.hours.map((h, idx) => (
-            <div
-              key={idx}
-              className="relative h-24 border-b leading-none">
-              {h.reservations.map((r, idx2) => (
+    <>
+      <Card>
+        <CardContent className="p-0">
+          <div className="grid grid-cols-8">
+            <div className="border-r border-b border-border/50 bg-muted/30">
+              <div className="h-20 border-b" />
+              {hours.map((h) => (
                 <div
-                  key={idx2}
-                  onClick={() => handleEdit(r)}
-                  className={`${
-                    idx2 > 1 ? 'hidden' : ''
-                  } bg-green-100 leading-none px-1 mb-1 cursor-pointer`}>
-                  <div className="text-[10px] font-bold">{r.time}</div>
-                  <div className="text-[11px]">
-                    {r.vehicle?.name} {r.vehicle?.plate_number}
-                  </div>
+                  key={h}
+                  className="h-24 pr-2 pt-1 border-b border-border/50 text-right text-xs text-muted-foreground"
+                >
+                  {h}
                 </div>
               ))}
-              {h.reservations.length > 2 && (
-                <div className="text-center leading-none">
-                  <span
-                    onClick={() => {
-                      setShowListModal(true)
-                      setSelectedItems(h.reservations)
-                    }}
-                    className="bg-blue-600 cursor-pointer text-white leading-none rounded-sm px-1 font-semibold text-[9px]">
-                    See All ({h.reservations.length})
-                  </span>
-                </div>
-              )}
             </div>
-          ))}
-        </div>
-      ))}
+            {list.map((item) => {
+              const isToday = isSameDay(new Date(item.date), new Date())
+              return (
+                <div
+                  key={item.date}
+                  className={cn(
+                    'border-r border-b border-border/50 min-h-[400px] flex flex-col',
+                    isToday && 'bg-primary/5'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'h-20 border-b p-3 flex flex-col justify-center',
+                      isToday && 'text-primary'
+                    )}
+                  >
+                    <div className="text-xs text-muted-foreground uppercase">
+                      {format(new Date(item.date), 'EEE')}
+                    </div>
+                    <div className="text-lg font-semibold">
+                      {format(new Date(item.date), 'd')}
+                    </div>
+                  </div>
+                  {item.hours.map((h) => (
+                    <div
+                      key={h.hour}
+                      className="relative h-24 border-b border-border/50 p-1 flex flex-col gap-1"
+                    >
+                      {h.reservations.slice(0, 2).map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          className={cn(
+                            'text-xs px-2 py-1 rounded-md truncate text-left transition-all hover:scale-[1.02] hover:shadow-sm',
+                            reservationStatusColors[r.status] ||
+                              'bg-muted text-muted-foreground hover:bg-muted/80'
+                          )}
+                          onClick={() => handleEdit(r)}
+                          title={`${r.requester} - ${r.vehicle?.name ?? ''}`}
+                        >
+                          <div className="font-medium truncate">
+                            {r.vehicle?.name ?? '—'}
+                          </div>
+                          {r.time && (
+                            <div className="text-[10px] opacity-75">
+                              {r.time}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                      {h.reservations.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => handleShowAll(h.reservations)}
+                          className="text-[10px] text-primary hover:underline font-medium mt-0.5"
+                        >
+                          +{h.reservations.length - 2} more
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Add/Edit Modal */}
-      {showAddModal && (
-        <AddEditModal
-          editData={selectedItem}
-          hideModal={() => setShowAddModal(false)}
-        />
-      )}
-      {/* Add/Edit Modal */}
       {showListModal && (
         <ListModal
           data={selectedItems}
           hideModal={() => setShowListModal(false)}
+          onEdit={handleListModalEdit}
         />
       )}
-    </div>
+    </>
   )
 }

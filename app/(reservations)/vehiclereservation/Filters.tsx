@@ -1,6 +1,7 @@
-import { CustomButton } from '@/components/index'
+'use client'
+
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -10,11 +11,6 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -22,154 +18,133 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useSupabase } from '@/context/SupabaseProvider'
-import { cn } from '@/lib/utils'
 import { ReservationVehicleTypes } from '@/types'
-import { format } from 'date-fns'
-import { CalendarIcon } from 'lucide-react'
+import { Filter } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 interface FilterTypes {
-  setFilterDate: (date: Date | undefined) => void
   setFilterKeyword: (keyword: string) => void
   setFilterVehicle: (vehicle: string) => void
+  filterKeyword?: string
+  filterVehicle?: string
 }
 
 const FormSchema = z.object({
   keyword: z.string().optional(),
-  date: z.date().optional(),
   vehicle: z.string().optional(),
 })
 
 const Filters = ({
-  setFilterDate,
   setFilterKeyword,
   setFilterVehicle,
+  filterKeyword = '',
+  filterVehicle = '',
 }: FilterTypes) => {
-  //
   const [vehicles, setVehicles] = useState<ReservationVehicleTypes[] | []>([])
 
   const { supabase } = useSupabase()
 
   const form = useForm<z.infer<typeof FormSchema>>({
-    defaultValues: { date: undefined, keyword: '', vehicle: '' },
+    defaultValues: {
+      keyword: filterKeyword,
+      vehicle: filterVehicle || 'all',
+    },
   })
 
-  const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-    setFilterDate(data.date)
+  useEffect(() => {
+    form.reset({
+      keyword: filterKeyword,
+      vehicle: filterVehicle || 'all',
+    })
+  }, [filterKeyword, filterVehicle])
+
+  const onSubmit = (data: z.infer<typeof FormSchema>) => {
     setFilterKeyword(data.keyword || '')
-
-    const vehicleId = vehicles.find(
-      (v) => `${v.name}-${v.plate_number}` === data.vehicle
-    )?.id
-
-    setFilterVehicle(vehicleId || '')
+    setFilterVehicle(data.vehicle === 'all' ? '' : data.vehicle || '')
   }
 
-  // clear all filters
   const handleClear = () => {
-    form.reset()
-    setFilterDate(undefined)
+    form.reset({
+      keyword: '',
+      vehicle: 'all',
+    })
     setFilterKeyword('')
     setFilterVehicle('')
   }
 
+  const hasActiveFilters = filterKeyword || filterVehicle
+
   useEffect(() => {
-    // Fetch vehicles
-    ;(async () => {
+    void (async () => {
       const { data } = await supabase
         .from('ddm_reservation_vehicles')
         .select()
         .order('name', { ascending: true })
-      setVehicles(data)
+      setVehicles(data ?? [])
     })()
   }, [])
 
   return (
-    <div className="">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="items-center space-x-2 space-y-1">
-            <div className="items-center inline-flex app__filter_field_container">
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">
+            Filters
+          </span>
+          {hasActiveFilters && (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              Active
+            </span>
+          )}
+        </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <div className="flex flex-wrap items-end gap-x-6 gap-y-4">
               <FormField
                 control={form.control}
                 name="keyword"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="app__form_label">Search</FormLabel>
+                  <FormItem className="flex flex-col gap-1.5 min-w-[220px]">
+                    <FormLabel className="text-xs font-medium text-muted-foreground">
+                      Search
+                    </FormLabel>
                     <Input
-                      placeholder="Requester / Purpose"
-                      className="w-[240px]"
+                      placeholder="Requester, department, or purpose"
+                      className="h-9 w-full"
                       {...field}
                     />
                   </FormItem>
                 )}
               />
-            </div>
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="app__form_label">Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={'outline'}
-                            className={cn(
-                              'w-[240px] pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                            )}>
-                            {field.value ? (
-                              format(field.value, 'PPP')
-                            ) : (
-                              <span>Date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-auto p-0"
-                        align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date('1900-01-01')}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="items-center inline-flex app__filter_field_container">
+
               <FormField
                 control={form.control}
                 name="vehicle"
                 render={({ field }) => (
-                  <FormItem className="w-[240px]">
-                    <FormLabel className="app__form_label">Vehicle</FormLabel>
+                  <FormItem className="flex flex-col gap-1.5 min-w-[220px]">
+                    <FormLabel className="text-xs font-medium text-muted-foreground">
+                      Vehicle
+                    </FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
-                      defaultValue={field.value}>
+                      defaultValue={field.value}
+                    >
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose Vehicle" />
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="All vehicles" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="all">All vehicles</SelectItem>
                         {vehicles?.map((v, index) => (
-                          <SelectItem
-                            key={index}
-                            value={`${v.name}-${v.plate_number}`}>
-                            {`${v.name}-${v.plate_number}`}
+                          <SelectItem key={index} value={String(v.id)}>
+                            {v.plate_number
+                              ? `${v.name} (${v.plate_number})`
+                              : v.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -178,24 +153,24 @@ const Filters = ({
                 )}
               />
             </div>
-          </div>
-          <div className="flex items-center space-x-2 mt-4">
-            <CustomButton
-              containerStyles="app__btn_green"
-              title="Apply Filter"
-              btnType="submit"
-              handleClick={form.handleSubmit(onSubmit)}
-            />
-            <CustomButton
-              containerStyles="app__btn_gray"
-              title="Clear Filter"
-              btnType="button"
-              handleClick={handleClear}
-            />
-          </div>
-        </form>
-      </Form>
-    </div>
+
+            <div className="mt-4 flex items-center gap-2">
+              <Button type="submit" size="sm">
+                Apply filters
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleClear}
+              >
+                Clear all
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   )
 }
 

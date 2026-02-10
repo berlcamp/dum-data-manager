@@ -8,6 +8,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -23,14 +30,28 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Input } from '@/components/ui/input'
 import type { ReservationVehicleTypes } from '@/types'
 
-const FormSchema = z.object({
-  vehicle_name: z.string().min(1, {
-    message: 'Name is required.',
-  }),
-  plate_number: z.string().min(1, {
-    message: 'Plate No is required.',
-  }),
-})
+const FormSchema = z
+  .object({
+    name: z.string().min(1, {
+      message: 'Unit Name is required.',
+    }),
+    type: z.enum(['Vehicle', 'Tent'], {
+      required_error: 'Type is required.',
+    }),
+    plate_number: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.type === 'Vehicle') {
+        return !!data.plate_number?.trim()
+      }
+      return true
+    },
+    {
+      message: 'Plate Number is required when type is Vehicle.',
+      path: ['plate_number'],
+    }
+  )
 
 interface ModalProps {
   hideModal: () => void
@@ -50,10 +71,13 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      vehicle_name: editData ? editData.name : '',
-      plate_number: editData ? editData.plate_number : '',
+      name: editData ? editData.name : '',
+      type: (editData?.type as 'Vehicle' | 'Tent') || 'Vehicle',
+      plate_number: editData?.plate_number ?? '',
     },
   })
+
+  const watchType = form.watch('type')
 
   const onSubmit = async (formdata: z.infer<typeof FormSchema>) => {
     if (editData) {
@@ -66,8 +90,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const handleCreate = async (formdata: z.infer<typeof FormSchema>) => {
     try {
       const newData = {
-        name: formdata.vehicle_name,
-        plate_number: formdata.plate_number,
+        name: formdata.name,
+        type: formdata.type,
+        plate_number: formdata.type === 'Vehicle' ? formdata.plate_number : null,
       }
 
       const { data, error } = await supabase
@@ -99,8 +124,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
     try {
       const newData = {
-        name: formdata.vehicle_name,
-        plate_number: formdata.plate_number,
+        name: formdata.name,
+        type: formdata.type,
+        plate_number: formdata.type === 'Vehicle' ? formdata.plate_number : null,
       }
 
       const { data, error } = await supabase
@@ -151,7 +177,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         <div className="app__modal_wrapper3">
           <div className="app__modal_header">
             <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
-              Vehicle Details
+              Unit Details
             </h5>
             <CustomButton
               containerStyles="app__btn_gray"
@@ -168,15 +194,15 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                   <div className="space-y-6">
                     <FormField
                       control={form.control}
-                      name="vehicle_name"
+                      name="name"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="app__form_label">
-                            Vehicle
+                            Unit Name
                           </FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="E.g. Toyota Hilux"
+                              placeholder="E.g. Toyota Hilux, Tent A"
                               {...field}
                             />
                           </FormControl>
@@ -186,22 +212,50 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                     />
                     <FormField
                       control={form.control}
-                      name="plate_number"
+                      name="type"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="app__form_label">
-                            Plate Number
+                            Type
                           </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Plate Number"
-                              {...field}
-                            />
-                          </FormControl>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Vehicle">Vehicle</SelectItem>
+                              <SelectItem value="Tent">Tent</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    {watchType === 'Vehicle' && (
+                      <FormField
+                        control={form.control}
+                        name="plate_number"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="app__form_label">
+                              Plate Number
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Plate Number"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
                 </div>
                 <hr className="my-4" />

@@ -1,6 +1,6 @@
 'use client'
-import { CustomButton } from '@/components/index'
-// Redux imports
+
+import { Button } from '@/components/ui/button'
 import type { ReservationTypes } from '@/types'
 import { useEffect, useRef } from 'react'
 import ListView from './ListView'
@@ -8,9 +8,10 @@ import ListView from './ListView'
 interface ModalProps {
   hideModal: () => void
   data: ReservationTypes[]
+  onEdit: (item: ReservationTypes) => void
 }
 
-export default function ListModal({ hideModal, data }: ModalProps) {
+export default function ListModal({ hideModal, data, onEdit }: ModalProps) {
   const wrapperRef = useRef<HTMLDivElement>(null)
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -36,16 +37,13 @@ export default function ListModal({ hideModal, data }: ModalProps) {
             <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
               Reservations
             </h5>
-            <CustomButton
-              containerStyles="app__btn_gray"
-              title="Close"
-              btnType="button"
-              handleClick={hideModal}
-            />
+            <Button variant="outline" size="sm" onClick={hideModal}>
+              Close
+            </Button>
           </div>
 
           <div className="app__modal_body">
-            <ListView data={data} />
+            <ListView data={data} onEdit={onEdit} />
           </div>
         </div>
       </div>
