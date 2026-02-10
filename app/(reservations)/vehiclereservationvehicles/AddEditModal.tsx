@@ -30,12 +30,23 @@ import { useDispatch, useSelector } from 'react-redux'
 import { Input } from '@/components/ui/input'
 import type { ReservationVehicleTypes } from '@/types'
 
+const VEHICLE_UNIT_TYPES = [
+  'Vehicle',
+  'Tent',
+  'DOA BIG HALL',
+  'DOA SMALL HALL',
+  'GYM',
+  'SR CIT MULTIPURPOSE BUILDING',
+  'MMO CONFERENCE ROOM',
+  'SB SESSION HALL',
+] as const
+
 const FormSchema = z
   .object({
     name: z.string().min(1, {
       message: 'Unit Name is required.',
     }),
-    type: z.enum(['Vehicle', 'Tent'], {
+    type: z.enum(VEHICLE_UNIT_TYPES, {
       required_error: 'Type is required.',
     }),
     plate_number: z.string().optional(),
@@ -72,7 +83,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     resolver: zodResolver(FormSchema),
     defaultValues: {
       name: editData ? editData.name : '',
-      type: (editData?.type as 'Vehicle' | 'Tent') || 'Vehicle',
+      type: (editData?.type as (typeof VEHICLE_UNIT_TYPES)[number]) || 'Vehicle',
       plate_number: editData?.plate_number ?? '',
     },
   })
@@ -230,8 +241,11 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="Vehicle">Vehicle</SelectItem>
-                              <SelectItem value="Tent">Tent</SelectItem>
+                              {VEHICLE_UNIT_TYPES.map((type) => (
+                                <SelectItem key={type} value={type}>
+                                  {type}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                           <FormMessage />
