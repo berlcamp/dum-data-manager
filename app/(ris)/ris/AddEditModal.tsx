@@ -264,7 +264,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         id: data[0].id,
         date_requested: data[0].date_requested,
         total_amount:
-          data[0].total_amount ?? (formdata.quantity || 0) * (formdata.price || 0),
+          data[0].total_amount ??
+          (formdata.quantity || 0) * (formdata.price || 0),
         status: 'Approved',
         ddm_user: user,
         department: departments?.find(
@@ -332,7 +333,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         id: editData.id,
         date_requested: format(new Date(formdata.date_requested), 'yyyy-MM-dd'),
         total_amount: computedTotalAmount,
-        status: items.find((x) => x.id === editData.id)?.status ?? editData.status,
+        status:
+          items.find((x) => x.id === editData.id)?.status ?? editData.status,
         ddm_user: editData.ddm_user,
         department: departments?.find(
           (d) => d.id.toString() === formdata.department_id,
@@ -362,39 +364,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   useEffect(() => {
     // Fetch vehicles
     ;(async () => {
-      let query = supabase
-        .from('ddm_ris_vehicles')
-        .select()
-
-      // Filter by department if user doesn't have ris_admin access
-      if (!hasRisAdminAccess && currentUser?.department_id) {
-        // First try to filter by department_id if the field exists
-        query = query.eq('department_id', currentUser.department_id)
-      }
-
+      let query = supabase.from('ddm_ris_vehicles').select()
       const { data } = await query.order('name', { ascending: true })
-      
-      // If no results and user doesn't have admin access, try filtering by vehicles used in RIS records for their department
-      if (!hasRisAdminAccess && currentUser?.department_id && (!data || data.length === 0)) {
-        const { data: risData } = await supabase
-          .from('ddm_ris')
-          .select('vehicle_id')
-          .eq('department_id', currentUser.department_id)
-        
-        if (risData && risData.length > 0) {
-          const vehicleIds = Array.from(new Set(risData.map((ris: { vehicle_id: string }) => ris.vehicle_id).filter(Boolean)))
-          if (vehicleIds.length > 0) {
-            const { data: vehicleData } = await supabase
-              .from('ddm_ris_vehicles')
-              .select()
-              .in('id', vehicleIds)
-              .order('name', { ascending: true })
-            setVehicles(vehicleData || [])
-            return
-          }
-        }
-      }
-      
+
       setVehicles(data || [])
     })()
 

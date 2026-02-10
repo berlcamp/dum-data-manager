@@ -158,10 +158,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         diesel_price: formdata.diesel_price,
         gasoline_price: formdata.gasoline_price,
         quantity: formdata.quantity,
-        amount:
-          formdata.type === 'Fuel'
-            ? undefined // Backend handles total_amount calculation for Fuel type
-            : Number(formdata.quantity) * Number(price),
+        amount: formdata.total_amount,
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
         created_by: session.user.id,
       }
@@ -223,6 +220,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         appropriation: formdata.appropriation,
         department_id: formdata.department_id,
         diesel_price: formdata.diesel_price,
+        amount: formdata.total_amount,
         gasoline_price: formdata.gasoline_price,
         quantity: formdata.quantity,
         // Don't include amount/total_amount in update - database calculates it via DEFAULT/trigger
