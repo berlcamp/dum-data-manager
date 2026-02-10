@@ -126,13 +126,12 @@ const Filters = ({
                 render={({ field }) => (
                   <FormItem className="flex flex-col gap-1.5 min-w-[220px]">
                     <FormLabel className="text-xs font-medium text-muted-foreground">
-                      Vehicle
+                      Unit
                     </FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
-                      defaultValue={field.value}
-                    >
+                      defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger className="h-9">
                           <SelectValue placeholder="All vehicles" />
@@ -141,7 +140,9 @@ const Filters = ({
                       <SelectContent>
                         <SelectItem value="all">All vehicles</SelectItem>
                         {vehicles?.map((v, index) => (
-                          <SelectItem key={index} value={String(v.id)}>
+                          <SelectItem
+                            key={index}
+                            value={String(v.id)}>
                             {v.plate_number
                               ? `${v.name} (${v.plate_number})`
                               : v.name}
@@ -155,15 +156,16 @@ const Filters = ({
             </div>
 
             <div className="mt-4 flex items-center gap-2">
-              <Button type="submit" size="sm">
+              <Button
+                type="submit"
+                size="sm">
                 Apply filters
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleClear}
-              >
+                onClick={handleClear}>
                 Clear all
               </Button>
             </div>
