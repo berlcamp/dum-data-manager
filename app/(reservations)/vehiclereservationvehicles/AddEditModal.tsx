@@ -50,7 +50,7 @@ const FormSchema = z
     {
       message: 'Plate Number is required when type is Vehicle.',
       path: ['plate_number'],
-    }
+    },
   )
 
 interface ModalProps {
@@ -92,7 +92,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       const newData = {
         name: formdata.name,
         type: formdata.type,
-        plate_number: formdata.type === 'Vehicle' ? formdata.plate_number : null,
+        plate_number:
+          formdata.type === 'Vehicle' ? formdata.plate_number : null,
       }
 
       const { data, error } = await supabase
@@ -126,7 +127,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       const newData = {
         name: formdata.name,
         type: formdata.type,
-        plate_number: formdata.type === 'Vehicle' ? formdata.plate_number : null,
+        plate_number:
+          formdata.type === 'Vehicle' ? formdata.plate_number : null,
       }
 
       const { data, error } = await supabase

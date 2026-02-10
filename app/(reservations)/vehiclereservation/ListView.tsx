@@ -3,16 +3,19 @@ import { Card, CardContent } from '@/components/ui/card'
 import { reservationStatusColors } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { ReservationTypes } from '@/types'
-import { compareAsc, format } from 'date-fns'
+import { compareAsc, compareDesc, format } from 'date-fns'
 
 interface ListViewProps {
   data: ReservationTypes[]
   onEdit: (item: ReservationTypes) => void
+  sortFromLatest?: boolean
 }
 
-export default function ListView({ data, onEdit }: ListViewProps) {
+export default function ListView({ data, onEdit, sortFromLatest }: ListViewProps) {
   const sorted = [...data].sort((a, b) =>
-    compareAsc(new Date(a.date ?? ''), new Date(b.date ?? ''))
+    sortFromLatest
+      ? compareDesc(new Date(a.date ?? ''), new Date(b.date ?? ''))
+      : compareAsc(new Date(a.date ?? ''), new Date(b.date ?? ''))
   )
 
   const grouped = sorted.reduce<Record<string, ReservationTypes[]>>((acc, a) => {

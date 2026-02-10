@@ -1,5 +1,6 @@
 'use client'
 
+import { updateList } from '@/GlobalRedux/Features/listSlice'
 import VehicleReservationSidebar from '@/components/Sidebars/VehicleReservationSidebar'
 import { Sidebar, TopBar, Unauthorized } from '@/components/index'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ import {
 import { superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
+import type { ReservationTypes } from '@/types'
 import { fetchVehicleReservations } from '@/utils/fetchApi'
 import {
   addDays,
@@ -37,8 +39,6 @@ import CalendarView from './CalendarView'
 import Filters from './Filters'
 import ListView from './ListView'
 import Week from './Week'
-import { updateList } from '@/GlobalRedux/Features/listSlice'
-import type { ReservationTypes } from '@/types'
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
@@ -46,7 +46,9 @@ const Page: React.FC = () => {
   const [view, setView] = useState<'calendar' | 'week' | 'list'>('calendar')
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<ReservationTypes | null>(null)
+  const [selectedItem, setSelectedItem] = useState<ReservationTypes | null>(
+    null,
+  )
 
   // Filters
   const [filterKeyword, setFilterKeyword] = useState('')
@@ -144,12 +146,16 @@ const Page: React.FC = () => {
               {superAdmins.includes(email) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm">
                       <Settings className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem className="cursor-pointer" disabled>
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      disabled>
                       <Settings className="mr-2 h-4 w-4" />
                       Settings (coming soon)
                     </DropdownMenuItem>
@@ -176,24 +182,21 @@ const Page: React.FC = () => {
                     variant="outline"
                     size="icon"
                     onClick={goPrev}
-                    className="h-9 w-9"
-                  >
+                    className="h-9 w-9">
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={goToday}
-                    className="h-9"
-                  >
+                    className="h-9">
                     Today
                   </Button>
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={goNext}
-                    className="h-9 w-9"
-                  >
+                    className="h-9 w-9">
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                   <h2 className="text-xl font-semibold ml-4 min-w-[180px]">
@@ -205,31 +208,32 @@ const Page: React.FC = () => {
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="flex items-center gap-1 border rounded-md p-1">
                     <Button
-                      variant={effectiveView === 'calendar' ? 'default' : 'ghost'}
+                      variant={
+                        effectiveView === 'calendar' ? 'default' : 'ghost'
+                      }
                       size="sm"
                       onClick={() => setView('calendar')}
-                      className="h-8"
-                    >
+                      className="h-8">
                       Calendar
                     </Button>
                     <Button
                       variant={effectiveView === 'week' ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setView('week')}
-                      className="h-8"
-                    >
+                      className="h-8">
                       Week
                     </Button>
                     <Button
                       variant={effectiveView === 'list' ? 'default' : 'ghost'}
                       size="sm"
                       onClick={() => setView('list')}
-                      className="h-8"
-                    >
+                      className="h-8">
                       List
                     </Button>
                   </div>
-                  <Button onClick={handleAdd} size="sm">
+                  <Button
+                    onClick={handleAdd}
+                    size="sm">
                     <Plus className="h-4 w-4 mr-2" />
                     New Reservation
                   </Button>
@@ -265,11 +269,23 @@ const Page: React.FC = () => {
               </CardContent>
             </Card>
           ) : effectiveView === 'calendar' ? (
-            <CalendarView data={list} currentDate={currentDate} onEdit={handleEdit} />
+            <CalendarView
+              data={list}
+              currentDate={currentDate}
+              onEdit={handleEdit}
+            />
           ) : effectiveView === 'week' ? (
-            <Week data={list} currentDate={currentDate} onEdit={handleEdit} />
+            <Week
+              data={list}
+              currentDate={currentDate}
+              onEdit={handleEdit}
+            />
           ) : (
-            <ListView data={list} onEdit={handleEdit} />
+            <ListView
+              data={list}
+              onEdit={handleEdit}
+              sortFromLatest={hasActiveFilters}
+            />
           )}
         </div>
       </div>
