@@ -898,31 +898,38 @@ export async function fetchVehicleReservations(filters: {
       )
     }
 
-    // Filter date range
-    if (
-      typeof filters.filterDateFrom !== 'undefined' ||
-      typeof filters.filterDateTo !== 'undefined'
-    ) {
-      // Date range
-      if (typeof filters.filterDateFrom !== 'undefined') {
-        query = query.gte(
-          'date',
-          format(new Date(filters.filterDateFrom), 'yyyy-MM-dd')
-        )
+    // Skip date filtering when keyword or vehicle filter is applied
+    const hasKeywordOrVehicleFilter =
+      (filters.filterKeyword?.trim() ?? '') !== '' ||
+      (filters.filterVehicle != null && String(filters.filterVehicle).trim() !== '')
+
+    if (!hasKeywordOrVehicleFilter) {
+      // Filter date range
+      if (
+        typeof filters.filterDateFrom !== 'undefined' ||
+        typeof filters.filterDateTo !== 'undefined'
+      ) {
+        // Date range
+        if (typeof filters.filterDateFrom !== 'undefined') {
+          query = query.gte(
+            'date',
+            format(new Date(filters.filterDateFrom), 'yyyy-MM-dd')
+          )
+        }
+        if (typeof filters.filterDateTo !== 'undefined') {
+          query = query.lte(
+            'date',
+            format(new Date(filters.filterDateTo), 'yyyy-MM-dd')
+          )
+        }
+      } else {
+        // Default: show 2 days ago to 5 days ahead (week view)
+        const d = new Date()
+        const currentDate = subDays(d, 2)
+        const newDate = addDays(d, 5)
+        query = query.gte('date', format(currentDate, 'yyyy-MM-dd'))
+        query = query.lte('date', format(newDate, 'yyyy-MM-dd'))
       }
-      if (typeof filters.filterDateTo !== 'undefined') {
-        query = query.lte(
-          'date',
-          format(new Date(filters.filterDateTo), 'yyyy-MM-dd')
-        )
-      }
-    } else {
-      // Default: show 2 days ago to 5 days ahead (week view)
-      const d = new Date()
-      const currentDate = subDays(d, 2)
-      const newDate = addDays(d, 5)
-      query = query.gte('date', format(currentDate, 'yyyy-MM-dd'))
-      query = query.lte('date', format(newDate, 'yyyy-MM-dd'))
     }
 
     // Filter vehicle
