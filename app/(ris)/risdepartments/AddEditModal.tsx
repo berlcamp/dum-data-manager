@@ -27,6 +27,8 @@ const FormSchema = z.object({
   department_name: z.string().min(1, {
     message: 'Department is required.',
   }),
+  issued_by: z.string().optional(),
+  issued_by_designation: z.string().optional(),
 })
 
 interface ModalProps {
@@ -48,6 +50,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     resolver: zodResolver(FormSchema),
     defaultValues: {
       department_name: editData ? editData.name : '',
+      issued_by: editData?.issued_by ?? '',
+      issued_by_designation: editData?.issued_by_dessignation ?? '',
     },
   })
 
@@ -63,6 +67,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     try {
       const newData = {
         name: formdata.department_name,
+        issued_by: formdata.issued_by || null,
+        issued_by_dessignation: formdata.issued_by_designation || null,
       }
 
       const { data, error } = await supabase
@@ -95,6 +101,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     try {
       const newData = {
         name: formdata.department_name,
+        issued_by: formdata.issued_by || null,
+        issued_by_dessignation: formdata.issued_by_designation || null,
       }
 
       const { data, error } = await supabase
@@ -171,6 +179,42 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                           <FormControl>
                             <Input
                               placeholder="E.g. MMO"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="issued_by"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Issued By
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Name of issuer"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="issued_by_designation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Issued By Designation
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="E.g. Director, Manager"
                               {...field}
                             />
                           </FormControl>

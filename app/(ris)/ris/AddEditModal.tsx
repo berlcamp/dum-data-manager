@@ -258,11 +258,14 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
       if (error) throw new Error(error.message)
 
-      // Append new data in redux
+      // Append new data in redux with all columns for immediate list display
       const updatedData = {
         ...newData,
         id: data[0].id,
         date_requested: data[0].date_requested,
+        total_amount:
+          data[0].total_amount ?? (formdata.quantity || 0) * (formdata.price || 0),
+        status: 'Approved',
         ddm_user: user,
         department: departments?.find(
           (d) => d.id.toString() === formdata.department_id,
@@ -320,12 +323,17 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
       if (error) throw new Error(error.message)
 
-      // Append new data in redux
+      // Append new data in redux with all columns for immediate list display
       const items = [...globallist]
+      const computedTotalAmount =
+        (formdata.quantity || 0) * (formdata.price || 0)
       const updatedData = {
         ...newData,
         id: editData.id,
         date_requested: format(new Date(formdata.date_requested), 'yyyy-MM-dd'),
+        total_amount: computedTotalAmount,
+        status: items.find((x) => x.id === editData.id)?.status ?? editData.status,
+        ddm_user: editData.ddm_user,
         department: departments?.find(
           (d) => d.id.toString() === formdata.department_id,
         ),

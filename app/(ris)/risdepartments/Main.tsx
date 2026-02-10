@@ -212,6 +212,8 @@ const Page: React.FC = () => {
               <thead className="app__thead">
                 <tr>
                   <th className="app__th">Requesting Department</th>
+                  <th className="app__th">Issued By</th>
+                  <th className="app__th">Issued By Designation</th>
                   <th className="app__th"></th>
                 </tr>
               </thead>
@@ -222,6 +224,8 @@ const Page: React.FC = () => {
                       key={index}
                       className="app__tr">
                       <td className="app__td">{item.name}</td>
+                      <td className="app__td">{item.issued_by ?? '-'}</td>
+                      <td className="app__td">{item.issued_by_dessignation ?? '-'}</td>
                       <td className="app__td">
                         <div className="flex space-x-2 items-center">
                           <button
@@ -240,7 +244,7 @@ const Page: React.FC = () => {
                   ))}
                 {loading && (
                   <TableRowLoading
-                    cols={2}
+                    cols={4}
                     rows={2}
                   />
                 )}

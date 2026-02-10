@@ -246,6 +246,8 @@ export interface RisDepartmentTypes {
   id: string
   name: string
   office: string
+  issued_by?: string
+  issued_by_dessignation?: string
 }
 
 export interface ProfileSurveyTypes {
