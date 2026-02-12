@@ -395,7 +395,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           const result = await supabase
             .from('ddm_ris_purchase_orders')
             .select(
-              '*, ddm_ris_appropriation:appropriation(*),ddm_ris(quantity)',
+              '*, ddm_ris_appropriation:appropriation(*),ddm_ris(id,quantity,price,status,total_amount)',
             )
             .eq('department_id', currentUser.department_id)
             .order('po_number', { ascending: true })
@@ -409,7 +409,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         const result = await supabase
           .from('ddm_ris_purchase_orders')
           .select(
-            '*, ddm_ris_appropriation:appropriation(*),ddm_ris(quantity, total_amount, price)',
+            '*, ddm_ris_appropriation:appropriation(*),ddm_ris(id,quantity,price,status,total_amount)',
           )
           .order('po_number', { ascending: true })
         data = result.data
@@ -421,17 +421,28 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       const updatedData: RisPoTypes[] = []
       if (data) {
         data.forEach((item: RisPoTypes) => {
-          // For Fuel type: calculate remaining amount
+          // For Fuel type: calculate remaining amount (match Main.tsx countRemainingAmount)
           if (item.type === 'Fuel') {
             const totalAmountUsed = item.ddm_ris
               ? item.ddm_ris.reduce(
-                  (accumulator, ris) =>
-                    accumulator +
-                    Number(ris.total_amount || ris.quantity * ris.price || 0),
+                  (accumulator, ris) => {
+                    if (ris.status === 'Approved') {
+                      return (
+                        accumulator +
+                        Number(
+                          ris.total_amount || ris.quantity * ris.price || 0,
+                        )
+                      )
+                    }
+                    return accumulator
+                  },
                   0,
                 )
               : 0
-            const remainingAmount = Number(item.amount) - totalAmountUsed
+            const remainingAmount = Math.max(
+              0,
+              Number(item.amount) - totalAmountUsed,
+            )
 
             // Show "Overused" if negative, otherwise show "Available"
             const amountLabel =
@@ -676,26 +687,33 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               setDieselPrice(po.diesel_price || 0)
                               setGasolinePrice(po.gasoline_price || 0)
 
-                              // For Fuel PO type: calculate remaining amount
+                              // For Fuel PO type: calculate remaining amount (match Main.tsx countRemainingAmount)
                               if (po.type === 'Fuel') {
                                 const availableAmount = po.amount || 0
-                                // Calculate total amount used
+                                // Only count Approved RIS (match Main.tsx widget)
                                 const totalAmountUsed = po.ddm_ris
                                   ? po.ddm_ris.reduce(
-                                      (accumulator, ris) =>
-                                        accumulator +
-                                        Number(
-                                          ris.total_amount ||
-                                            ris.quantity * ris.price ||
-                                            0,
-                                        ),
+                                      (accumulator, ris) => {
+                                        if (ris.status === 'Approved') {
+                                          return (
+                                            accumulator +
+                                            Number(
+                                              ris.total_amount ||
+                                                ris.quantity * ris.price ||
+                                                0,
+                                            )
+                                          )
+                                        }
+                                        return accumulator
+                                      },
                                       0,
                                     )
                                   : 0
-                                // If editing, add back the current record's amount
+                                // If editing, add back the current record's amount only if it was Approved
                                 const currentAmount =
                                   editData &&
-                                  editData.po_id === po.id.toString()
+                                  editData.po_id === po.id.toString() &&
+                                  editData.status === 'Approved'
                                     ? Number(
                                         editData.total_amount ||
                                           editData.quantity * editData.price ||

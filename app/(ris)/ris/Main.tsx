@@ -1081,50 +1081,62 @@ const Page: React.FC = () => {
           {/* PO List Widget - Only show for non-admin users */}
           {!hasRisAdminAccess && (
             <div className="mx-4 mb-4">
-              <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-                <div className="text-sm text-gray-600 mb-3 font-semibold">
+              <div className="bg-white rounded-lg shadow-md p-2 border border-gray-200">
+                <div className="text-xs text-gray-600 mb-1.5 font-semibold">
                   Purchase Orders - Remaining Amounts
                 </div>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
+                <div className="space-y-0.5 max-h-40 overflow-y-auto">
                   {poWidgetData.length > 0 ? (
                     poWidgetData.map((po) => {
                       const remainingAmount = countRemainingAmount(po)
                       return (
                         <div
                           key={po.id}
-                          className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                          <div className="flex-1">
+                          className="flex justify-between items-center py-1 border-b border-gray-100 last:border-b-0 text-sm">
+                          <div className="flex-1 min-w-0">
                             <span className="font-medium text-gray-800">
                               {po.po_number}
                             </span>
                             {po.description && (
-                              <span className="text-gray-500 text-sm ml-2">
+                              <span className="text-gray-500 text-xs ml-1">
                                 - {po.description}
                               </span>
                             )}
                           </div>
-                          <div className="text-right">
-                            <div className="text-xs text-gray-500">
-                              Remaining
+                          <div className="flex gap-3 text-right shrink-0 ml-2">
+                            <div>
+                              <div className="text-[10px] text-gray-500">
+                                PO Amount
+                              </div>
+                              <div className="font-bold text-gray-800 text-xs">
+                                ₱{(po.amount ?? 0).toLocaleString('en-US', {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </div>
                             </div>
-                            <div
-                              className={`font-bold ${
-                                remainingAmount < 1000
-                                  ? 'text-red-600'
-                                  : 'text-green-600'
-                              }`}>
-                              ₱
-                              {remainingAmount.toLocaleString('en-US', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
+                            <div>
+                              <div className="text-[10px] text-gray-500">
+                                Remaining
+                              </div>
+                              <div
+                                className={`font-bold text-xs ${
+                                  remainingAmount < 1000
+                                    ? 'text-red-600'
+                                    : 'text-green-600'
+                                }`}>
+                                ₱{remainingAmount.toLocaleString('en-US', {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </div>
                             </div>
                           </div>
                         </div>
                       )
                     })
                   ) : (
-                    <div className="text-gray-500 text-sm py-2">
+                    <div className="text-gray-500 text-xs py-1">
                       No Purchase Orders found
                     </div>
                   )}
