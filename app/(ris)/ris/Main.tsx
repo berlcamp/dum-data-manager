@@ -12,7 +12,7 @@ import {
   TopBar,
   Unauthorized,
 } from '@/components/index'
-import { fetchRis, fetchPurchaseOrders } from '@/utils/fetchApi'
+import { fetchRis } from '@/utils/fetchApi'
 import Excel from 'exceljs'
 import { saveAs } from 'file-saver'
 import React, { useEffect, useState } from 'react'
@@ -23,7 +23,7 @@ import pdfFonts from 'pdfmake/build/vfs_fonts'
 import Filters from './Filters'
 
 // Types
-import type { RisTypes, RisPoTypes } from '@/types'
+import type { RisPoTypes, RisTypes } from '@/types'
 
 // Redux imports
 import { updateList } from '@/GlobalRedux/Features/listSlice'
@@ -57,7 +57,7 @@ const Page: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('All')
   const [filterDepartment, setFilterDepartment] = useState('All')
   const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(
-    undefined
+    undefined,
   )
   const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined)
   const [filterThreshold, setFilterThreshold] = useState('')
@@ -109,7 +109,7 @@ const Page: React.FC = () => {
         0,
         session?.user?.email,
         currentUser?.department_id,
-        hasRisAdminAccess
+        hasRisAdminAccess,
       )
 
       setWidgetData(result.data || [])
@@ -131,7 +131,7 @@ const Page: React.FC = () => {
       let query = supabase
         .from('ddm_ris_purchase_orders')
         .select(
-          '*, ddm_user:created_by(*), ddm_ris(id,quantity,price,status,total_amount), ddm_ris_appropriation:appropriation(*), department:department_id(*)'
+          '*, ddm_user:created_by(*), ddm_ris(id,quantity,price,status,total_amount), ddm_ris_appropriation:appropriation(*), department:department_id(*)',
         )
         .eq('type', 'Fuel') // Only show Fuel type POs
 
@@ -165,7 +165,7 @@ const Page: React.FC = () => {
       item.ddm_ris.forEach((ris) => {
         if (ris.status === 'Approved') {
           const risAmount = Number(
-            ris.total_amount || ris.quantity * ris.price || 0
+            ris.total_amount || ris.quantity * ris.price || 0,
           )
           totalAmount += risAmount
         }
@@ -194,7 +194,7 @@ const Page: React.FC = () => {
         0,
         session?.user?.email,
         currentUser?.department_id,
-        hasRisAdminAccess
+        hasRisAdminAccess,
       )
 
       // update the list in redux
@@ -230,7 +230,7 @@ const Page: React.FC = () => {
         list.length,
         session?.user?.email,
         currentUser?.department_id,
-        hasRisAdminAccess
+        hasRisAdminAccess,
       )
 
       // update the list in redux
@@ -296,14 +296,14 @@ const Page: React.FC = () => {
       0,
       session?.user?.email,
       currentUser?.department_id,
-      hasRisAdminAccess
+      hasRisAdminAccess,
     )
 
     const risData: RisTypes[] = result.data
     const sortedItems = risData.sort(
       (a, b) =>
         new Date(a.date_requested).getTime() -
-        new Date(b.date_requested).getTime()
+        new Date(b.date_requested).getTime(),
     )
 
     // Data for the Excel file
@@ -368,7 +368,7 @@ const Page: React.FC = () => {
       0,
       session?.user?.email,
       currentUser?.department_id,
-      hasRisAdminAccess
+      hasRisAdminAccess,
     )
 
     const risData: RisTypes[] = result.data
@@ -376,7 +376,7 @@ const Page: React.FC = () => {
     const sortedItems = risData.sort(
       (a, b) =>
         new Date(a.date_requested).getTime() -
-        new Date(b.date_requested).getTime()
+        new Date(b.date_requested).getTime(),
     )
 
     let filteredRisData: RisTypes[] = []
@@ -501,7 +501,13 @@ const Page: React.FC = () => {
         { text: totalAmount.toFixed(2), bold: true }, // Amount (2 decimals)
       ])
 
-      // Push this vehicle’s section into content
+      // Signatories from department (ddm_ris_departments.issued_by, issued_by_designation)
+
+      const dept = items[0]?.department
+      const issuedBy = dept?.issued_by ?? 'ARFEL HOPE L. BOMES'
+      const issuedByDesignation = dept?.issued_by_dessignation ?? 'MMO STAFF'
+
+      // Push this vehicle's section into content
       content.push(
         { text: 'FUEL CONSUMPTION REPORT', style: 'header' },
         { text: vehicleName, style: 'subHeader', margin: [0, 0, 0, 10] },
@@ -537,13 +543,13 @@ const Page: React.FC = () => {
               width: '50%',
               stack: [
                 {
-                  text: 'ARFEL HOPE L. BOMES',
+                  text: issuedBy,
                   bold: true,
                   decoration: 'underline',
                   alignment: 'center',
                   margin: [0, 20, 0, 0],
                 },
-                { text: 'MMO STAFF', alignment: 'center' },
+                { text: issuedByDesignation, alignment: 'center' },
               ],
             },
             {
@@ -565,7 +571,7 @@ const Page: React.FC = () => {
             },
           ],
         },
-        [{ text: '', pageBreak: 'after' }]
+        [{ text: '', pageBreak: 'after' }],
       )
     }
 
@@ -619,7 +625,7 @@ const Page: React.FC = () => {
       0,
       session?.user?.email,
       currentUser?.department_id,
-      hasRisAdminAccess
+      hasRisAdminAccess,
     )
 
     const risData: RisTypes[] = result.data
@@ -628,7 +634,7 @@ const Page: React.FC = () => {
     const sortedItems = risData.sort(
       (a, b) =>
         new Date(a.date_requested).getTime() -
-        new Date(b.date_requested).getTime()
+        new Date(b.date_requested).getTime(),
     )
 
     const content: any[] = []
@@ -645,7 +651,7 @@ const Page: React.FC = () => {
         style: 'subTitle',
         alignment: 'center',
         margin: [0, 0, 0, 10],
-      }
+      },
     )
 
     // Table
@@ -773,6 +779,11 @@ const Page: React.FC = () => {
       margin: [0, 0, 0, 20],
     })
 
+    // Signatories from first row's department (ddm_ris_departments.issued_by, issued_by_designation)
+    const dept = sortedItems[0]?.department
+    const issuedBy = dept?.issued_by ?? 'ARFEL HOPE L. BOMES'
+    const issuedByDesignation = dept?.issued_by_dessignation ?? 'MMO STAFF'
+
     // ✅ Signatories (kept together)
     content.push({
       unbreakable: true, // prevents splitting across pages
@@ -781,13 +792,13 @@ const Page: React.FC = () => {
           width: '50%',
           stack: [
             {
-              text: 'ARFEL HOPE L. BOMES',
+              text: issuedBy,
               bold: true,
               decoration: 'underline',
               margin: [0, 20, 0, 0],
               alignment: 'center',
             },
-            { text: 'MMO STAFF', alignment: 'center' },
+            { text: issuedByDesignation, alignment: 'center' },
           ],
         },
         {
@@ -1010,9 +1021,14 @@ const Page: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Total Approved Requests */}
               <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-                <div className="text-sm text-gray-600 mb-1">Total Approved Requests</div>
+                <div className="text-sm text-gray-600 mb-1">
+                  Total Approved Requests
+                </div>
                 <div className="text-2xl font-bold text-green-600">
-                  {widgetData.filter((item) => item.status === 'Approved').length}
+                  {
+                    widgetData.filter((item) => item.status === 'Approved')
+                      .length
+                  }
                 </div>
               </div>
 
@@ -1034,11 +1050,7 @@ const Page: React.FC = () => {
                   ₱
                   {widgetData
                     .filter((item) => item.status === 'Approved')
-                    .reduce(
-                      (sum, item) =>
-                        sum + (item.total_amount || 0),
-                      0
-                    )
+                    .reduce((sum, item) => sum + (item.total_amount || 0), 0)
                     .toLocaleString('en-US', {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
@@ -1158,26 +1170,22 @@ const Page: React.FC = () => {
               // handleClick={handleDownloadExcel}
               handleClick={handleDownloadPDF}
             />
-            {hasRisAdminAccess && (
-              <>
-                <CustomButton
-                  containerStyles="app__btn_blue"
-                  isDisabled={downloading}
-                  title={downloading ? 'Downloading...' : 'Summary by Department'}
-                  btnType="button"
-                  // handleClick={handleDownloadExcel}
-                  handleClick={() => setShowDepartmentModal(true)}
-                />
-                <DepartmentModal
-                  isOpen={showDepartmentModal}
-                  onClose={() => setShowDepartmentModal(false)}
-                  onConfirm={(deptName) => {
-                    setShowDepartmentModal(false)
-                    handleDownloadPDFByDepartment(deptName)
-                  }}
-                />
-              </>
-            )}
+            <CustomButton
+              containerStyles="app__btn_blue"
+              isDisabled={downloading}
+              title={downloading ? 'Downloading...' : 'Summary by Department'}
+              btnType="button"
+              // handleClick={handleDownloadExcel}
+              handleClick={() => setShowDepartmentModal(true)}
+            />
+            <DepartmentModal
+              isOpen={showDepartmentModal}
+              onClose={() => setShowDepartmentModal(false)}
+              onConfirm={(deptName) => {
+                setShowDepartmentModal(false)
+                handleDownloadPDFByDepartment(deptName)
+              }}
+            />
           </div>
 
           {/* Per Page */}
@@ -1290,10 +1298,13 @@ const Page: React.FC = () => {
                             <span className="font-light">Total Amount:</span>{' '}
                             <span className="font-medium">
                               ₱
-                              {(item.total_amount || 0).toLocaleString('en-US', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
+                              {(item.total_amount || 0).toLocaleString(
+                                'en-US',
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                },
+                              )}
                             </span>
                           </div>
                           <div>
@@ -1315,7 +1326,7 @@ const Page: React.FC = () => {
                               {item.date_requested &&
                                 format(
                                   new Date(item.date_requested),
-                                  'MMMM dd, yyyy'
+                                  'MMMM dd, yyyy',
                                 )}
                             </span>
                           </div>
