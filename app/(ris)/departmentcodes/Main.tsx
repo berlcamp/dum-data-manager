@@ -60,7 +60,7 @@ const Page: React.FC = () => {
           filterKeyword,
         },
         perPageCount,
-        0
+        0,
       )
 
       // update the list in redux
@@ -85,7 +85,7 @@ const Page: React.FC = () => {
           filterKeyword,
         },
         perPageCount,
-        list.length
+        list.length,
       )
 
       // update the list in redux
@@ -216,7 +216,7 @@ const Page: React.FC = () => {
                       key={index}
                       className="app__tr">
                       <td className="app__td">{item.code}</td>
-                      <td className="app__td">{item.department.name}</td>
+                      <td className="app__td">{item.department?.name}</td>
                       <td className="app__td">
                         {item.purchase_order.po_number}
                       </td>
