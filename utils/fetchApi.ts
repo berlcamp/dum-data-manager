@@ -682,7 +682,7 @@ export async function fetchRis(
     let query = supabase
       .from('ddm_ris')
       .select(
-        '*, ddm_user:created_by(*), vehicle:vehicle_id(*), purchase_order:po_id(*, ddm_ris_appropriation:appropriation(name)),cash_advance:ca_id(*), department:department_id(*)',
+        '*, ddm_user:created_by(*), vehicle:vehicle_id(*), purchase_order:po_id(*, ddm_ris_appropriation:appropriation(name), department:department_id(*)),cash_advance:ca_id(*), department:department_id(*)',
         { count: 'exact' },
       )
       .eq('is_deleted', false)

@@ -146,10 +146,12 @@ const RisToPrint: React.FC<ChildProps> = ({ forwardedRef, ris }) => {
               colSpan={2}
               className="border text-center border-gray-700">
               <div className="mt-10 font-bold">
-                {ris.department?.issued_by ?? 'ARFEL HOPE L. BOMES'}
+                {ris.purchase_order?.department?.issued_by ??
+                  'ARFEL HOPE L. BOMES'}
               </div>
               <div className="italic">
-                {ris.department?.issued_by_dessignation ?? 'MMO - STAFF'}
+                {ris.purchase_order?.department?.issued_by_dessignation ??
+                  'MMO - STAFF'}
               </div>
             </td>
           </tr>
