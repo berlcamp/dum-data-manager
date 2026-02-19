@@ -6,7 +6,7 @@ import { fullTextQuery } from './text-helper'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 )
 
 interface DocumentFilterTypes {
@@ -39,7 +39,7 @@ export async function fetchDocuments(
   filters: DocumentFilterTypes,
   userDepartment: string,
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
 ) {
   try {
     // Get Document ID within Tracker Flow and origin department
@@ -87,13 +87,13 @@ export async function fetchDocuments(
       if (filters.filterDateForwardedFrom) {
         query1 = query1.gte(
           'date',
-          format(new Date(filters.filterDateForwardedFrom), 'yyyy-MM-dd')
+          format(new Date(filters.filterDateForwardedFrom), 'yyyy-MM-dd'),
         )
       }
       if (filters.filterDateForwardedTo) {
         query1 = query1.lte(
           'date',
-          format(new Date(filters.filterDateForwardedTo), 'yyyy-MM-dd')
+          format(new Date(filters.filterDateForwardedTo), 'yyyy-MM-dd'),
         )
       }
 
@@ -118,7 +118,7 @@ export async function fetchDocuments(
       remarks,
       timestamp
     )`,
-        { count: 'exact' }
+        { count: 'exact' },
       )
       .eq('archived', false)
 
@@ -128,7 +128,7 @@ export async function fetchDocuments(
       filters.filterKeyword.trim() !== ''
     ) {
       query = query.or(
-        `routing_slip_no.ilike.%${filters.filterKeyword}%,particulars.ilike.%${filters.filterKeyword}%,agency.ilike.%${filters.filterKeyword}%,requester.ilike.%${filters.filterKeyword}%,amount.ilike.%${filters.filterKeyword}%,cheque_no.ilike.%${filters.filterKeyword}%`
+        `routing_slip_no.ilike.%${filters.filterKeyword}%,particulars.ilike.%${filters.filterKeyword}%,agency.ilike.%${filters.filterKeyword}%,requester.ilike.%${filters.filterKeyword}%,amount.ilike.%${filters.filterKeyword}%,cheque_no.ilike.%${filters.filterKeyword}%`,
       )
     }
 
@@ -193,9 +193,9 @@ export async function fetchDocuments(
         ? remarksArray.reduce(
             (
               prev: { timestamp: string | number | Date },
-              curr: { timestamp: string | number | Date }
+              curr: { timestamp: string | number | Date },
             ) =>
-              new Date(curr.timestamp) > new Date(prev.timestamp) ? curr : prev
+              new Date(curr.timestamp) > new Date(prev.timestamp) ? curr : prev,
           )
         : null
 
@@ -218,7 +218,7 @@ export async function fetchLcr(
     filterType?: string
   },
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
 ) {
   try {
     if (filters.filterKeyword && filters.filterKeyword.trim() !== '') {
@@ -269,7 +269,7 @@ export async function fetchLcr(
 export async function fetchProfiles(
   filters: FilterProfileTypes,
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
 ) {
   try {
     let query = supabase
@@ -322,7 +322,7 @@ export async function fetchProfiles(
 export async function fetchHouseholdLeaders(
   filters: FilterProfileTypes,
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
 ) {
   try {
     let query = supabase
@@ -413,7 +413,7 @@ export async function fetchCategories(
     type?: string
   },
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
 ) {
   try {
     let query = supabase
@@ -465,7 +465,7 @@ export async function fetchCoordinators(
     filterKeyword?: string
   },
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
 ) {
   try {
     let query = supabase.from('ddm_profile_coordinators').select('*', {
@@ -512,14 +512,14 @@ export async function fetchPurchaseOrders(
     filterAppropriation?: string
   },
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
 ) {
   try {
     let query = supabase
       .from('ddm_ris_purchase_orders')
       .select(
         '*, ddm_user:created_by(*), ddm_ris(id,quantity,price,status), ddm_ris_appropriation:appropriation(*), department:department_id(*)',
-        { count: 'exact' }
+        { count: 'exact' },
       )
 
     // Full text search
@@ -528,7 +528,7 @@ export async function fetchPurchaseOrders(
       filters.filterKeyword.trim() !== ''
     ) {
       query = query.or(
-        `po_number.ilike.%${filters.filterKeyword}%,description.ilike.%${filters.filterKeyword}%`
+        `po_number.ilike.%${filters.filterKeyword}%,description.ilike.%${filters.filterKeyword}%`,
       )
     }
 
@@ -575,7 +575,7 @@ export async function fetchCashAdvances(
     filterKeyword?: string
   },
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
 ) {
   try {
     let query = supabase
@@ -634,12 +634,13 @@ export async function fetchRis(
   rangeFrom: number,
   userEmail?: string,
   userDepartmentId?: string,
-  hasRisAdminAccess?: boolean
+  hasRisAdminAccess?: boolean,
 ) {
   try {
     // Admin emails that can see all records
     const adminEmails = ['arfel@ddm.com', 'berlcamp@gmail.com']
-    const isAdmin = (userEmail && adminEmails.includes(userEmail)) || hasRisAdminAccess
+    const isAdmin =
+      (userEmail && adminEmails.includes(userEmail)) || hasRisAdminAccess
 
     // Appropriation filters
     const poIds: string[] = []
@@ -682,7 +683,7 @@ export async function fetchRis(
       .from('ddm_ris')
       .select(
         '*, ddm_user:created_by(*), vehicle:vehicle_id(*), purchase_order:po_id(*, ddm_ris_appropriation:appropriation(name)),cash_advance:ca_id(*), department:department_id(*)',
-        { count: 'exact' }
+        { count: 'exact' },
       )
       .eq('is_deleted', false)
 
@@ -694,7 +695,7 @@ export async function fetchRis(
       query = query.or(
         `id.eq.${Number(filters.filterKeyword) || 0},requester.ilike.%${
           filters.filterKeyword
-        }%,purpose.ilike.%${filters.filterKeyword}%`
+        }%,purpose.ilike.%${filters.filterKeyword}%`,
       )
     }
 
@@ -743,7 +744,7 @@ export async function fetchRis(
     if (typeof filters.filterDateFrom !== 'undefined') {
       query = query.gte(
         'date_requested',
-        format(new Date(filters.filterDateFrom), 'yyyy-MM-dd')
+        format(new Date(filters.filterDateFrom), 'yyyy-MM-dd'),
       )
     }
 
@@ -751,7 +752,7 @@ export async function fetchRis(
     if (typeof filters.filterDateTo !== 'undefined') {
       query = query.lte(
         'date_requested',
-        format(new Date(filters.filterDateTo), 'yyyy-MM-dd')
+        format(new Date(filters.filterDateTo), 'yyyy-MM-dd'),
       )
     }
 
@@ -786,7 +787,7 @@ export async function fetchRisVehicles(
     filterKeyword?: string
   },
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
 ) {
   try {
     let query = supabase
@@ -799,7 +800,7 @@ export async function fetchRisVehicles(
       filters.filterKeyword.trim() !== ''
     ) {
       query = query.or(
-        `name.ilike.%${filters.filterKeyword}%,plate_number.ilike.%${filters.filterKeyword}%`
+        `name.ilike.%${filters.filterKeyword}%,plate_number.ilike.%${filters.filterKeyword}%`,
       )
     }
 
@@ -833,7 +834,7 @@ export async function fetchRisDepartmentCodes(
     filterKeyword?: string
   },
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
 ) {
   try {
     let query = supabase
@@ -894,14 +895,15 @@ export async function fetchVehicleReservations(filters: {
     ) {
       const kw = filters.filterKeyword.trim()
       query = query.or(
-        `requester.ilike.%${kw}%,department.ilike.%${kw}%,purpose.ilike.%${kw}%`
+        `requester.ilike.%${kw}%,department.ilike.%${kw}%,purpose.ilike.%${kw}%`,
       )
     }
 
     // Skip date filtering when keyword or vehicle filter is applied
     const hasKeywordOrVehicleFilter =
       (filters.filterKeyword?.trim() ?? '') !== '' ||
-      (filters.filterVehicle != null && String(filters.filterVehicle).trim() !== '')
+      (filters.filterVehicle != null &&
+        String(filters.filterVehicle).trim() !== '')
 
     if (!hasKeywordOrVehicleFilter) {
       // Filter date range
@@ -913,13 +915,13 @@ export async function fetchVehicleReservations(filters: {
         if (typeof filters.filterDateFrom !== 'undefined') {
           query = query.gte(
             'date',
-            format(new Date(filters.filterDateFrom), 'yyyy-MM-dd')
+            format(new Date(filters.filterDateFrom), 'yyyy-MM-dd'),
           )
         }
         if (typeof filters.filterDateTo !== 'undefined') {
           query = query.lte(
             'date',
-            format(new Date(filters.filterDateTo), 'yyyy-MM-dd')
+            format(new Date(filters.filterDateTo), 'yyyy-MM-dd'),
           )
         }
       } else {
@@ -964,7 +966,7 @@ export async function fetchReservationVehicles(
     filterKeyword?: string
   },
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
 ) {
   try {
     let query = supabase
@@ -977,7 +979,7 @@ export async function fetchReservationVehicles(
       filters.filterKeyword.trim() !== ''
     ) {
       query = query.or(
-        `name.ilike.%${filters.filterKeyword}%,plate_number.ilike.%${filters.filterKeyword}%,type.ilike.%${filters.filterKeyword}%`
+        `name.ilike.%${filters.filterKeyword}%,plate_number.ilike.%${filters.filterKeyword}%,type.ilike.%${filters.filterKeyword}%`,
       )
     }
 
@@ -1011,7 +1013,7 @@ export async function fetchRisDepartments(
     filterKeyword?: string
   },
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
 ) {
   try {
     let query = supabase
@@ -1118,7 +1120,7 @@ export async function fetchRisAppropriations(
     filterKeyword?: string
   },
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
 ) {
   try {
     let query = supabase
@@ -1161,7 +1163,7 @@ export async function fetchRisAppropriations(
 export async function fetchActivities(
   userDepartment: string,
   today: string,
-  endDate: Date
+  endDate: Date,
 ) {
   try {
     // Get Document ID within Tracker Flow and origin department
@@ -1215,7 +1217,7 @@ export async function fetchActivities(
 export async function fetchAccounts(
   filters: { filterStatus?: string },
   perPageCount: number,
-  rangeFrom: number
+  rangeFrom: number,
 ) {
   try {
     let query = supabase
@@ -1257,7 +1259,7 @@ export async function logError(
   transaction: string,
   table: string,
   data: string,
-  error: string
+  error: string,
 ) {
   await supabase.from('error_logs').insert({
     system: 'ddm',

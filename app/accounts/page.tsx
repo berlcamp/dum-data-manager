@@ -69,7 +69,7 @@ const Page: React.FC = () => {
         updateResultCounter({
           showing: result.data.length,
           results: result.count ? result.count : 0,
-        })
+        }),
       )
     } catch (e) {
       console.error(e)
@@ -86,7 +86,7 @@ const Page: React.FC = () => {
       const result = await fetchAccounts(
         { filterStatus },
         perPageCount,
-        list.length
+        list.length,
       )
 
       // update the list in redux
@@ -98,7 +98,7 @@ const Page: React.FC = () => {
         updateResultCounter({
           showing: newList.length,
           results: result.count ? result.count : 0,
-        })
+        }),
       )
     } catch (e) {
       console.error(e)
@@ -198,7 +198,7 @@ const Page: React.FC = () => {
   }, [perPageCount, filterStatus])
 
   // Helper function to get RIS department name from ID
-  const getRisDepartmentName = (id: string | undefined): string => {
+  const getRisDepartmentName = (id: string | undefined | null): string => {
     if (!id) return '-'
     const department = risDepartments.find((d) => d.id === id)
     return department ? department.name : '-'

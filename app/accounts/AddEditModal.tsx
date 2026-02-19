@@ -68,7 +68,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
         middlename: formdata.middlename,
         lastname: formdata.lastname,
         department: formdata.department,
-        department_id: formdata.department_id,
+        department_id: formdata.department_id || null,
         status: 'Active',
         email: formdata.email,
         temp_password: tempPassword.toString(),
@@ -103,7 +103,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
               updateResultCounter({
                 showing: Number(resultsCounter.showing) + 1,
                 results: Number(resultsCounter.results) + 1,
-              })
+              }),
             )
 
             setSaving(false)
@@ -135,7 +135,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
       middlename: formdata.middlename,
       lastname: formdata.lastname,
       department: formdata.department,
-      department_id: formdata.department_id,
+      department_id: formdata.department_id || null,
       temp_password:
         formdata.password !== '' ? formdata.password : editData.temp_password,
     }
@@ -152,7 +152,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
         // update password on supabase
         const { error: error2 } = await supabase.auth.admin.updateUserById(
           editData.id,
-          { password: formdata.password }
+          { password: formdata.password },
         )
         if (error2) throw new Error(error2.message)
       }
@@ -201,7 +201,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
       middlename: editData ? editData.middlename : '',
       lastname: editData ? editData.lastname : '',
       department: editData ? editData.department : '',
-      department_id: editData ? editData.department_id : '',
+      department_id: editData?.department_id ?? '',
     })
   }, [editData, reset])
 
@@ -298,7 +298,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
                       <div className="app__label_standard">RIS Department</div>
                       <div>
                         <select
-                          {...register('department_id')}
+                          {...register('department_id', { required: false })}
                           className="app__select_standard">
                           <option value="">Choose RIS department</option>
                           {risDepartments.map((d, i) => (

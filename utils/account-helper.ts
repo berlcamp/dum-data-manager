@@ -17,7 +17,7 @@ export async function verifyAuth() {
       assignment: session?.user.user_metadata.assignment,
       org_id: session?.user.user_metadata.org_id,
     },
-    { onConflict: 'id' }
+    { onConflict: 'id' },
   )
 
   if (error) console.log(error)

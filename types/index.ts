@@ -130,7 +130,7 @@ export interface AccountTypes {
   status: string
   password: string
   department: string
-  department_id: string
+  department_id: string | null
   avatar_url: string
   email: string
   org_id: string

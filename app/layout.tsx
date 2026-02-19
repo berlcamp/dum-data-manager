@@ -49,7 +49,7 @@ export default async function RootLayout({
           'root layout system access',
           'ddm_system_access',
           '',
-          'root layout system access error'
+          'root layout system access error',
         )
         console.log('Error #: 1', error.message)
         throw new Error(error.message)
@@ -78,7 +78,7 @@ export default async function RootLayout({
           'root layout current user',
           'ddm_users',
           '',
-          error4.message
+          error4.message,
         )
         console.log('Error #: 4')
         throw new Error(error4.message)
