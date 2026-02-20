@@ -898,16 +898,16 @@ const Page: React.FC = () => {
   }
 
   const handleMarkAsLock = async () => {
-    if (!filterDateFrom || !filterDateTo) return
+    const ids = widgetData.map((item) => item.id)
+    if (ids.length === 0) {
+      setToast('error', 'No filtered records to update')
+      return
+    }
     try {
-      const dateFromStr = format(filterDateFrom, 'yyyy-MM-dd')
-      const dateToStr = format(filterDateTo, 'yyyy-MM-dd')
       const { error } = await supabase
         .from('ddm_ris')
         .update({ is_locked: true })
-        .gte('date_requested', dateFromStr)
-        .lte('date_requested', dateToStr)
-        .eq('is_deleted', false)
+        .in('id', ids)
 
       if (error) throw new Error(error.message)
 
@@ -920,16 +920,16 @@ const Page: React.FC = () => {
   }
 
   const handleMarkAsUnlock = async () => {
-    if (!filterDateFrom || !filterDateTo) return
+    const ids = widgetData.map((item) => item.id)
+    if (ids.length === 0) {
+      setToast('error', 'No filtered records to update')
+      return
+    }
     try {
-      const dateFromStr = format(filterDateFrom, 'yyyy-MM-dd')
-      const dateToStr = format(filterDateTo, 'yyyy-MM-dd')
       const { error } = await supabase
         .from('ddm_ris')
         .update({ is_locked: false })
-        .gte('date_requested', dateFromStr)
-        .lte('date_requested', dateToStr)
-        .eq('is_deleted', false)
+        .in('id', ids)
 
       if (error) throw new Error(error.message)
 
@@ -1162,7 +1162,8 @@ const Page: React.FC = () => {
                                 PO Amount
                               </div>
                               <div className="font-bold text-gray-800 text-xs">
-                                ₱{(po.amount ?? 0).toLocaleString('en-US', {
+                                ₱
+                                {(po.amount ?? 0).toLocaleString('en-US', {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,
                                 })}
@@ -1178,7 +1179,8 @@ const Page: React.FC = () => {
                                     ? 'text-red-600'
                                     : 'text-green-600'
                                 }`}>
-                                ₱{remainingAmount.toLocaleString('en-US', {
+                                ₱
+                                {remainingAmount.toLocaleString('en-US', {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,
                                 })}

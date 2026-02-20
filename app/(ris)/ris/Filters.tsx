@@ -580,8 +580,6 @@ const Filters = ({
               handleClick={handleClear}
             />
             {isSuperAdmin &&
-              filterDateFrom &&
-              filterDateTo &&
               onMarkAsLock &&
               onMarkAsUnlock && (
                 <>
