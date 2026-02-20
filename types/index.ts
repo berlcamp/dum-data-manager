@@ -216,6 +216,7 @@ export interface RisTypes {
   cash_advance: RisCaTypes
   department: RisDepartmentTypes
   destination: string
+  is_locked?: boolean
 }
 
 export interface RisVehicleTypes {

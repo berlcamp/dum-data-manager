@@ -252,6 +252,10 @@ const Page: React.FC = () => {
   }
 
   const handleEdit = (item: RisTypes) => {
+    if (item.is_locked) {
+      setToast('error', 'This RIS is locked and cannot be edited.')
+      return
+    }
     setShowAddModal(true)
     setSelectedItem(item)
   }
@@ -845,7 +849,7 @@ const Page: React.FC = () => {
     try {
       const { error } = await supabase
         .from('ddm_ris')
-        .update({ status: 'Approved' })
+        .update({ status: 'Approved', is_locked: true })
         .in('id', ids)
 
       if (error) throw new Error(error.message)
@@ -857,7 +861,7 @@ const Page: React.FC = () => {
       const items = [...globallist]
       const updatedArray = items.map((obj: RisTypes) => {
         if (selectedItems.find((o) => o.id.toString() === obj.id.toString()))
-          return { ...obj, status: 'Approved' }
+          return { ...obj, status: 'Approved', is_locked: true }
         else return obj
       })
       dispatch(updateList(updatedArray))
@@ -871,7 +875,7 @@ const Page: React.FC = () => {
     try {
       const { error } = await supabase
         .from('ddm_ris')
-        .update({ status: 'Pending' })
+        .update({ status: 'Pending', is_locked: false })
         .in('id', ids)
 
       if (error) throw new Error(error.message)
@@ -883,12 +887,60 @@ const Page: React.FC = () => {
       const items = [...globallist]
       const updatedArray = items.map((obj: RisTypes) => {
         if (selectedItems.find((o) => o.id.toString() === obj.id.toString()))
-          return { ...obj, status: 'Pending' }
+          return { ...obj, status: 'Pending', is_locked: false }
         else return obj
       })
       dispatch(updateList(updatedArray))
     } catch (error) {
       // pop up the error  message
+      setToast('error', 'Something went wrong')
+    }
+  }
+
+  const handleLockSelected = async () => {
+    const ids = selectedItems.map((obj) => obj.id)
+    try {
+      const { error } = await supabase
+        .from('ddm_ris')
+        .update({ is_locked: true })
+        .in('id', ids)
+
+      if (error) throw new Error(error.message)
+
+      setToast('success', 'Successfully locked')
+
+      const items = [...globallist]
+      const updatedArray = items.map((obj: RisTypes) => {
+        if (selectedItems.find((o) => o.id.toString() === obj.id.toString()))
+          return { ...obj, is_locked: true }
+        else return obj
+      })
+      dispatch(updateList(updatedArray))
+    } catch (error) {
+      setToast('error', 'Something went wrong')
+    }
+  }
+
+  const handleUnlockSelected = async () => {
+    const ids = selectedItems.map((obj) => obj.id)
+    try {
+      const { error } = await supabase
+        .from('ddm_ris')
+        .update({ is_locked: false })
+        .in('id', ids)
+
+      if (error) throw new Error(error.message)
+
+      setToast('success', 'Successfully unlocked')
+
+      const items = [...globallist]
+      const updatedArray = items.map((obj: RisTypes) => {
+        if (selectedItems.find((o) => o.id.toString() === obj.id.toString()))
+          return { ...obj, is_locked: false }
+        else return obj
+      })
+      dispatch(updateList(updatedArray))
+    } catch (error) {
       setToast('error', 'Something went wrong')
     }
   }
@@ -1163,6 +1215,20 @@ const Page: React.FC = () => {
                   btnType="button"
                   handleClick={handlePendingSelected}
                 />
+                <CustomButton
+                  containerStyles="app__btn_blue"
+                  isDisabled={downloading}
+                  title={`Lock Selected (${selectedItems.length})`}
+                  btnType="button"
+                  handleClick={handleLockSelected}
+                />
+                <CustomButton
+                  containerStyles="app__btn_blue"
+                  isDisabled={downloading}
+                  title={`Unlock Selected (${selectedItems.length})`}
+                  btnType="button"
+                  handleClick={handleUnlockSelected}
+                />
                 <PrintAllChecked selectedRis={selectedItems} />
               </>
             )}
@@ -1263,6 +1329,11 @@ const Page: React.FC = () => {
                               }`}>
                               {item.status}
                             </span>
+                            {item.is_locked && (
+                              <span className="ml-1 text-xs font-medium text-gray-500">
+                                (Locked)
+                              </span>
+                            )}
                           </div>
                           <div>
                             <span className="font-light">
