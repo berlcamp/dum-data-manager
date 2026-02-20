@@ -249,7 +249,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         purpose: formdata.purpose,
         date_requested: format(new Date(formdata.date_requested), 'yyyy-MM-dd'),
         created_by: session.user.id,
-        is_locked: true,
       }
 
       const { data, error } = await supabase
@@ -268,7 +267,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           data[0].total_amount ??
           (formdata.quantity || 0) * (formdata.price || 0),
         status: 'Approved',
-        is_locked: true,
         ddm_user: user,
         department: departments?.find(
           (d) => d.id.toString() === formdata.department_id,

@@ -48,6 +48,11 @@ interface FilterTypes {
   setFilterDateTo: (date: Date | undefined) => void
   setFilterKeyword: (keyword: string) => void
   setFilterThreshold: (v: string) => void
+  filterDateFrom?: Date | undefined
+  filterDateTo?: Date | undefined
+  onMarkAsLock?: () => void
+  onMarkAsUnlock?: () => void
+  isSuperAdmin?: boolean
 }
 
 const FormSchema = z.object({
@@ -74,6 +79,11 @@ const Filters = ({
   setFilterDateTo,
   setFilterKeyword,
   setFilterThreshold,
+  filterDateFrom,
+  filterDateTo,
+  onMarkAsLock,
+  onMarkAsUnlock,
+  isSuperAdmin,
 }: FilterTypes) => {
   const [appropriations, setAppropriations] = useState<
     RisAppropriationTypes[] | []
@@ -569,6 +579,26 @@ const Filters = ({
               btnType="button"
               handleClick={handleClear}
             />
+            {isSuperAdmin &&
+              filterDateFrom &&
+              filterDateTo &&
+              onMarkAsLock &&
+              onMarkAsUnlock && (
+                <>
+                  <CustomButton
+                    containerStyles="app__btn_blue"
+                    title="Marked as Lock"
+                    btnType="button"
+                    handleClick={onMarkAsLock}
+                  />
+                  <CustomButton
+                    containerStyles="app__btn_blue"
+                    title="Marked as Unlocked"
+                    btnType="button"
+                    handleClick={onMarkAsUnlock}
+                  />
+                </>
+              )}
           </div>
         </form>
       </Form>

@@ -849,7 +849,7 @@ const Page: React.FC = () => {
     try {
       const { error } = await supabase
         .from('ddm_ris')
-        .update({ status: 'Approved', is_locked: true })
+        .update({ status: 'Approved' })
         .in('id', ids)
 
       if (error) throw new Error(error.message)
@@ -861,7 +861,7 @@ const Page: React.FC = () => {
       const items = [...globallist]
       const updatedArray = items.map((obj: RisTypes) => {
         if (selectedItems.find((o) => o.id.toString() === obj.id.toString()))
-          return { ...obj, status: 'Approved', is_locked: true }
+          return { ...obj, status: 'Approved' }
         else return obj
       })
       dispatch(updateList(updatedArray))
@@ -875,7 +875,7 @@ const Page: React.FC = () => {
     try {
       const { error } = await supabase
         .from('ddm_ris')
-        .update({ status: 'Pending', is_locked: false })
+        .update({ status: 'Pending' })
         .in('id', ids)
 
       if (error) throw new Error(error.message)
@@ -887,7 +887,7 @@ const Page: React.FC = () => {
       const items = [...globallist]
       const updatedArray = items.map((obj: RisTypes) => {
         if (selectedItems.find((o) => o.id.toString() === obj.id.toString()))
-          return { ...obj, status: 'Pending', is_locked: false }
+          return { ...obj, status: 'Pending' }
         else return obj
       })
       dispatch(updateList(updatedArray))
@@ -897,49 +897,45 @@ const Page: React.FC = () => {
     }
   }
 
-  const handleLockSelected = async () => {
-    const ids = selectedItems.map((obj) => obj.id)
+  const handleMarkAsLock = async () => {
+    if (!filterDateFrom || !filterDateTo) return
     try {
+      const dateFromStr = format(filterDateFrom, 'yyyy-MM-dd')
+      const dateToStr = format(filterDateTo, 'yyyy-MM-dd')
       const { error } = await supabase
         .from('ddm_ris')
         .update({ is_locked: true })
-        .in('id', ids)
+        .gte('date_requested', dateFromStr)
+        .lte('date_requested', dateToStr)
+        .eq('is_deleted', false)
 
       if (error) throw new Error(error.message)
 
-      setToast('success', 'Successfully locked')
-
-      const items = [...globallist]
-      const updatedArray = items.map((obj: RisTypes) => {
-        if (selectedItems.find((o) => o.id.toString() === obj.id.toString()))
-          return { ...obj, is_locked: true }
-        else return obj
-      })
-      dispatch(updateList(updatedArray))
+      setToast('success', 'Successfully marked as locked')
+      void fetchData()
+      void fetchWidgetData()
     } catch (error) {
       setToast('error', 'Something went wrong')
     }
   }
 
-  const handleUnlockSelected = async () => {
-    const ids = selectedItems.map((obj) => obj.id)
+  const handleMarkAsUnlock = async () => {
+    if (!filterDateFrom || !filterDateTo) return
     try {
+      const dateFromStr = format(filterDateFrom, 'yyyy-MM-dd')
+      const dateToStr = format(filterDateTo, 'yyyy-MM-dd')
       const { error } = await supabase
         .from('ddm_ris')
         .update({ is_locked: false })
-        .in('id', ids)
+        .gte('date_requested', dateFromStr)
+        .lte('date_requested', dateToStr)
+        .eq('is_deleted', false)
 
       if (error) throw new Error(error.message)
 
-      setToast('success', 'Successfully unlocked')
-
-      const items = [...globallist]
-      const updatedArray = items.map((obj: RisTypes) => {
-        if (selectedItems.find((o) => o.id.toString() === obj.id.toString()))
-          return { ...obj, is_locked: false }
-        else return obj
-      })
-      dispatch(updateList(updatedArray))
+      setToast('success', 'Successfully marked as unlocked')
+      void fetchData()
+      void fetchWidgetData()
     } catch (error) {
       setToast('error', 'Something went wrong')
     }
@@ -1065,6 +1061,11 @@ const Page: React.FC = () => {
               setFilterDateFrom={setFilterDateFrom}
               setFilterDateTo={setFilterDateTo}
               setFilterThreshold={setFilterThreshold}
+              filterDateFrom={filterDateFrom}
+              filterDateTo={filterDateTo}
+              onMarkAsLock={handleMarkAsLock}
+              onMarkAsUnlock={handleMarkAsUnlock}
+              isSuperAdmin={superAdmins.includes(email)}
             />
           </div>
 
@@ -1215,24 +1216,6 @@ const Page: React.FC = () => {
                   btnType="button"
                   handleClick={handlePendingSelected}
                 />
-                {superAdmins.includes(email) && (
-                  <>
-                    <CustomButton
-                      containerStyles="app__btn_blue"
-                      isDisabled={downloading}
-                      title={`Lock Selected (${selectedItems.length})`}
-                      btnType="button"
-                      handleClick={handleLockSelected}
-                    />
-                    <CustomButton
-                      containerStyles="app__btn_blue"
-                      isDisabled={downloading}
-                      title={`Unlock Selected (${selectedItems.length})`}
-                      btnType="button"
-                      handleClick={handleUnlockSelected}
-                    />
-                  </>
-                )}
                 <PrintAllChecked selectedRis={selectedItems} />
               </>
             )}
