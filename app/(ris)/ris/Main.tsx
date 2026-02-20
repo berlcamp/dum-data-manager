@@ -1215,20 +1215,24 @@ const Page: React.FC = () => {
                   btnType="button"
                   handleClick={handlePendingSelected}
                 />
-                <CustomButton
-                  containerStyles="app__btn_blue"
-                  isDisabled={downloading}
-                  title={`Lock Selected (${selectedItems.length})`}
-                  btnType="button"
-                  handleClick={handleLockSelected}
-                />
-                <CustomButton
-                  containerStyles="app__btn_blue"
-                  isDisabled={downloading}
-                  title={`Unlock Selected (${selectedItems.length})`}
-                  btnType="button"
-                  handleClick={handleUnlockSelected}
-                />
+                {superAdmins.includes(email) && (
+                  <>
+                    <CustomButton
+                      containerStyles="app__btn_blue"
+                      isDisabled={downloading}
+                      title={`Lock Selected (${selectedItems.length})`}
+                      btnType="button"
+                      handleClick={handleLockSelected}
+                    />
+                    <CustomButton
+                      containerStyles="app__btn_blue"
+                      isDisabled={downloading}
+                      title={`Unlock Selected (${selectedItems.length})`}
+                      btnType="button"
+                      handleClick={handleUnlockSelected}
+                    />
+                  </>
+                )}
                 <PrintAllChecked selectedRis={selectedItems} />
               </>
             )}
