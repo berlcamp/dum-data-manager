@@ -444,7 +444,10 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                   0,
                 )
               : 0
-            const remainingAmount = Number(item.amount) - totalAmountUsed
+            const remainingAmount = Math.max(
+              0,
+              Number(item.amount) - totalAmountUsed,
+            )
 
             // Show "Overused" if negative, otherwise show "Available"
             const amountLabel =
@@ -465,20 +468,13 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
               : 0
             const remainingQuantity = Number(item.quantity) - totalQuantityUsed
 
-            // Non-admin: exclude if remaining is 0 or less. Admin: show all (including over-consumed)
+            // Exclude on list if remain quantity is 0
             if (remainingQuantity > 0) {
               updatedData.push({
                 ...item,
                 remaining_quantity: ` (Available: ${remainingQuantity.toFixed(
                   2,
                 )} Liters)`,
-              })
-            } else if (isAdmin) {
-              updatedData.push({
-                ...item,
-                remaining_quantity: ` (Overused: ${Math.abs(
-                  remainingQuantity,
-                ).toFixed(2)} Liters)`,
               })
             }
           }
