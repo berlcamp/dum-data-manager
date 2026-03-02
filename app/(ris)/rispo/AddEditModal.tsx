@@ -88,6 +88,7 @@ const FormSchema = z.object({
   po_date: z.date({
     required_error: 'PO Date is required.',
   }),
+  allow_overconsumed: z.boolean(),
 })
 
 interface ModalProps {
@@ -130,6 +131,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       quantity: editData ? editData.quantity : 0,
       description: editData ? editData.description : '',
       po_date: editData ? new Date(editData.po_date) : new Date(),
+      allow_overconsumed: editData ? editData.allow_overconsumed ?? false : false,
     },
   })
 
@@ -160,6 +162,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         quantity: formdata.quantity,
         amount: formdata.total_amount,
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
+        allow_overconsumed: formdata.allow_overconsumed,
         created_by: session.user.id,
       }
 
@@ -225,6 +228,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         quantity: formdata.quantity,
         // Don't include amount/total_amount in update - database calculates it via DEFAULT/trigger
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
+        allow_overconsumed: formdata.allow_overconsumed,
         created_by: session.user.id,
       }
 
@@ -626,6 +630,40 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         )}
                       />
                     )}
+                    <FormField
+                      control={form.control}
+                      name="allow_overconsumed"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Over-consumed PO
+                          </FormLabel>
+                          <Select
+                            onValueChange={(value) =>
+                              field.onChange(value === 'allow')
+                            }
+                            value={field.value ? 'allow' : 'disallow'}
+                            defaultValue={
+                              field.value ? 'allow' : 'disallow'
+                            }>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choose option" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="allow">Allow</SelectItem>
+                              <SelectItem value="disallow">Disallow</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            When allowed, this PO stays selectable even when
+                            fully consumed or over-consumed.
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </div>
                 <hr className="my-4" />

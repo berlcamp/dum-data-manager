@@ -164,6 +164,7 @@ export interface RisPoTypes {
   type: string
   quantity: number
   amount: number
+  allow_overconsumed?: boolean
   price: number
   diesel_price: number
   gasoline_price: number

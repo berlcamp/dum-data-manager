@@ -203,7 +203,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
             : 0
           const remainingQuantity = Number(item.quantity) - totalQuantityUsed
 
-          // Exclude on list if remain quantity is 0
+          // Exclude when depleted/over-consumed unless PO allows it
           if (item.type !== 'Fuel') {
             if (remainingQuantity > 0) {
               updatedData.push({
@@ -211,6 +211,13 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                 remaining_quantity: ` (Available: ${remainingQuantity.toFixed(
                   2
                 )} Liters)`,
+              })
+            } else if (item.allow_overconsumed) {
+              updatedData.push({
+                ...item,
+                remaining_quantity: ` (Overused: ${Math.abs(
+                  remainingQuantity
+                ).toFixed(2)} Liters)`,
               })
             }
           } else {
