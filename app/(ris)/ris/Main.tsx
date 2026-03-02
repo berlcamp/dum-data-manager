@@ -505,9 +505,10 @@ const Page: React.FC = () => {
         { text: totalAmount.toFixed(2), bold: true }, // Amount (2 decimals)
       ])
 
-      // Signatories from department (ddm_ris_departments.issued_by, issued_by_designation)
+      // Signatories from PO department (ddm_ris_departments.issued_by, issued_by_designation)
 
-      const dept = items[0]?.department
+      const dept =
+        items[0]?.purchase_order?.department ?? items[0]?.department
       const issuedBy = dept?.issued_by ?? 'ARFEL HOPE L. BOMES'
       const issuedByDesignation = dept?.issued_by_dessignation ?? 'MMO STAFF'
 
@@ -783,8 +784,9 @@ const Page: React.FC = () => {
       margin: [0, 0, 0, 20],
     })
 
-    // Signatories from first row's department (ddm_ris_departments.issued_by, issued_by_designation)
-    const dept = sortedItems[0]?.department
+    // Signatories from PO department (ddm_ris_departments.issued_by, issued_by_designation)
+    const dept =
+      sortedItems[0]?.purchase_order?.department ?? sortedItems[0]?.department
     const issuedBy = dept?.issued_by ?? 'ARFEL HOPE L. BOMES'
     const issuedByDesignation = dept?.issued_by_dessignation ?? 'MMO STAFF'
 
