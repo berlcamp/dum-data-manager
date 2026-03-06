@@ -29,6 +29,7 @@ export const departments = [
   { office: 'Mayor' },
   { office: 'MDRRMO' },
   { office: 'MEO' },
+  { office: 'MENRO' },
   { office: 'MNAO' },
   { office: 'MPDO' },
   { office: 'MSWD' },
