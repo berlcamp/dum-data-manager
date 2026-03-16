@@ -1,5 +1,5 @@
-import Main from './Main'
+import { redirect } from 'next/navigation'
 
 export default function page() {
-  return <Main />
+  redirect('/ris/summary')
 }

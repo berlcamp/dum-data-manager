@@ -1,3 +1,5 @@
+'use client'
+
 import { Cog6ToothIcon } from '@heroicons/react/24/solid'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'

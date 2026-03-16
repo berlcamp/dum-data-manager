@@ -998,10 +998,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               form.setValue('price', gasolinePrice)
                             }
                           }}
-                          value={field.value}
-                          defaultValue={
-                            editData ? editData.type.toString() : field.value
-                          }>
+                          value={field.value ?? ''}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Choose Type" />

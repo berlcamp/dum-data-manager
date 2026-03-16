@@ -1,3 +1,5 @@
+'use client'
+
 import { useFilter } from '@/context/FilterContext'
 import { Cog8ToothIcon } from '@heroicons/react/20/solid'
 import { ListChecks } from 'lucide-react'
@@ -58,9 +60,9 @@ export default function RisSidebar() {
             </li>
             <li>
               <Link
-                href="/rissummary"
+                href="/ris/summary"
                 className={`app__menu_link ${
-                  currentRoute === '/rissummary' ? 'app_menu_link_active' : ''
+                  currentRoute === '/ris/summary' ? 'app_menu_link_active' : ''
                 }`}>
                 <span className="flex-1 ml-3 whitespace-nowrap">Summary</span>
               </Link>

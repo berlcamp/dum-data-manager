@@ -1,6 +1,4 @@
 import { CustomButton } from '@/components/index'
-import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
 import {
   Form,
   FormControl,
@@ -10,11 +8,6 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -23,7 +16,6 @@ import {
 } from '@/components/ui/select'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { useFilter } from '@/context/FilterContext'
-import { cn } from '@/lib/utils'
 import {
   RisAppropriationTypes,
   RisCaTypes,
@@ -31,8 +23,6 @@ import {
   RisPoTypes,
   RisVehicleTypes,
 } from '@/types'
-import { format } from 'date-fns'
-import { Calendar as CalendarIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -57,8 +47,8 @@ interface FilterTypes {
 
 const FormSchema = z.object({
   keyword: z.string().optional(),
-  dateFrom: z.date().optional(),
-  dateTo: z.date().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
   appropriation: z.string().optional(),
   vehicle: z.string().optional(),
   status: z.string().optional(),
@@ -99,8 +89,8 @@ const Filters = ({
 
   const form = useForm<z.infer<typeof FormSchema>>({
     defaultValues: {
-      dateFrom: undefined,
-      dateTo: undefined,
+      dateFrom: '',
+      dateTo: '',
       appropriation: '',
       vehicle: '',
       status: '',
@@ -114,8 +104,8 @@ const Filters = ({
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     setFilterPo(data.purchase_order || 'All')
-    setFilterDateFrom(data.dateFrom)
-    setFilterDateTo(data.dateTo)
+    setFilterDateFrom(data.dateFrom ? new Date(data.dateFrom) : undefined)
+    setFilterDateTo(data.dateTo ? new Date(data.dateTo) : undefined)
     setFilterKeyword(data.keyword || '')
     
     // Only set admin-only filters if user has ris_admin access
@@ -287,36 +277,14 @@ const Filters = ({
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel className="app__form_label">Date From</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={'outline'}
-                            className={cn(
-                              'w-[140px] pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                            )}>
-                            {field.value ? (
-                              format(field.value, 'PPP')
-                            ) : (
-                              <span>From</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-auto p-0"
-                        align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date('1900-01-01')}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        className="w-[140px]"
+                        {...field}
+                        value={field.value ?? ''}
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />
@@ -328,36 +296,14 @@ const Filters = ({
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel className="app__form_label">Date To</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={'outline'}
-                            className={cn(
-                              'w-[140px] pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                            )}>
-                            {field.value ? (
-                              format(field.value, 'PPP')
-                            ) : (
-                              <span>To</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-auto p-0"
-                        align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date < new Date('1900-01-01')}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        className="w-[140px]"
+                        {...field}
+                        value={field.value ?? ''}
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />
@@ -371,8 +317,7 @@ const Filters = ({
                     <FormLabel className="app__form_label">P.O.</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      value={field.value?.toString()}
-                      defaultValue={field.value?.toString()}>
+                      value={field.value != null ? field.value.toString() : ''}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="All" />
@@ -403,8 +348,7 @@ const Filters = ({
                         <FormLabel className="app__form_label">C.A.</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          value={field.value?.toString()}
-                          defaultValue={field.value?.toString()}>
+                          value={field.value != null ? field.value.toString() : ''}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="All" />
@@ -435,8 +379,7 @@ const Filters = ({
                         </FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          value={field.value?.toString()}
-                          defaultValue={field.value?.toString()}>
+                          value={field.value != null ? field.value.toString() : ''}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="All" />
@@ -467,8 +410,7 @@ const Filters = ({
                         </FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          value={field.value?.toString()}
-                          defaultValue={field.value?.toString()}>
+                          value={field.value != null ? field.value.toString() : ''}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="All" />
@@ -497,8 +439,7 @@ const Filters = ({
                         <FormLabel className="app__form_label">Vehicle</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          value={field.value?.toString()}
-                          defaultValue={field.value?.toString()}>
+                          value={field.value != null ? field.value.toString() : ''}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="All" />
@@ -527,8 +468,7 @@ const Filters = ({
                         <FormLabel className="app__form_label">Status</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          value={field.value?.toString()}
-                          defaultValue={field.value?.toString()}>
+                          value={field.value != null ? field.value.toString() : ''}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="All" />
