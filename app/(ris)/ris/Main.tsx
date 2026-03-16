@@ -740,7 +740,6 @@ const Page: React.FC = () => {
         amount.toFixed(2),
       ])
     }
-    // zzzz
 
     // ➕ Totals row
     tableBody.push([
@@ -784,9 +783,11 @@ const Page: React.FC = () => {
       margin: [0, 0, 0, 20],
     })
 
-    // Signatories from PO department (ddm_ris_departments.issued_by, issued_by_designation)
+    // Signatories: use default when no PO selected; otherwise from PO department
     const dept =
-      sortedItems[0]?.purchase_order?.department ?? sortedItems[0]?.department
+      filterPo === 'All'
+        ? null
+        : sortedItems[0]?.purchase_order?.department ?? sortedItems[0]?.department
     const issuedBy = dept?.issued_by ?? 'ARFEL HOPE L. BOMES'
     const issuedByDesignation = dept?.issued_by_dessignation ?? 'MMO STAFF'
 
