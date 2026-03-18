@@ -32,11 +32,9 @@ type DepartmentSummary = {
   totalAmount: number
 }
 
-type PoSummary = {
-  poId: string
-  poNumber: string
+type AppropriationSummary = {
+  appropriationId: string
   appropriationName: string
-  departmentName: string
   gasoline: number
   diesel: number
   totalAmount: number
@@ -68,7 +66,7 @@ const Page: React.FC = () => {
 
   const [loading, setLoading] = useState(false)
   const [downloadingDept, setDownloadingDept] = useState(false)
-  const [downloadingPo, setDownloadingPo] = useState(false)
+  const [downloadingAppropriation, setDownloadingAppropriation] = useState(false)
 
   const [risData, setRisData] = useState<RisTypes[]>([])
 
@@ -161,31 +159,28 @@ const Page: React.FC = () => {
     )
   }, [risData])
 
-  const poSummary = useMemo((): PoSummary[] => {
-    const map = new Map<string, PoSummary>()
+  const appropriationSummary = useMemo((): AppropriationSummary[] => {
+    const map = new Map<string, AppropriationSummary>()
     risData.forEach((item: RisTypes) => {
       const po = item.purchase_order
-      if (!po?.id) return
-      const poId = po.id
-      const poNumber = po.po_number || ''
+      const appropriationId =
+        (po as { appropriation?: string })?.appropriation || 'no-appropriation'
       const appropriationName =
-        (po.ddm_ris_appropriation as { name?: string })?.name || ''
-      const departmentName = (po.department as { name?: string })?.name || ''
+        (po?.ddm_ris_appropriation as { name?: string })?.name || 'No Appropriation'
       const gasoline = item.type === 'Gasoline' ? item.quantity : 0
       const diesel = item.type === 'Diesel' ? item.quantity : 0
       const amt = item.total_amount || item.price * item.quantity
 
-      const existing = map.get(poId)
+      const key = appropriationId
+      const existing = map.get(key)
       if (existing) {
         existing.gasoline += gasoline
         existing.diesel += diesel
         existing.totalAmount += amt
       } else {
-        map.set(poId, {
-          poId,
-          poNumber,
+        map.set(key, {
+          appropriationId: key,
           appropriationName,
-          departmentName,
           gasoline,
           diesel,
           totalAmount: amt,
@@ -193,7 +188,7 @@ const Page: React.FC = () => {
       }
     })
     return Array.from(map.values()).sort((a, b) =>
-      a.poNumber.localeCompare(b.poNumber)
+      a.appropriationName.localeCompare(b.appropriationName)
     )
   }, [risData])
 
@@ -244,25 +239,21 @@ const Page: React.FC = () => {
     setDownloadingDept(false)
   }
 
-  const exportPoExcel = async () => {
-    setDownloadingPo(true)
+  const exportAppropriationExcel = async () => {
+    setDownloadingAppropriation(true)
     const workbook = new Excel.Workbook()
-    const worksheet = workbook.addWorksheet('By PO')
+    const worksheet = workbook.addWorksheet('By Appropriation')
     worksheet.columns = [
       { header: '#', key: 'no', width: 8 },
-      { header: 'PO Number', key: 'poNumber', width: 18 },
-      { header: 'Appropriation', key: 'appropriation', width: 20 },
-      { header: 'Department', key: 'department', width: 22 },
+      { header: 'Appropriation', key: 'appropriation', width: 30 },
       { header: 'Gasoline (L)', key: 'gasoline', width: 15 },
       { header: 'Diesel (L)', key: 'diesel', width: 15 },
       { header: 'Total Amount', key: 'totalAmount', width: 18 },
     ]
-    poSummary.forEach((row, i) => {
+    appropriationSummary.forEach((row, i) => {
       worksheet.addRow({
         no: i + 1,
-        poNumber: row.poNumber,
         appropriation: row.appropriationName,
-        department: row.departmentName,
         gasoline: formatNum(row.gasoline),
         diesel: formatNum(row.diesel),
         totalAmount: formatCurrency(row.totalAmount),
@@ -274,9 +265,9 @@ const Page: React.FC = () => {
     })
     saveAs(
       blob,
-      `RIS_Summary_By_PO_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
+      `RIS_Summary_By_Appropriation_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
     )
-    setDownloadingPo(false)
+    setDownloadingAppropriation(false)
   }
 
   const email = session?.user?.email ?? ''
@@ -368,16 +359,16 @@ const Page: React.FC = () => {
                     </CardContent>
                   </Card>
 
-                  {/* PO Summary Table */}
+                  {/* Appropriation Summary Table */}
                   <Card className="mx-4">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle>Summary by Purchase Order</CardTitle>
+                      <CardTitle>Summary by Appropriation</CardTitle>
                       <CustomButton
                         containerStyles="app__btn_green"
-                        title={downloadingPo ? 'Exporting...' : 'Export to Excel'}
+                        title={downloadingAppropriation ? 'Exporting...' : 'Export to Excel'}
                         btnType="button"
-                        handleClick={exportPoExcel}
-                        isDisabled={downloadingPo}
+                        handleClick={exportAppropriationExcel}
+                        isDisabled={downloadingAppropriation}
                       />
                     </CardHeader>
                     <CardContent>
@@ -386,21 +377,17 @@ const Page: React.FC = () => {
                           <thead className="app__thead">
                             <tr>
                               <th className="app__th w-12">#</th>
-                              <th className="app__th">PO Number</th>
                               <th className="app__th">Appropriation</th>
-                              <th className="app__th">Department</th>
                               <th className="app__th text-right">Gasoline (L)</th>
                               <th className="app__th text-right">Diesel (L)</th>
                               <th className="app__th text-right">Total Amount</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {poSummary.map((row, idx) => (
-                              <tr key={row.poId} className="app__tr">
+                            {appropriationSummary.map((row, idx) => (
+                              <tr key={row.appropriationId} className="app__tr">
                                 <td className="app__td">{idx + 1}</td>
-                                <td className="app__td">{row.poNumber}</td>
                                 <td className="app__td">{row.appropriationName}</td>
-                                <td className="app__td">{row.departmentName}</td>
                                 <td className="app__td text-right tabular-nums">
                                   {formatNum(row.gasoline)}
                                 </td>
