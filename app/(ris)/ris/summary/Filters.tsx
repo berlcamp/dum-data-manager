@@ -19,7 +19,6 @@ import {
   RisAppropriationTypes,
   RisDepartmentTypes,
 } from '@/types'
-import { endOfMonth, startOfMonth } from 'date-fns'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -51,14 +50,10 @@ const Filters = ({
 
   const { supabase } = useSupabase()
 
-  const now = new Date()
-  const defaultDateFrom = startOfMonth(now).toISOString().slice(0, 10)
-  const defaultDateTo = endOfMonth(now).toISOString().slice(0, 10)
-
   const form = useForm<z.infer<typeof FormSchema>>({
     defaultValues: {
-      dateFrom: defaultDateFrom,
-      dateTo: defaultDateTo,
+      dateFrom: '',
+      dateTo: '',
       department: '',
       appropriation: '',
     },

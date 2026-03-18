@@ -15,7 +15,7 @@ import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import type { RisTypes } from '@/types'
 import { fetchRis } from '@/utils/fetchApi'
-import { endOfMonth, format, startOfMonth } from 'date-fns'
+import { format } from 'date-fns'
 import Excel from 'exceljs'
 import { saveAs } from 'file-saver'
 import React, { useEffect, useMemo, useState } from 'react'
@@ -56,19 +56,13 @@ const formatCurrency = (n: number) =>
 
 const colors = ['#55d978', '#d9ca55', '#5caecc', '#ffc4ef']
 
-const now = new Date()
-const defaultDateFrom = startOfMonth(now)
-const defaultDateTo = endOfMonth(now)
-
 const Page: React.FC = () => {
   const [filterDepartment, setFilterDepartment] = useState('All')
   const [filterAppropriation, setFilterAppropriation] = useState('All')
   const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(
-    defaultDateFrom,
+    undefined,
   )
-  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(
-    defaultDateTo,
-  )
+  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined)
 
   const [loading, setLoading] = useState(false)
   const [downloadingDept, setDownloadingDept] = useState(false)
