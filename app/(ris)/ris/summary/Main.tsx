@@ -280,7 +280,12 @@ const Page: React.FC = () => {
   }
 
   const email = session?.user?.email ?? ''
-  if (!hasAccess('ris') && !superAdmins.includes(email)) return <Unauthorized />
+  if (
+    !hasAccess('ris') &&
+    !hasAccess('ris_summary') &&
+    !superAdmins.includes(email)
+  )
+    return <Unauthorized />
 
   return (
     <>
@@ -413,7 +418,7 @@ const Page: React.FC = () => {
                           <thead className="app__thead">
                             <tr>
                               <th className="app__th w-12">#</th>
-                              <th className="app__th">PO Number</th>
+                              <th className="app__th">PO</th>
                               <th className="app__th">Appropriation</th>
                               <th className="app__th">Department</th>
                               <th className="app__th text-right">

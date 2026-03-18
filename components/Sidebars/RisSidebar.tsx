@@ -30,6 +30,24 @@ export default function RisSidebar() {
             </span>
           </Link>
         </li>
+        {(hasAccess('ris_admin') || hasAccess('ris_summary')) && (
+          <>
+            <li>
+              <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2 mt-8">
+                <span>Dashboard</span>
+              </div>
+            </li>
+            <li>
+              <Link
+                href="/ris/summary"
+                className={`app__menu_link ${
+                  currentRoute === '/ris/summary' ? 'app_menu_link_active' : ''
+                }`}>
+                <span className="flex-1 ml-3 whitespace-nowrap">Summary</span>
+              </Link>
+            </li>
+          </>
+        )}
         {hasAccess('ris_admin') && (
           <>
             <li>
@@ -53,27 +71,6 @@ export default function RisSidebar() {
               </Link>
             </li> */}
 
-            <li>
-              <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2 mt-8">
-                <span>Dashboard</span>
-              </div>
-            </li>
-            <li>
-              <Link
-                href="/ris/summary"
-                className={`app__menu_link ${
-                  currentRoute === '/ris/summary' ? 'app_menu_link_active' : ''
-                }`}>
-                <span className="flex-1 ml-3 whitespace-nowrap">Summary</span>
-              </Link>
-              {/* <Link
-                href="/risreports"
-                className={`app__menu_link ${
-                  currentRoute === '/risreports' ? 'app_menu_link_active' : ''
-                }`}>
-                <span className="flex-1 ml-3 whitespace-nowrap">Summary</span>
-              </Link> */}
-            </li>
             <li>
               <div className="flex items-center text-gray-500 font-semibold items-centers space-x-1 px-2 mt-8">
                 <Cog8ToothIcon className="w-4 h-4" />
