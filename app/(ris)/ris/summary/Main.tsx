@@ -15,9 +15,9 @@ import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import type { RisTypes } from '@/types'
 import { fetchRis } from '@/utils/fetchApi'
+import { endOfMonth, format, startOfMonth } from 'date-fns'
 import Excel from 'exceljs'
 import { saveAs } from 'file-saver'
-import { endOfMonth, format, startOfMonth } from 'date-fns'
 import React, { useEffect, useMemo, useState } from 'react'
 
 import CategoriesChart from '../../rissummary/CategoriesChart'
@@ -32,9 +32,11 @@ type DepartmentSummary = {
   totalAmount: number
 }
 
-type AppropriationSummary = {
-  appropriationId: string
+type PoSummary = {
+  poId: string
+  poNumber: string
   appropriationName: string
+  departmentName: string
   gasoline: number
   diesel: number
   totalAmount: number
@@ -61,12 +63,16 @@ const defaultDateTo = endOfMonth(now)
 const Page: React.FC = () => {
   const [filterDepartment, setFilterDepartment] = useState('All')
   const [filterAppropriation, setFilterAppropriation] = useState('All')
-  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(defaultDateFrom)
-  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(defaultDateTo)
+  const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(
+    defaultDateFrom,
+  )
+  const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(
+    defaultDateTo,
+  )
 
   const [loading, setLoading] = useState(false)
   const [downloadingDept, setDownloadingDept] = useState(false)
-  const [downloadingAppropriation, setDownloadingAppropriation] = useState(false)
+  const [downloadingPo, setDownloadingPo] = useState(false)
 
   const [risData, setRisData] = useState<RisTypes[]>([])
 
@@ -89,7 +95,7 @@ const Page: React.FC = () => {
         0,
         session?.user?.email,
         currentUser?.department_id,
-        hasRisAdminAccess
+        hasRisAdminAccess,
       )
       setRisData(result.data || [])
     } catch (e) {
@@ -133,8 +139,7 @@ const Page: React.FC = () => {
     const map = new Map<string, DepartmentSummary>()
     risData.forEach((item: RisTypes) => {
       const deptId = item.department_id
-      const deptName =
-        (item.department as { name?: string })?.name || 'Unknown'
+      const deptName = (item.department as { name?: string })?.name || 'Unknown'
       const existing = map.get(deptId)
       const gasoline = item.type === 'Gasoline' ? item.quantity : 0
       const diesel = item.type === 'Diesel' ? item.quantity : 0
@@ -155,32 +160,35 @@ const Page: React.FC = () => {
       }
     })
     return Array.from(map.values()).sort((a, b) =>
-      a.departmentName.localeCompare(b.departmentName)
+      a.departmentName.localeCompare(b.departmentName),
     )
   }, [risData])
 
-  const appropriationSummary = useMemo((): AppropriationSummary[] => {
-    const map = new Map<string, AppropriationSummary>()
+  const poSummary = useMemo((): PoSummary[] => {
+    const map = new Map<string, PoSummary>()
     risData.forEach((item: RisTypes) => {
       const po = item.purchase_order
-      const appropriationId =
-        (po as { appropriation?: string })?.appropriation || 'no-appropriation'
+      if (!po?.id) return
+      const poId = po.id
+      const poNumber = po.po_number || ''
       const appropriationName =
-        (po?.ddm_ris_appropriation as { name?: string })?.name || 'No Appropriation'
+        (po.ddm_ris_appropriation as { name?: string })?.name || ''
+      const departmentName = (po.department as { name?: string })?.name || ''
       const gasoline = item.type === 'Gasoline' ? item.quantity : 0
       const diesel = item.type === 'Diesel' ? item.quantity : 0
       const amt = item.total_amount || item.price * item.quantity
 
-      const key = appropriationId
-      const existing = map.get(key)
+      const existing = map.get(poId)
       if (existing) {
         existing.gasoline += gasoline
         existing.diesel += diesel
         existing.totalAmount += amt
       } else {
-        map.set(key, {
-          appropriationId: key,
+        map.set(poId, {
+          poId,
+          poNumber,
           appropriationName,
+          departmentName,
           gasoline,
           diesel,
           totalAmount: amt,
@@ -188,7 +196,7 @@ const Page: React.FC = () => {
       }
     })
     return Array.from(map.values()).sort((a, b) =>
-      a.appropriationName.localeCompare(b.appropriationName)
+      a.poNumber.localeCompare(b.poNumber),
     )
   }, [risData])
 
@@ -205,7 +213,7 @@ const Page: React.FC = () => {
         bgColor: colors[1],
       },
     ],
-    [stats.totalDiesel, stats.totalGasoline]
+    [stats.totalDiesel, stats.totalGasoline],
   )
 
   const exportDepartmentExcel = async () => {
@@ -234,26 +242,30 @@ const Page: React.FC = () => {
     })
     saveAs(
       blob,
-      `RIS_Summary_By_Department_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
+      `RIS_Summary_By_Department_${format(new Date(), 'yyyy-MM-dd')}.xlsx`,
     )
     setDownloadingDept(false)
   }
 
-  const exportAppropriationExcel = async () => {
-    setDownloadingAppropriation(true)
+  const exportPoExcel = async () => {
+    setDownloadingPo(true)
     const workbook = new Excel.Workbook()
-    const worksheet = workbook.addWorksheet('By Appropriation')
+    const worksheet = workbook.addWorksheet('By PO')
     worksheet.columns = [
       { header: '#', key: 'no', width: 8 },
-      { header: 'Appropriation', key: 'appropriation', width: 30 },
+      { header: 'PO Number', key: 'poNumber', width: 18 },
+      { header: 'Appropriation', key: 'appropriation', width: 20 },
+      { header: 'Department', key: 'department', width: 22 },
       { header: 'Gasoline (L)', key: 'gasoline', width: 15 },
       { header: 'Diesel (L)', key: 'diesel', width: 15 },
       { header: 'Total Amount', key: 'totalAmount', width: 18 },
     ]
-    appropriationSummary.forEach((row, i) => {
+    poSummary.forEach((row, i) => {
       worksheet.addRow({
         no: i + 1,
+        poNumber: row.poNumber,
         appropriation: row.appropriationName,
+        department: row.departmentName,
         gasoline: formatNum(row.gasoline),
         diesel: formatNum(row.diesel),
         totalAmount: formatCurrency(row.totalAmount),
@@ -263,11 +275,8 @@ const Page: React.FC = () => {
     const blob = new Blob([buffer], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     })
-    saveAs(
-      blob,
-      `RIS_Summary_By_Appropriation_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
-    )
-    setDownloadingAppropriation(false)
+    saveAs(blob, `RIS_Summary_By_PO_${format(new Date(), 'yyyy-MM-dd')}.xlsx`)
+    setDownloadingPo(false)
   }
 
   const email = session?.user?.email ?? ''
@@ -300,11 +309,26 @@ const Page: React.FC = () => {
             <>
               {/* Stat Widgets */}
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5 px-4">
-                <StatWidget label="Total Gasoline" value={`${formatNum(stats.totalGasoline)} L`} />
-                <StatWidget label="Total Diesel" value={`${formatNum(stats.totalDiesel)} L`} />
-                <StatWidget label="Total Amount" value={formatCurrency(stats.totalAmount)} />
-                <StatWidget label="Requisitions" value={stats.requisitions} />
-                <StatWidget label="Total Liters" value={`${formatNum(stats.totalLiters)} L`} />
+                <StatWidget
+                  label="Total Gasoline"
+                  value={`${formatNum(stats.totalGasoline)} L`}
+                />
+                <StatWidget
+                  label="Total Diesel"
+                  value={`${formatNum(stats.totalDiesel)} L`}
+                />
+                <StatWidget
+                  label="Total Amount"
+                  value={formatCurrency(stats.totalAmount)}
+                />
+                <StatWidget
+                  label="Requisitions"
+                  value={stats.requisitions}
+                />
+                <StatWidget
+                  label="Total Liters"
+                  value={`${formatNum(stats.totalLiters)} L`}
+                />
               </div>
 
               {risData.length === 0 ? (
@@ -319,7 +343,9 @@ const Page: React.FC = () => {
                       <CardTitle>Consumption by Department</CardTitle>
                       <CustomButton
                         containerStyles="app__btn_green"
-                        title={downloadingDept ? 'Exporting...' : 'Export to Excel'}
+                        title={
+                          downloadingDept ? 'Exporting...' : 'Export to Excel'
+                        }
                         btnType="button"
                         handleClick={exportDepartmentExcel}
                         isDisabled={downloadingDept}
@@ -332,16 +358,24 @@ const Page: React.FC = () => {
                             <tr>
                               <th className="app__th w-12">#</th>
                               <th className="app__th">Department</th>
-                              <th className="app__th text-right">Gasoline (L)</th>
+                              <th className="app__th text-right">
+                                Gasoline (L)
+                              </th>
                               <th className="app__th text-right">Diesel (L)</th>
-                              <th className="app__th text-right">Total Amount</th>
+                              <th className="app__th text-right">
+                                Total Amount
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
                             {departmentSummary.map((row, idx) => (
-                              <tr key={row.departmentId} className="app__tr">
+                              <tr
+                                key={row.departmentId}
+                                className="app__tr">
                                 <td className="app__td">{idx + 1}</td>
-                                <td className="app__td">{row.departmentName}</td>
+                                <td className="app__td">
+                                  {row.departmentName}
+                                </td>
                                 <td className="app__td text-right tabular-nums">
                                   {formatNum(row.gasoline)}
                                 </td>
@@ -359,16 +393,18 @@ const Page: React.FC = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Appropriation Summary Table */}
+                  {/* PO Summary Table */}
                   <Card className="mx-4">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle>Summary by Appropriation</CardTitle>
+                      <CardTitle>Summary by Purchase Order</CardTitle>
                       <CustomButton
                         containerStyles="app__btn_green"
-                        title={downloadingAppropriation ? 'Exporting...' : 'Export to Excel'}
+                        title={
+                          downloadingPo ? 'Exporting...' : 'Export to Excel'
+                        }
                         btnType="button"
-                        handleClick={exportAppropriationExcel}
-                        isDisabled={downloadingAppropriation}
+                        handleClick={exportPoExcel}
+                        isDisabled={downloadingPo}
                       />
                     </CardHeader>
                     <CardContent>
@@ -377,17 +413,31 @@ const Page: React.FC = () => {
                           <thead className="app__thead">
                             <tr>
                               <th className="app__th w-12">#</th>
+                              <th className="app__th">PO Number</th>
                               <th className="app__th">Appropriation</th>
-                              <th className="app__th text-right">Gasoline (L)</th>
+                              <th className="app__th">Department</th>
+                              <th className="app__th text-right">
+                                Gasoline (L)
+                              </th>
                               <th className="app__th text-right">Diesel (L)</th>
-                              <th className="app__th text-right">Total Amount</th>
+                              <th className="app__th text-right">
+                                Total Amount
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
-                            {appropriationSummary.map((row, idx) => (
-                              <tr key={row.appropriationId} className="app__tr">
+                            {poSummary.map((row, idx) => (
+                              <tr
+                                key={row.poId}
+                                className="app__tr">
                                 <td className="app__td">{idx + 1}</td>
-                                <td className="app__td">{row.appropriationName}</td>
+                                <td className="app__td">{row.poNumber}</td>
+                                <td className="app__td">
+                                  {row.appropriationName}
+                                </td>
+                                <td className="app__td">
+                                  {row.departmentName}
+                                </td>
                                 <td className="app__td text-right tabular-nums">
                                   {formatNum(row.gasoline)}
                                 </td>
@@ -412,7 +462,10 @@ const Page: React.FC = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="h-48">
-                        <CategoriesChart labels={['Liters']} dataSets={chartDataSets} />
+                        <CategoriesChart
+                          labels={['Liters']}
+                          dataSets={chartDataSets}
+                        />
                       </div>
                     </CardContent>
                   </Card>
