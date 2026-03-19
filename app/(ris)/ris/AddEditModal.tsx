@@ -218,6 +218,79 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     }
     setErrorMessage('')
 
+    // Validate over-consumption when PO disallows it
+    if (formdata.transaction_type === 'Purchase Order' && formdata.po_id) {
+      const po = purchaseOrders?.find(
+        (p) => p.id.toString() === formdata.po_id,
+      )
+      if (!po) {
+        setErrorMessage(
+          'This P.O. is over-consumed and no longer available. Please select a different P.O.',
+        )
+        return
+      }
+      if (!po.allow_overconsumed) {
+        const totalAmount = (formdata.quantity || 0) * (formdata.price || 0)
+        if (po.type === 'Fuel') {
+          const totalAmountUsed = po.ddm_ris
+            ? po.ddm_ris.reduce(
+                (acc, ris) =>
+                  acc +
+                  (ris.status === 'Approved' &&
+                  (!editData || ris.id !== editData.id)
+                    ? Number(
+                        ris.total_amount || ris.quantity * ris.price || 0,
+                      )
+                    : 0),
+                0,
+              )
+            : 0
+          const currentAmount =
+            editData &&
+            editData.po_id === po.id.toString() &&
+            editData.status === 'Approved'
+              ? Number(
+                  editData.total_amount ||
+                    editData.quantity * editData.price ||
+                    0,
+                )
+              : 0
+          const available =
+            Number(po.amount) - totalAmountUsed + currentAmount
+          if (totalAmount > available) {
+            setErrorMessage(
+              `Amount exceeds available (₱${available.toFixed(2)}). Over-consumption is not allowed for this P.O.`,
+            )
+            return
+          }
+        } else {
+          const totalQuantityUsed = po.ddm_ris
+            ? po.ddm_ris.reduce(
+                (acc, ris) =>
+                  acc +
+                  (!editData || ris.id !== editData.id
+                    ? Number(ris.quantity)
+                    : 0),
+                0,
+              )
+            : 0
+          const currentQuantity =
+            editData && editData.po_id === po.id.toString()
+              ? Number(editData.quantity)
+              : 0
+          const available =
+            Number(po.quantity) - totalQuantityUsed + currentQuantity
+          const quantity = formdata.quantity || 0
+          if (quantity > available) {
+            setErrorMessage(
+              `Quantity exceeds available (${available.toFixed(2)} Liters). Over-consumption is not allowed for this P.O.`,
+            )
+            return
+          }
+        }
+      }
+    }
+
     if (editData) {
       await handleUpdate(formdata)
     } else {
