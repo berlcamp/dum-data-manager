@@ -311,6 +311,7 @@ const Page: React.FC = () => {
       { header: '#', key: 'no', width: 20 },
       { header: 'Date', key: 'date', width: 20 },
       { header: 'PO', key: 'po', width: 20 },
+      { header: 'Supplier', key: 'supplier', width: 24 },
       { header: 'Description', key: 'description', width: 20 },
       { header: 'Type', key: 'type', width: 20 },
       { header: 'Appropriation', key: 'appropriation', width: 20 },
@@ -360,6 +361,7 @@ const Page: React.FC = () => {
         no: index + 1,
         date: format(new Date(item.po_date), 'MM/dd/yyyy'),
         po: `${item.po_number || ''}`,
+        supplier: `${item.supplier?.trim() || ''}`,
         description: `${item.description}`,
         type: `${item.type}`,
         appropriation: `${approp}`,
@@ -508,6 +510,14 @@ const Page: React.FC = () => {
                             <span className="font-light">Department:</span>{' '}
                             <span className="font-medium">
                               {item.department?.name}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-light">Supplier:</span>{' '}
+                            <span className="font-medium">
+                              {item.supplier?.trim()
+                                ? item.supplier
+                                : '—'}
                             </span>
                           </div>
                           {/* Display for Fuel type: Allocated Amount, Consumed Amount, Remaining Amount, Overconsumed Amount */}

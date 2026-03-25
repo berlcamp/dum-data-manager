@@ -507,8 +507,7 @@ const Page: React.FC = () => {
 
       // Signatories from PO department (ddm_ris_departments.issued_by, issued_by_designation)
 
-      const dept =
-        items[0]?.purchase_order?.department ?? items[0]?.department
+      const dept = items[0]?.purchase_order?.department ?? items[0]?.department
       const issuedBy = dept?.issued_by ?? 'ARFEL HOPE L. BOMES'
       const issuedByDesignation = dept?.issued_by_dessignation ?? 'MMO STAFF'
 
@@ -787,7 +786,8 @@ const Page: React.FC = () => {
     const dept =
       filterPo === 'All'
         ? null
-        : sortedItems[0]?.purchase_order?.department ?? sortedItems[0]?.department
+        : (sortedItems[0]?.purchase_order?.department ??
+          sortedItems[0]?.department)
     const issuedBy = dept?.issued_by ?? 'ARFEL HOPE L. BOMES'
     const issuedByDesignation = dept?.issued_by_dessignation ?? 'MMO STAFF'
 
