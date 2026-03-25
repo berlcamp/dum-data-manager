@@ -70,6 +70,7 @@ const FormSchema = z.object({
   description: z.string().min(1, {
     message: 'Description is required.',
   }),
+  supplier: z.string().optional(),
   diesel_price: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
     .number({
       required_error: 'Diesel price is required.',
@@ -130,8 +131,11 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       total_amount: editData ? editData.amount : 0,
       quantity: editData ? editData.quantity : 0,
       description: editData ? editData.description : '',
+      supplier: editData?.supplier ?? '',
       po_date: editData ? new Date(editData.po_date) : new Date(),
-      allow_overconsumed: editData ? editData.allow_overconsumed ?? false : false,
+      allow_overconsumed: editData
+        ? (editData.allow_overconsumed ?? false)
+        : false,
     },
   })
 
@@ -157,6 +161,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         description: formdata.description,
         po_number: formdata.po_number,
         appropriation: formdata.appropriation,
+        supplier: formdata.supplier?.trim() || null,
         diesel_price: formdata.diesel_price,
         gasoline_price: formdata.gasoline_price,
         quantity: formdata.quantity,
@@ -222,6 +227,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         po_number: formdata.po_number,
         appropriation: formdata.appropriation,
         department_id: formdata.department_id,
+        supplier: formdata.supplier?.trim() || null,
         diesel_price: formdata.diesel_price,
         amount: formdata.total_amount,
         gasoline_price: formdata.gasoline_price,
@@ -512,6 +518,24 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         </FormItem>
                       )}
                     />
+                    <FormField
+                      control={form.control}
+                      name="supplier"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Supplier
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Supplier"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                   <div className="space-y-6">
                     <FormField
@@ -643,9 +667,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               field.onChange(value === 'allow')
                             }
                             value={field.value ? 'allow' : 'disallow'}
-                            defaultValue={
-                              field.value ? 'allow' : 'disallow'
-                            }>
+                            defaultValue={field.value ? 'allow' : 'disallow'}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Choose option" />

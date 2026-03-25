@@ -69,6 +69,16 @@ const RisToPrint: React.FC<ChildProps> = ({ forwardedRef, ris }) => {
           <tr>
             <td
               colSpan={5}
+              className="border px-1 border-gray-700">
+              <span className="font-bold">SUPPLIER:</span>{' '}
+              <span>
+                {ris.purchase_order?.supplier?.trim() || '—'}
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td
+              colSpan={5}
               className="text-center border border-gray-700">
               <div className="py-2 text-sm font-bold">REQUISITION</div>
             </td>

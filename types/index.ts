@@ -171,6 +171,7 @@ export interface RisPoTypes {
   total_amount: number
   po_date: string
   description: string
+  supplier?: string | null
   created_by: string
   ddm_user: AccountTypes
   ddm_ris: RisTypes[]
