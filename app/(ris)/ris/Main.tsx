@@ -497,12 +497,12 @@ const Page: React.FC = () => {
         {},
         {},
         {},
-        { text: totalGasoline.toFixed(2), bold: true },
-        { text: totalDiesel.toFixed(2), bold: true },
+        { text: totalGasoline.toFixed(4), bold: true },
+        { text: totalDiesel.toFixed(4), bold: true },
         {},
         '', // Finished Balance
         '', // Price/L
-        { text: totalAmount.toFixed(2), bold: true }, // Amount (2 decimals)
+        { text: totalAmount.toFixed(4), bold: true },
       ])
 
       // Signatories from PO department (ddm_ris_departments.issued_by, issued_by_designation)
@@ -747,12 +747,12 @@ const Page: React.FC = () => {
       {},
       {},
       {},
-      { text: totalGasoline.toFixed(2), bold: true },
-      { text: totalDiesel.toFixed(2), bold: true },
+      { text: totalGasoline.toFixed(4), bold: true },
+      { text: totalDiesel.toFixed(4), bold: true },
       {},
       {}, // finished balance not totaled
       {}, // price not totaled
-      { text: totalAmount.toFixed(2), bold: true },
+      { text: totalAmount.toFixed(4), bold: true },
     ])
 
     content.push({
