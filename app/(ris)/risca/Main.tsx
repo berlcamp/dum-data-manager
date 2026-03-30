@@ -117,6 +117,12 @@ const Page: React.FC = () => {
     setSelectedItem(item)
   }
 
+  const formatAmount = (n: number) =>
+    Number(n).toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 4,
+    })
+
   const countRemainingAmount = (item: RisCaTypes) => {
     const totalAmountUsed = item.ddm_ris
       ? item.ddm_ris.reduce(
@@ -132,11 +138,11 @@ const Page: React.FC = () => {
     if (remainingAmount < 1000) {
       return (
         <span style={{ color: 'red', fontWeight: 'bold' }}>
-          {remainingAmount}
+          {formatAmount(remainingAmount)}
         </span>
       )
     } else {
-      return <span>{remainingAmount}</span>
+      return <span>{formatAmount(remainingAmount)}</span>
     }
   }
 
@@ -218,7 +224,9 @@ const Page: React.FC = () => {
                           </div>
                           <div>
                             <span className="font-light">Amount:</span>{' '}
-                            <span className="font-medium">{item.amount}</span>
+                            <span className="font-medium">
+                              {formatAmount(Number(item.amount ?? 0))}
+                            </span>
                           </div>
                           <div>
                             <span className="font-light">CA Date:</span>{' '}

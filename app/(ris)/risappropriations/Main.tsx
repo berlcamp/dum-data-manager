@@ -112,6 +112,12 @@ const Page: React.FC = () => {
     setSelectedItem(item)
   }
 
+  const formatAmount = (n: number) =>
+    Number(n).toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 4,
+    })
+
   const countRemainingAmount = (item: RisAppropriationTypes) => {
     let totalAmount = 0
     if (item.ddm_ris_purchase_orders) {
@@ -129,11 +135,11 @@ const Page: React.FC = () => {
     if (remainingAmount < 100) {
       return (
         <span style={{ color: 'red', fontWeight: 'bold' }}>
-          {remainingAmount.toFixed(2)}
+          {formatAmount(remainingAmount)}
         </span>
       )
     } else {
-      return <span>{remainingAmount.toFixed(2)}</span>
+      return <span>{formatAmount(remainingAmount)}</span>
     }
   }
 
@@ -205,10 +211,7 @@ const Page: React.FC = () => {
                       className="app__tr">
                       <td className="app__td">{item.name}</td>
                       <td className="app__td">
-                        {Number(item.amount).toLocaleString('en-US', {
-                          minimumFractionDigits: 2, // Minimum number of decimal places
-                          maximumFractionDigits: 2, // Maximum number of decimal places
-                        })}
+                        {formatAmount(Number(item.amount))}
                       </td>
                       <td className="app__td">{countRemainingAmount(item)}</td>
                       <td className="app__td">

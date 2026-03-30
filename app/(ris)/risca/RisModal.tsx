@@ -54,8 +54,14 @@ export default function RisModal({ hideModal, ca }: ModalProps) {
         requester: `${item.requester}`,
         type: `${item.type}`,
         quantity: `${item.quantity}`,
-        price: `${item.price}`,
-        total_amount: `${item.total_amount || 0}`,
+        price: Number(item.price ?? 0).toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 4,
+        }),
+        total_amount: Number(item.total_amount ?? 0).toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 4,
+        }),
         vehicle: `${item.vehicle.name}-${item.vehicle.plate_number}`,
         department: `${item.department.name}`,
       })
@@ -170,15 +176,15 @@ export default function RisModal({ hideModal, ca }: ModalProps) {
                       </td>
                       <td className="app__td whitespace-nowrap">
                         {item.price.toLocaleString('en-US', {
-                          minimumFractionDigits: 2, // Minimum number of decimal places
-                          maximumFractionDigits: 2, // Maximum number of decimal places
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 4,
                         })}{' '}
                         per Liter
                       </td>
                       <td className="app__td">
                         {(item.total_amount || 0).toLocaleString('en-US', {
-                          minimumFractionDigits: 2, // Minimum number of decimal places
-                          maximumFractionDigits: 2, // Maximum number of decimal places
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 4,
                         })}
                       </td>
                       <td className="app__td">

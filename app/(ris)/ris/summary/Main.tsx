@@ -50,8 +50,8 @@ const formatNum = (n: number, decimals = 2) =>
 
 const formatCurrency = (n: number) =>
   `₱ ${n.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
   })}`
 
 const colors = ['#55d978', '#d9ca55', '#5caecc', '#ffc4ef']

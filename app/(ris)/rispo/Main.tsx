@@ -142,6 +142,12 @@ const Page: React.FC = () => {
     setSelectedItem(item)
   }
 
+  const formatAmount = (n: number) =>
+    Number(n).toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 4,
+    })
+
   // Consumed Quantity functions (for Diesel/Gasoline)
   const countConsumedQuantity = (item: RisPoTypes) => {
     let totalQuantityUsed = 0
@@ -181,7 +187,7 @@ const Page: React.FC = () => {
         }
       })
     }
-    return totalAmount.toFixed(2)
+    return formatAmount(totalAmount)
   }
 
   const countConsumedAmountFigure = (item: RisPoTypes) => {
@@ -258,7 +264,7 @@ const Page: React.FC = () => {
     const remainingAmount = Math.max(0, Number(item.amount) - totalAmount)
     return (
       <span style={{ color: 'green', fontWeight: 'bold' }}>
-        {remainingAmount.toFixed(2)}
+        {formatAmount(remainingAmount)}
       </span>
     )
   }
@@ -292,11 +298,11 @@ const Page: React.FC = () => {
     if (overconsumed > 0) {
       return (
         <span style={{ color: 'red', fontWeight: 'bold' }}>
-          {overconsumed.toFixed(2)}
+          {formatAmount(overconsumed)}
         </span>
       )
     }
-    return <span>0.00</span>
+    return <span>{formatAmount(0)}</span>
   }
 
   const handleDownloadExcel = async () => {
@@ -365,10 +371,13 @@ const Page: React.FC = () => {
         description: `${item.description}`,
         type: `${item.type}`,
         appropriation: `${approp}`,
-        allocated_amount: item.type === 'Fuel' ? `${item.amount}` : '',
-        consumed_amount: item.type === 'Fuel' ? `${consumedAmt}` : '',
-        remaining_amount: item.type === 'Fuel' ? `${remAmt}` : '',
-        overconsumed_amount: item.type === 'Fuel' ? `${overconsumedAmt}` : '',
+        allocated_amount:
+          item.type === 'Fuel' ? formatAmount(Number(item.amount ?? 0)) : '',
+        consumed_amount:
+          item.type === 'Fuel' ? formatAmount(consumedAmt) : '',
+        remaining_amount: item.type === 'Fuel' ? formatAmount(remAmt) : '',
+        overconsumed_amount:
+          item.type === 'Fuel' ? formatAmount(overconsumedAmt) : '',
         allocated_quantity:
           item.type === 'Diesel' || item.type === 'Gasoline'
             ? `${item.quantity}`
@@ -530,7 +539,7 @@ const Page: React.FC = () => {
                                 <span
                                   className="font-medium"
                                   style={{ color: 'blue', fontWeight: 'bold' }}>
-                                  {item.amount}
+                                  {formatAmount(Number(item.amount ?? 0))}
                                 </span>
                               </div>
                               <div>

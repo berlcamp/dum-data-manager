@@ -37,6 +37,12 @@ import AddEditModal from './AddEditModal'
 import DepartmentModal from './DepartmentModal'
 import PrintAllChecked from './PrintAllChecked'
 
+const formatListAmount = (n: number) =>
+  Number(n).toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+  })
+
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [downloading, setDownloading] = useState(false)
@@ -332,8 +338,14 @@ const Page: React.FC = () => {
         type: `${item.type}`,
         starting_balance: `${item.starting_balance}`,
         quantity: `${item.quantity}`,
-        price: `${item.price}`,
-        total_amount: `${item.total_amount || 0}`,
+        price: Number(item.price ?? 0).toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 4,
+        }),
+        total_amount: Number(item.total_amount ?? 0).toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 4,
+        }),
         po: `${item.purchase_order?.po_number || ''}`,
         requester: `${item.requester}`,
         department: `${item.department.name}`,
@@ -483,8 +495,8 @@ const Page: React.FC = () => {
           diesel || '',
           item.quantity, // Consume
           item.starting_balance, // Finished Balance
-          item.price, // Price/L
-          amount.toFixed(2), // Amount (2 decimals)
+          Number(item.price ?? 0).toFixed(4), // Price/L
+          amount.toFixed(4), // Amount
         ])
       }
 
@@ -735,8 +747,8 @@ const Page: React.FC = () => {
         diesel || '',
         item.quantity,
         item.starting_balance, // ⚠️ you can compute ending balance if needed
-        item.price,
-        amount.toFixed(2),
+        Number(item.price ?? 0).toFixed(4),
+        amount.toFixed(4),
       ])
     }
 
@@ -1104,13 +1116,11 @@ const Page: React.FC = () => {
                 <div className="text-sm text-gray-600 mb-1">Total Amount</div>
                 <div className="text-2xl font-bold text-purple-600">
                   ₱
-                  {widgetData
-                    .filter((item) => item.status === 'Approved')
-                    .reduce((sum, item) => sum + (item.total_amount || 0), 0)
-                    .toLocaleString('en-US', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                  {formatListAmount(
+                    widgetData
+                      .filter((item) => item.status === 'Approved')
+                      .reduce((sum, item) => sum + (item.total_amount || 0), 0),
+                  )}
                 </div>
               </div>
             </div>
@@ -1166,10 +1176,7 @@ const Page: React.FC = () => {
                               </div>
                               <div className="font-bold text-gray-800 text-xs">
                                 ₱
-                                {(po.amount ?? 0).toLocaleString('en-US', {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })}
+                                {formatListAmount(po.amount ?? 0)}
                               </div>
                             </div>
                             <div>
@@ -1183,10 +1190,7 @@ const Page: React.FC = () => {
                                     : 'text-green-600'
                                 }`}>
                                 ₱
-                                {remainingAmount.toLocaleString('en-US', {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })}
+                                {formatListAmount(remainingAmount)}
                               </div>
                             </div>
                           </div>
@@ -1367,19 +1371,15 @@ const Page: React.FC = () => {
                           </div>
                           <div>
                             <span className="font-light">Price /L:</span>{' '}
-                            <span className="font-medium">{item.price}</span>
+                            <span className="font-medium">
+                              {formatListAmount(Number(item.price ?? 0))}
+                            </span>
                           </div>
                           <div>
                             <span className="font-light">Total Amount:</span>{' '}
                             <span className="font-medium">
                               ₱
-                              {(item.total_amount || 0).toLocaleString(
-                                'en-US',
-                                {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                },
-                              )}
+                              {formatListAmount(item.total_amount || 0)}
                             </span>
                           </div>
                           <div>
