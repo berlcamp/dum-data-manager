@@ -28,6 +28,7 @@ export const departments = [
   { office: 'MAO' },
   { office: 'Mayor' },
   { office: 'MDRRMO' },
+  { office: 'MHO' },
   { office: 'MEO' },
   { office: 'MENRO' },
   { office: 'MNAO' },

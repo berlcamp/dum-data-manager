@@ -219,6 +219,7 @@ export interface RisTypes {
   department: RisDepartmentTypes
   destination: string
   is_locked?: boolean
+  is_deleted?: boolean
 }
 
 export interface RisVehicleTypes {

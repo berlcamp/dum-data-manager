@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  ConfirmModal,
   CustomButton,
   PerPage,
   RisSidebar,
@@ -38,6 +39,8 @@ const Page: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showAddVarious, setShowAddVarious] = useState(false)
   const [showRisModal, setShowRisModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<RisPoTypes | null>(null)
   const [selectedItem, setSelectedItem] = useState<RisPoTypes | null>(null)
 
   const [downloading, setDownloading] = useState(false)
@@ -140,6 +143,42 @@ const Page: React.FC = () => {
   const handleEdit = (item: RisPoTypes) => {
     setShowAddModal(true)
     setSelectedItem(item)
+  }
+
+  /** True when no active (non-deleted) RIS references this PO. */
+  const isPoUnusedByRis = (item: RisPoTypes) =>
+    !item.ddm_ris?.some((r) => !r.is_deleted)
+
+  const handleDeleteClick = (item: RisPoTypes) => {
+    setItemToDelete(item)
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return
+
+    try {
+      const { error } = await supabase
+        .from('ddm_ris_purchase_orders')
+        .delete()
+        .eq('id', itemToDelete.id)
+
+      if (error) throw new Error(error.message)
+
+      const updatedList = list.filter(
+        (row) => row.id.toString() !== itemToDelete.id.toString(),
+      )
+      dispatch(updateList(updatedList))
+      setResultsCount(resultsCount - 1)
+      setShowingCount(showingCount - 1)
+
+      setToast('success', 'Successfully deleted')
+      setShowDeleteModal(false)
+      setItemToDelete(null)
+    } catch (e) {
+      console.error(e)
+      setToast('error', 'Could not delete purchase order')
+    }
   }
 
   const formatAmount = (n: number) =>
@@ -622,6 +661,14 @@ const Page: React.FC = () => {
                             className="app__btn_blue_xs whitespace-nowrap">
                             View R.I.S.
                           </button>
+                          {isPoUnusedByRis(item) && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteClick(item)}
+                              className="app__btn_red_xs">
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -656,6 +703,19 @@ const Page: React.FC = () => {
             <RisModal
               po={selectedItem}
               hideModal={() => setShowRisModal(false)}
+            />
+          )}
+
+          {showDeleteModal && itemToDelete && (
+            <ConfirmModal
+              header="Confirm delete"
+              btnText="Delete"
+              message={`Delete PO ${itemToDelete.po_number}? This cannot be undone.`}
+              onConfirm={handleConfirmDelete}
+              onCancel={() => {
+                setShowDeleteModal(false)
+                setItemToDelete(null)
+              }}
             />
           )}
         </div>

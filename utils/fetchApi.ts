@@ -518,7 +518,7 @@ export async function fetchPurchaseOrders(
     let query = supabase
       .from('ddm_ris_purchase_orders')
       .select(
-        '*, ddm_user:created_by(*), ddm_ris(id,quantity,price,status), ddm_ris_appropriation:appropriation(*), department:department_id(*)',
+        '*, ddm_user:created_by(*), ddm_ris(id,quantity,price,status,is_deleted), ddm_ris_appropriation:appropriation(*), department:department_id(*)',
         { count: 'exact' },
       )
 
