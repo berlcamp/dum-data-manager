@@ -473,7 +473,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           const result = await supabase
             .from('ddm_ris_purchase_orders')
             .select(
-              '*, ddm_ris_appropriation:appropriation(*),ddm_ris(id,quantity,price,status,total_amount)',
+              '*, ddm_ris_appropriation:appropriation(*),ddm_ris(id,quantity,price,status,total_amount), department:department_id(*)',
             )
             .eq('department_id', currentUser.department_id)
             .order('po_number', { ascending: true })
@@ -487,7 +487,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         const result = await supabase
           .from('ddm_ris_purchase_orders')
           .select(
-            '*, ddm_ris_appropriation:appropriation(*),ddm_ris(id,quantity,price,status,total_amount)',
+            '*, ddm_ris_appropriation:appropriation(*),ddm_ris(id,quantity,price,status,total_amount), department:department_id(*)',
           )
           .order('po_number', { ascending: true })
         data = result.data
