@@ -19,8 +19,10 @@ import { fetchVehicleReservations } from '@/utils/fetchApi'
 import {
   addDays,
   addMonths,
+  endOfMonth,
   endOfWeek,
   format,
+  startOfMonth,
   startOfWeek,
   subMonths,
 } from 'date-fns'
@@ -64,12 +66,40 @@ const Page: React.FC = () => {
   const globallist = useSelector((state: any) => state.list.value)
   const dispatch = useDispatch()
 
+  const hasActiveFilters = filterKeyword !== '' || filterVehicle !== ''
+  const effectiveView = hasActiveFilters ? 'list' : view
+
+  // Date range visible in the current view — used to scope the fetch so the
+  // calendar grid shows every reservation in the displayed weeks, not just a
+  // narrow window around today.
+  const getVisibleRange = () => {
+    if (hasActiveFilters) return { from: undefined, to: undefined }
+    if (effectiveView === 'week') {
+      return {
+        from: startOfWeek(currentDate, { weekStartsOn: 0 }),
+        to: endOfWeek(currentDate, { weekStartsOn: 0 }),
+      }
+    }
+    if (effectiveView === 'calendar') {
+      const monthStart = startOfMonth(currentDate)
+      const monthEnd = endOfMonth(currentDate)
+      return {
+        from: startOfWeek(monthStart, { weekStartsOn: 0 }),
+        to: endOfWeek(monthEnd, { weekStartsOn: 0 }),
+      }
+    }
+    return { from: startOfMonth(currentDate), to: endOfMonth(currentDate) }
+  }
+
   const fetchData = async () => {
     setLoading(true)
     try {
+      const { from, to } = getVisibleRange()
       const result = await fetchVehicleReservations({
         filterKeyword,
         filterVehicle,
+        filterDateFrom: from,
+        filterDateTo: to,
       })
       dispatch(updateList(result.data))
     } catch (e) {
@@ -88,9 +118,6 @@ const Page: React.FC = () => {
     setShowAddModal(true)
     setSelectedItem(item)
   }
-
-  const hasActiveFilters = filterKeyword !== '' || filterVehicle !== ''
-  const effectiveView = hasActiveFilters ? 'list' : view
 
   const goPrev = () => {
     if (effectiveView === 'calendar' || effectiveView === 'list') {
@@ -115,7 +142,7 @@ const Page: React.FC = () => {
   useEffect(() => {
     setList([])
     void fetchData()
-  }, [filterKeyword, filterVehicle])
+  }, [filterKeyword, filterVehicle, currentDate, view])
 
   const isDataEmpty = list.length < 1 || !list
   const email: string = session?.user?.email ?? ''
