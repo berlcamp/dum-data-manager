@@ -18,6 +18,7 @@ export const departments = [
   { office: 'COA' },
   { office: 'DCO' },
   { office: 'DILG' },
+  { office: 'DTTS' },
   { office: 'DWD' },
   { office: 'GREENVILLE' },
   { office: 'GSO' },
