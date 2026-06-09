@@ -86,6 +86,11 @@ const FormSchema = z.object({
       required_error: 'Gasoline price is required.',
       invalid_type_error: 'Gasoline price is required..',
     }),
+  oil_price: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
+    .number({
+      required_error: 'Oil and Lubricants price is required.',
+      invalid_type_error: 'Oil and Lubricants price is required..',
+    }),
   po_date: z.date({
     required_error: 'PO Date is required.',
   }),
@@ -128,6 +133,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       department_id: editData ? editData.department_id?.toString() || '' : '',
       gasoline_price: editData ? editData.gasoline_price : 0,
       diesel_price: editData ? editData.diesel_price : 0,
+      oil_price: editData ? (editData.oil_price ?? 0) : 0,
       total_amount: editData ? editData.amount : 0,
       quantity: editData ? editData.quantity : 0,
       description: editData ? editData.description : '',
@@ -156,6 +162,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       if (formdata.type === 'Diesel') {
         price = formdata.diesel_price
       }
+      if (formdata.type === 'Oil and Lubricants') {
+        price = formdata.oil_price
+      }
       const newData = {
         type: formdata.type,
         description: formdata.description,
@@ -164,6 +173,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         supplier: formdata.supplier?.trim() || null,
         diesel_price: formdata.diesel_price,
         gasoline_price: formdata.gasoline_price,
+        oil_price: formdata.oil_price,
         quantity: formdata.quantity,
         amount: formdata.total_amount,
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
@@ -220,6 +230,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       if (formdata.type === 'Diesel') {
         price = formdata.diesel_price
       }
+      if (formdata.type === 'Oil and Lubricants') {
+        price = formdata.oil_price
+      }
 
       const newData: any = {
         type: formdata.type,
@@ -231,6 +244,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         diesel_price: formdata.diesel_price,
         amount: formdata.total_amount,
         gasoline_price: formdata.gasoline_price,
+        oil_price: formdata.oil_price,
         quantity: formdata.quantity,
         // Don't include amount/total_amount in update - database calculates it via DEFAULT/trigger
         po_date: format(new Date(formdata.po_date), 'yyyy-MM-dd'),
@@ -560,6 +574,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             <SelectContent>
                               <SelectItem value="Gasoline">Gasoline</SelectItem>
                               <SelectItem value="Diesel">Diesel</SelectItem>
+                              <SelectItem value="Oil and Lubricants">
+                                Oil and Lubricants
+                              </SelectItem>
                               <SelectItem value="Fuel">Fuel</SelectItem>
                             </SelectContent>
                           </Select>
@@ -611,8 +628,30 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         )}
                       />
                     )}
+                    {form.getValues('type') === 'Oil and Lubricants' && (
+                      <FormField
+                        control={form.control}
+                        name="oil_price"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="app__form_label">
+                              Oil and Lubricants price per Liter
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="Price per Liter"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                     {(form.getValues('type') === 'Gasoline' ||
-                      form.getValues('type') === 'Diesel') && (
+                      form.getValues('type') === 'Diesel' ||
+                      form.getValues('type') === 'Oil and Lubricants') && (
                       <FormField
                         control={form.control}
                         name="quantity"

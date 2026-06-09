@@ -168,6 +168,7 @@ export interface RisPoTypes {
   price: number
   diesel_price: number
   gasoline_price: number
+  oil_price: number
   total_amount: number
   po_date: string
   description: string

@@ -29,6 +29,7 @@ type DepartmentSummary = {
   departmentName: string
   gasoline: number
   diesel: number
+  oil: number
   totalAmount: number
 }
 
@@ -39,6 +40,7 @@ type PoSummary = {
   departmentName: string
   gasoline: number
   diesel: number
+  oil: number
   totalAmount: number
 }
 
@@ -114,17 +116,20 @@ const Page: React.FC = () => {
   const stats = useMemo(() => {
     let totalGasoline = 0
     let totalDiesel = 0
+    let totalOil = 0
     let totalAmount = 0
     risData.forEach((item: RisTypes) => {
       if (item.type === 'Gasoline') totalGasoline += item.quantity
       if (item.type === 'Diesel') totalDiesel += item.quantity
+      if (item.type === 'Oil and Lubricants') totalOil += item.quantity
       totalAmount += item.total_amount || item.price * item.quantity
     })
     return {
       totalGasoline,
       totalDiesel,
+      totalOil,
       totalAmount,
-      totalLiters: totalGasoline + totalDiesel,
+      totalLiters: totalGasoline + totalDiesel + totalOil,
       requisitions: risData.length,
     }
   }, [risData])
@@ -137,11 +142,13 @@ const Page: React.FC = () => {
       const existing = map.get(deptId)
       const gasoline = item.type === 'Gasoline' ? item.quantity : 0
       const diesel = item.type === 'Diesel' ? item.quantity : 0
+      const oil = item.type === 'Oil and Lubricants' ? item.quantity : 0
       const amt = item.total_amount || item.price * item.quantity
 
       if (existing) {
         existing.gasoline += gasoline
         existing.diesel += diesel
+        existing.oil += oil
         existing.totalAmount += amt
       } else {
         map.set(deptId, {
@@ -149,6 +156,7 @@ const Page: React.FC = () => {
           departmentName: deptName,
           gasoline,
           diesel,
+          oil,
           totalAmount: amt,
         })
       }
@@ -170,12 +178,14 @@ const Page: React.FC = () => {
       const departmentName = (po.department as { name?: string })?.name || ''
       const gasoline = item.type === 'Gasoline' ? item.quantity : 0
       const diesel = item.type === 'Diesel' ? item.quantity : 0
+      const oil = item.type === 'Oil and Lubricants' ? item.quantity : 0
       const amt = item.total_amount || item.price * item.quantity
 
       const existing = map.get(poId)
       if (existing) {
         existing.gasoline += gasoline
         existing.diesel += diesel
+        existing.oil += oil
         existing.totalAmount += amt
       } else {
         map.set(poId, {
@@ -185,6 +195,7 @@ const Page: React.FC = () => {
           departmentName,
           gasoline,
           diesel,
+          oil,
           totalAmount: amt,
         })
       }
@@ -206,8 +217,13 @@ const Page: React.FC = () => {
         data: [stats.totalGasoline],
         bgColor: colors[1],
       },
+      {
+        label: `Oil and Lubricants (${formatNum(stats.totalOil)})`,
+        data: [stats.totalOil],
+        bgColor: colors[2],
+      },
     ],
-    [stats.totalDiesel, stats.totalGasoline],
+    [stats.totalDiesel, stats.totalGasoline, stats.totalOil],
   )
 
   const exportDepartmentExcel = async () => {
@@ -219,6 +235,7 @@ const Page: React.FC = () => {
       { header: 'Department', key: 'department', width: 25 },
       { header: 'Gasoline (L)', key: 'gasoline', width: 15 },
       { header: 'Diesel (L)', key: 'diesel', width: 15 },
+      { header: 'Oil and Lubricants (L)', key: 'oil', width: 20 },
       { header: 'Total Amount', key: 'totalAmount', width: 18 },
     ]
     departmentSummary.forEach((row, i) => {
@@ -227,6 +244,7 @@ const Page: React.FC = () => {
         department: row.departmentName,
         gasoline: formatNum(row.gasoline),
         diesel: formatNum(row.diesel),
+        oil: formatNum(row.oil),
         totalAmount: formatCurrency(row.totalAmount),
       })
     })
@@ -252,6 +270,7 @@ const Page: React.FC = () => {
       { header: 'Department', key: 'department', width: 22 },
       { header: 'Gasoline (L)', key: 'gasoline', width: 15 },
       { header: 'Diesel (L)', key: 'diesel', width: 15 },
+      { header: 'Oil and Lubricants (L)', key: 'oil', width: 20 },
       { header: 'Total Amount', key: 'totalAmount', width: 18 },
     ]
     poSummary.forEach((row, i) => {
@@ -262,6 +281,7 @@ const Page: React.FC = () => {
         department: row.departmentName,
         gasoline: formatNum(row.gasoline),
         diesel: formatNum(row.diesel),
+        oil: formatNum(row.oil),
         totalAmount: formatCurrency(row.totalAmount),
       })
     })
@@ -317,6 +337,10 @@ const Page: React.FC = () => {
                   value={`${formatNum(stats.totalDiesel)} L`}
                 />
                 <StatWidget
+                  label="Total Oil and Lubricants"
+                  value={`${formatNum(stats.totalOil)} L`}
+                />
+                <StatWidget
                   label="Total Amount"
                   value={formatCurrency(stats.totalAmount)}
                 />
@@ -362,6 +386,9 @@ const Page: React.FC = () => {
                               </th>
                               <th className="app__th text-right">Diesel (L)</th>
                               <th className="app__th text-right">
+                                Oil and Lubricants (L)
+                              </th>
+                              <th className="app__th text-right">
                                 Total Amount
                               </th>
                             </tr>
@@ -380,6 +407,9 @@ const Page: React.FC = () => {
                                 </td>
                                 <td className="app__td text-right tabular-nums">
                                   {formatNum(row.diesel)}
+                                </td>
+                                <td className="app__td text-right tabular-nums">
+                                  {formatNum(row.oil)}
                                 </td>
                                 <td className="app__td text-right tabular-nums">
                                   {formatCurrency(row.totalAmount)}
@@ -420,6 +450,9 @@ const Page: React.FC = () => {
                               </th>
                               <th className="app__th text-right">Diesel (L)</th>
                               <th className="app__th text-right">
+                                Oil and Lubricants (L)
+                              </th>
+                              <th className="app__th text-right">
                                 Total Amount
                               </th>
                             </tr>
@@ -442,6 +475,9 @@ const Page: React.FC = () => {
                                 </td>
                                 <td className="app__td text-right tabular-nums">
                                   {formatNum(row.diesel)}
+                                </td>
+                                <td className="app__td text-right tabular-nums">
+                                  {formatNum(row.oil)}
                                 </td>
                                 <td className="app__td text-right tabular-nums">
                                   {formatCurrency(row.totalAmount)}

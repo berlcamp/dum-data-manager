@@ -418,15 +418,21 @@ const Page: React.FC = () => {
         overconsumed_amount:
           item.type === 'Fuel' ? formatAmount(overconsumedAmt) : '',
         allocated_quantity:
-          item.type === 'Diesel' || item.type === 'Gasoline'
+          item.type === 'Diesel' ||
+          item.type === 'Gasoline' ||
+          item.type === 'Oil and Lubricants'
             ? `${item.quantity}`
             : '',
         consumed_quantity:
-          item.type === 'Diesel' || item.type === 'Gasoline'
+          item.type === 'Diesel' ||
+          item.type === 'Gasoline' ||
+          item.type === 'Oil and Lubricants'
             ? `${consumedQty}`
             : '',
         remaining_quantity:
-          item.type === 'Diesel' || item.type === 'Gasoline'
+          item.type === 'Diesel' ||
+          item.type === 'Gasoline' ||
+          item.type === 'Oil and Lubricants'
             ? `${remQty}`
             : '',
       })
@@ -609,8 +615,10 @@ const Page: React.FC = () => {
                               )}
                             </>
                           )}
-                          {/* Display for Diesel/Gasoline: Allocated Quantity, Consumed Quantity, Remaining Quantity */}
-                          {(item.type === 'Diesel' || item.type === 'Gasoline') && (
+                          {/* Display for Diesel/Gasoline/Oil and Lubricants: Allocated Quantity, Consumed Quantity, Remaining Quantity */}
+                          {(item.type === 'Diesel' ||
+                            item.type === 'Gasoline' ||
+                            item.type === 'Oil and Lubricants') && (
                             <>
                               <div>
                                 <span className="font-light">

@@ -434,10 +434,11 @@ const Page: React.FC = () => {
         { text: 'Starting Balance', rowSpan: 2, style: 'tableHeader' },
         {
           text: 'Additional',
-          colSpan: 2,
+          colSpan: 3,
           alignment: 'center',
           style: 'tableHeader',
         },
+        {},
         {},
         { text: 'Consume', rowSpan: 2, style: 'tableHeader' },
         { text: 'Finished Balance', rowSpan: 2, style: 'tableHeader' },
@@ -464,6 +465,7 @@ const Page: React.FC = () => {
         {},
         { text: 'Gasoline', style: 'tableHeader' },
         { text: 'Diesel', style: 'tableHeader' },
+        { text: 'Oil & Lub', style: 'tableHeader' },
         {},
         {},
         {},
@@ -472,6 +474,7 @@ const Page: React.FC = () => {
 
       let totalGasoline = 0
       let totalDiesel = 0
+      let totalOil = 0
       let totalConsume = 0
       let totalAmount = 0
 
@@ -479,10 +482,13 @@ const Page: React.FC = () => {
         const gasoline =
           item.type?.toLowerCase() === 'gasoline' ? item.quantity : 0
         const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
+        const oil =
+          item.type?.toLowerCase() === 'oil and lubricants' ? item.quantity : 0
         const amount = item.total_amount || 0
 
         totalGasoline += gasoline
         totalDiesel += diesel
+        totalOil += oil
         totalConsume += item.quantity
         totalAmount += amount
 
@@ -493,6 +499,7 @@ const Page: React.FC = () => {
           item.starting_balance,
           gasoline || '',
           diesel || '',
+          oil || '',
           item.quantity, // Consume
           item.starting_balance, // Finished Balance
           Number(item.price ?? 0).toFixed(4), // Price/L
@@ -511,6 +518,7 @@ const Page: React.FC = () => {
         {},
         { text: totalGasoline.toFixed(4), bold: true },
         { text: totalDiesel.toFixed(4), bold: true },
+        { text: totalOil.toFixed(4), bold: true },
         {},
         '', // Finished Balance
         '', // Price/L
@@ -534,6 +542,7 @@ const Page: React.FC = () => {
               'auto',
               '*',
               '*',
+              'auto',
               'auto',
               'auto',
               'auto',
@@ -681,10 +690,11 @@ const Page: React.FC = () => {
       { text: 'Starting Balance', rowSpan: 2, style: 'tableHeader' },
       {
         text: 'Additional',
-        colSpan: 2,
+        colSpan: 3,
         style: 'tableHeader',
         alignment: 'center',
       },
+      {},
       {},
       { text: 'Consume', rowSpan: 2, style: 'tableHeader' },
       { text: 'Finished Balance', rowSpan: 2, style: 'tableHeader' },
@@ -706,6 +716,7 @@ const Page: React.FC = () => {
       {},
       { text: 'Gasoline', style: 'tableHeader' },
       { text: 'Diesel', style: 'tableHeader' },
+      { text: 'Oil & Lub', style: 'tableHeader' },
       {},
       {},
       {},
@@ -714,6 +725,7 @@ const Page: React.FC = () => {
 
     let totalGasoline = 0
     let totalDiesel = 0
+    let totalOil = 0
     let totalConsume = 0
     let totalAmount = 0
 
@@ -725,6 +737,8 @@ const Page: React.FC = () => {
       const gasoline =
         item.type?.toLowerCase() === 'gasoline' ? item.quantity : 0
       const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
+      const oil =
+        item.type?.toLowerCase() === 'oil and lubricants' ? item.quantity : 0
       const amount = item.total_amount || 0
 
       // ⛔ Stop adding if threshold exceeded
@@ -734,6 +748,7 @@ const Page: React.FC = () => {
 
       totalGasoline += gasoline
       totalDiesel += diesel
+      totalOil += oil
       totalConsume += item.quantity
       totalAmount += amount
 
@@ -745,6 +760,7 @@ const Page: React.FC = () => {
         item.starting_balance,
         gasoline || '',
         diesel || '',
+        oil || '',
         item.quantity,
         item.starting_balance, // ⚠️ you can compute ending balance if needed
         Number(item.price ?? 0).toFixed(4),
@@ -761,6 +777,7 @@ const Page: React.FC = () => {
       {},
       { text: totalGasoline.toFixed(4), bold: true },
       { text: totalDiesel.toFixed(4), bold: true },
+      { text: totalOil.toFixed(4), bold: true },
       {},
       {}, // finished balance not totaled
       {}, // price not totaled
@@ -778,6 +795,7 @@ const Page: React.FC = () => {
           60, // Starting Balance
           50, // Gasoline
           50, // Diesel
+          50, // Oil & Lub
           50, // Consume
           70, // Finished Balance
           50, // Price/L

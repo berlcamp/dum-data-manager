@@ -117,6 +117,7 @@ const Page: React.FC = () => {
 
       let countDiesel = 0
       let countGasoline = 0
+      let countOil = 0
 
       result.data.forEach((item: RisTypes) => {
         if (item.type === 'Diesel') {
@@ -124,6 +125,9 @@ const Page: React.FC = () => {
         }
         if (item.type === 'Gasoline') {
           countGasoline += item.quantity
+        }
+        if (item.type === 'Oil and Lubricants') {
+          countOil += item.quantity
         }
       })
 
@@ -140,6 +144,13 @@ const Page: React.FC = () => {
             countGasoline % 1 !== 0 ? countGasoline.toFixed(2) : countGasoline
           })`,
           data: [countGasoline],
+          bgColor: colors[Math.floor(Math.random() * 11)],
+        },
+        {
+          label: `Oil and Lubricants (${
+            countOil % 1 !== 0 ? countOil.toFixed(2) : countOil
+          })`,
+          data: [countOil],
           bgColor: colors[Math.floor(Math.random() * 11)],
         }
       )

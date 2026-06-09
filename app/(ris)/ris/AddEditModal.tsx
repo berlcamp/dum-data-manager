@@ -141,6 +141,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const [value, setValue] = useState('')
   const [dieselPrice, setDieselPrice] = useState(0)
   const [gasolinePrice, setGasolinePrice] = useState(0)
+  const [oilPrice, setOilPrice] = useState(0)
   const [remainingLiters, setRemainingLiters] = useState<number | null>(null)
   const [remainingAmount, setRemainingAmount] = useState<number | null>(null)
   const [selectedPO, setSelectedPO] = useState<RisPoTypes | null>(null)
@@ -197,8 +198,12 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       return remainingAmount !== null ? remainingAmount : null
     }
 
-    // For Diesel or Gasoline form type: use remaining liters
-    if (currentType === 'Diesel' || currentType === 'Gasoline') {
+    // For Diesel, Gasoline or Oil and Lubricants form type: use remaining liters
+    if (
+      currentType === 'Diesel' ||
+      currentType === 'Gasoline' ||
+      currentType === 'Oil and Lubricants'
+    ) {
       return remainingLiters !== null ? remainingLiters : null
     }
 
@@ -768,9 +773,22 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               }
                               if (po.type !== 'Fuel') {
                                 form.setValue('type', po.type)
+                                // Quantity-based PO types carry a single price per
+                                // liter — set it so the RIS price is populated even
+                                // without re-selecting the type dropdown.
+                                if (po.type === 'Diesel') {
+                                  form.setValue('price', po.diesel_price || 0)
+                                }
+                                if (po.type === 'Gasoline') {
+                                  form.setValue('price', po.gasoline_price || 0)
+                                }
+                                if (po.type === 'Oil and Lubricants') {
+                                  form.setValue('price', po.oil_price || 0)
+                                }
                               }
                               setDieselPrice(po.diesel_price || 0)
                               setGasolinePrice(po.gasoline_price || 0)
+                              setOilPrice(po.oil_price || 0)
 
                               // For Fuel PO type: calculate remaining amount (match Main.tsx countRemainingAmount)
                               if (po.type === 'Fuel') {
@@ -902,10 +920,11 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             )
                           }
 
-                          // For Diesel or Gasoline form type: display available liters
+                          // For Diesel, Gasoline or Oil and Lubricants form type: display available liters
                           if (
                             (currentType === 'Diesel' ||
-                              currentType === 'Gasoline') &&
+                              currentType === 'Gasoline' ||
+                              currentType === 'Oil and Lubricants') &&
                             remainingLiters !== null
                           ) {
                             // Show "Overused" if negative, otherwise show "Available"
@@ -1070,6 +1089,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             if (value === 'Gasoline') {
                               form.setValue('price', gasolinePrice)
                             }
+                            if (value === 'Oil and Lubricants') {
+                              form.setValue('price', oilPrice)
+                            }
                           }}
                           value={field.value ?? ''}>
                           <FormControl>
@@ -1088,6 +1110,12 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               <div className="flex items-center gap-2">
                                 <Droplet className="h-4 w-4 text-orange-500" />
                                 <span>Gasoline</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="Oil and Lubricants">
+                              <div className="flex items-center gap-2">
+                                <Droplet className="h-4 w-4 text-amber-700" />
+                                <span>Oil and Lubricants</span>
                               </div>
                             </SelectItem>
                           </SelectContent>
