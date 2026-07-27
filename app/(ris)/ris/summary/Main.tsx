@@ -15,6 +15,7 @@ import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import type { RisTypes } from '@/types'
 import { fetchRis } from '@/utils/fetchApi'
+import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
 import { format } from 'date-fns'
 import Excel from 'exceljs'
 import { saveAs } from 'file-saver'
@@ -50,11 +51,7 @@ const formatNum = (n: number, decimals = 2) =>
     maximumFractionDigits: decimals,
   })
 
-const formatCurrency = (n: number) =>
-  `₱ ${n.toLocaleString('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 4,
-  })}`
+const formatCurrency = (n: number) => `₱ ${formatRisAmount(n)}`
 
 const colors = ['#55d978', '#d9ca55', '#5caecc', '#ffc4ef']
 
@@ -122,7 +119,7 @@ const Page: React.FC = () => {
       if (item.type === 'Gasoline') totalGasoline += item.quantity
       if (item.type === 'Diesel') totalDiesel += item.quantity
       if (item.type === 'Oil and Lubricants') totalOil += item.quantity
-      totalAmount += item.total_amount || item.price * item.quantity
+      totalAmount += getRisAmount(item)
     })
     return {
       totalGasoline,
@@ -143,7 +140,7 @@ const Page: React.FC = () => {
       const gasoline = item.type === 'Gasoline' ? item.quantity : 0
       const diesel = item.type === 'Diesel' ? item.quantity : 0
       const oil = item.type === 'Oil and Lubricants' ? item.quantity : 0
-      const amt = item.total_amount || item.price * item.quantity
+      const amt = getRisAmount(item)
 
       if (existing) {
         existing.gasoline += gasoline
@@ -179,7 +176,7 @@ const Page: React.FC = () => {
       const gasoline = item.type === 'Gasoline' ? item.quantity : 0
       const diesel = item.type === 'Diesel' ? item.quantity : 0
       const oil = item.type === 'Oil and Lubricants' ? item.quantity : 0
-      const amt = item.total_amount || item.price * item.quantity
+      const amt = getRisAmount(item)
 
       const existing = map.get(poId)
       if (existing) {

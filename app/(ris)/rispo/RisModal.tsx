@@ -2,6 +2,7 @@
 import { CustomButton, TwoColTableLoading } from '@/components/index'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { RisPoTypes, RisTypes } from '@/types'
+import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
 import { format } from 'date-fns'
 // Redux imports
 import Excel from 'exceljs'
@@ -58,14 +59,8 @@ export default function RisModal({ hideModal, po }: ModalProps) {
         requester: `${item.requester}`,
         type: `${item.type}`,
         quantity: `${item.quantity}`,
-        price: Number(item.price ?? 0).toLocaleString('en-US', {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 4,
-        }),
-        total_amount: Number(item.total_amount ?? 0).toLocaleString('en-US', {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 4,
-        }),
+        price: formatRisAmount(Number(item.price ?? 0)),
+        total_amount: formatRisAmount(getRisAmount(item)),
         vehicle: `${item.vehicle.name}-${item.vehicle.plate_number}`,
         department: `${item.department.name}`,
       })
@@ -181,17 +176,10 @@ export default function RisModal({ hideModal, po }: ModalProps) {
                         <div>{item.quantity} Liters</div>
                       </td>
                       <td className="app__td whitespace-nowrap">
-                        {item.price.toLocaleString('en-US', {
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 4,
-                        })}{' '}
-                        per Liter
+                        {formatRisAmount(Number(item.price ?? 0))} per Liter
                       </td>
                       <td className="app__td">
-                        {(item.total_amount || 0).toLocaleString('en-US', {
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 4,
-                        })}
+                        {formatRisAmount(getRisAmount(item))}
                       </td>
                       <td className="app__td">
                         {item.requester} / {item.department?.name}

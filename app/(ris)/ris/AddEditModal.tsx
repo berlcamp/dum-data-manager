@@ -31,6 +31,11 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useFilter } from '@/context/FilterContext'
 import { cn } from '@/lib/utils'
+import {
+  formatRisAmount,
+  getRisAmount,
+  roundRisAmount,
+} from '@/utils/ris-helper'
 import { useEffect, useRef, useState } from 'react'
 
 // Redux imports
@@ -184,7 +189,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const getTotalAmount = (): number => {
     const quantity = form.watch('quantity') || 0
     const price = form.watch('price') || 0
-    return Number(quantity) * Number(price)
+    return roundRisAmount(Number(quantity) * Number(price))
   }
 
   // Helper function to calculate maximum quantity based on type
@@ -235,7 +240,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         return
       }
       if (!po.allow_overconsumed) {
-        const totalAmount = (formdata.quantity || 0) * (formdata.price || 0)
+        const totalAmount = roundRisAmount(
+          (formdata.quantity || 0) * (formdata.price || 0),
+        )
         if (po.type === 'Fuel') {
           const totalAmountUsed = po.ddm_ris
             ? po.ddm_ris.reduce(
@@ -243,9 +250,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                   acc +
                   (ris.status === 'Approved' &&
                   (!editData || ris.id !== editData.id)
-                    ? Number(
-                        ris.total_amount || ris.quantity * ris.price || 0,
-                      )
+                    ? getRisAmount(ris)
                     : 0),
                 0,
               )
@@ -254,11 +259,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
             editData &&
             editData.po_id === po.id.toString() &&
             editData.status === 'Approved'
-              ? Number(
-                  editData.total_amount ||
-                    editData.quantity * editData.price ||
-                    0,
-                )
+              ? getRisAmount(editData)
               : 0
           const available =
             Number(po.amount) - totalAmountUsed + currentAmount
@@ -341,9 +342,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         ...newData,
         id: data[0].id,
         date_requested: data[0].date_requested,
-        total_amount:
-          data[0].total_amount ??
+        total_amount: roundRisAmount(
           (formdata.quantity || 0) * (formdata.price || 0),
+        ),
         status: 'Approved',
         ddm_user: user,
         department: departments?.find(
@@ -409,8 +410,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
       // Append new data in redux with all columns for immediate list display
       const items = [...globallist]
-      const computedTotalAmount =
-        (formdata.quantity || 0) * (formdata.price || 0)
+      const computedTotalAmount = roundRisAmount(
+        (formdata.quantity || 0) * (formdata.price || 0),
+      )
       const updatedData = {
         ...newData,
         id: editData.id,
@@ -507,20 +509,12 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           // For Fuel type: calculate remaining amount (match Main.tsx countRemainingAmount)
           if (item.type === 'Fuel') {
             const totalAmountUsed = item.ddm_ris
-              ? item.ddm_ris.reduce(
-                  (accumulator, ris) => {
-                    if (ris.status === 'Approved') {
-                      return (
-                        accumulator +
-                        Number(
-                          ris.total_amount || ris.quantity * ris.price || 0,
-                        )
-                      )
-                    }
-                    return accumulator
-                  },
-                  0,
-                )
+              ? item.ddm_ris.reduce((accumulator, ris) => {
+                  if (ris.status === 'Approved') {
+                    return accumulator + getRisAmount(ris)
+                  }
+                  return accumulator
+                }, 0)
               : 0
             const remainingAmount = Number(item.amount) - totalAmountUsed
 
@@ -572,7 +566,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     ;(async () => {
       const { data } = await supabase
         .from('ddm_ris_cash_advances')
-        .select('*, ddm_ris(total_amount)')
+        .select('*, ddm_ris(quantity,price,total_amount)')
         .order('ca_number', { ascending: true })
       // Mutate the data to get the remaining quantity
       const updatedData: RisCaTypes[] = []
@@ -580,7 +574,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         data.forEach((item: RisCaTypes) => {
           const totalAmountUsed = item.ddm_ris
             ? item.ddm_ris.reduce(
-                (accumulator, ris) => accumulator + Number(ris.total_amount),
+                (accumulator, ris) => accumulator + getRisAmount(ris),
                 0,
               )
             : 0
@@ -621,16 +615,12 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           // Calculate total amount used
           const totalAmountUsed = po.ddm_ris
             ? po.ddm_ris.reduce(
-                (accumulator, ris) =>
-                  accumulator +
-                  Number(ris.total_amount || ris.quantity * ris.price || 0),
+                (accumulator, ris) => accumulator + getRisAmount(ris),
                 0,
               )
             : 0
           // Add back the current record's amount since we're editing
-          const currentAmount = Number(
-            editData.total_amount || editData.quantity * editData.price || 0,
-          )
+          const currentAmount = getRisAmount(editData)
           const remaining = availableAmount - totalAmountUsed + currentAmount
           setRemainingAmount(remaining)
           setRemainingLiters(null)
@@ -795,33 +785,19 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                 const availableAmount = po.amount || 0
                                 // Only count Approved RIS (match Main.tsx widget)
                                 const totalAmountUsed = po.ddm_ris
-                                  ? po.ddm_ris.reduce(
-                                      (accumulator, ris) => {
-                                        if (ris.status === 'Approved') {
-                                          return (
-                                            accumulator +
-                                            Number(
-                                              ris.total_amount ||
-                                                ris.quantity * ris.price ||
-                                                0,
-                                            )
-                                          )
-                                        }
-                                        return accumulator
-                                      },
-                                      0,
-                                    )
+                                  ? po.ddm_ris.reduce((accumulator, ris) => {
+                                      if (ris.status === 'Approved') {
+                                        return accumulator + getRisAmount(ris)
+                                      }
+                                      return accumulator
+                                    }, 0)
                                   : 0
                                 // If editing, add back the current record's amount only if it was Approved
                                 const currentAmount =
                                   editData &&
                                   editData.po_id === po.id.toString() &&
                                   editData.status === 'Approved'
-                                    ? Number(
-                                        editData.total_amount ||
-                                          editData.quantity * editData.price ||
-                                          0,
-                                      )
+                                    ? getRisAmount(editData)
                                     : 0
                                 const remaining =
                                   availableAmount -
@@ -1227,7 +1203,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                       ? 'text-red-700 dark:text-red-400'
                                       : 'text-green-700 dark:text-green-400',
                                   )}>
-                                  ₱{totalAmount.toFixed(2)}
+                                  ₱{formatRisAmount(totalAmount)}
                                 </span>
                               </div>
                               {selectedPO?.type === 'Fuel' &&

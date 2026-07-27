@@ -12,6 +12,7 @@ import {
   Unauthorized,
 } from '@/components/index'
 import { fetchRisAppropriations } from '@/utils/fetchApi'
+import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
 import React, { useEffect, useState } from 'react'
 
 import Filters from './Filters'
@@ -112,11 +113,7 @@ const Page: React.FC = () => {
     setSelectedItem(item)
   }
 
-  const formatAmount = (n: number) =>
-    Number(n).toLocaleString('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 4,
-    })
+  const formatAmount = formatRisAmount
 
   const countRemainingAmount = (item: RisAppropriationTypes) => {
     let totalAmount = 0
@@ -125,7 +122,7 @@ const Page: React.FC = () => {
         if (po.ddm_ris) {
           po.ddm_ris.forEach((ris) => {
             if (ris.status === 'Approved') {
-              totalAmount += Number(ris.total_amount || 0)
+              totalAmount += getRisAmount(ris)
             }
           })
         }

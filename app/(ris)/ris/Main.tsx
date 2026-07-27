@@ -13,6 +13,7 @@ import {
   Unauthorized,
 } from '@/components/index'
 import { fetchRis } from '@/utils/fetchApi'
+import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
 import Excel from 'exceljs'
 import { saveAs } from 'file-saver'
 import React, { useEffect, useState } from 'react'
@@ -37,11 +38,7 @@ import AddEditModal from './AddEditModal'
 import DepartmentModal from './DepartmentModal'
 import PrintAllChecked from './PrintAllChecked'
 
-const formatListAmount = (n: number) =>
-  Number(n).toLocaleString('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 4,
-  })
+const formatListAmount = formatRisAmount
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
@@ -170,10 +167,7 @@ const Page: React.FC = () => {
     if (item.ddm_ris) {
       item.ddm_ris.forEach((ris) => {
         if (ris.status === 'Approved') {
-          const risAmount = Number(
-            ris.total_amount || ris.quantity * ris.price || 0,
-          )
-          totalAmount += risAmount
+          totalAmount += getRisAmount(ris)
         }
       })
     }
@@ -323,7 +317,7 @@ const Page: React.FC = () => {
 
     for (let i = 0; i < sortedItems.length; i++) {
       const item = sortedItems[i]
-      const amount = item.total_amount || 0
+      const amount = getRisAmount(item)
 
       // if (threshold && runningTotal + amount > threshold) break
 
@@ -338,14 +332,8 @@ const Page: React.FC = () => {
         type: `${item.type}`,
         starting_balance: `${item.starting_balance}`,
         quantity: `${item.quantity}`,
-        price: Number(item.price ?? 0).toLocaleString('en-US', {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 4,
-        }),
-        total_amount: Number(item.total_amount ?? 0).toLocaleString('en-US', {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 4,
-        }),
+        price: formatRisAmount(Number(item.price ?? 0)),
+        total_amount: formatRisAmount(amount),
         po: `${item.purchase_order?.po_number || ''}`,
         requester: `${item.requester}`,
         department: `${item.department.name}`,
@@ -402,7 +390,7 @@ const Page: React.FC = () => {
 
     for (let i = 0; i < sortedItems.length; i++) {
       const item = sortedItems[i]
-      const amount = item.price * item.quantity
+      const amount = getRisAmount(item)
 
       // ⛔ Stop adding if threshold exceeded
       if (threshold && runningTotal + amount > threshold) break
@@ -484,7 +472,7 @@ const Page: React.FC = () => {
         const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
         const oil =
           item.type?.toLowerCase() === 'oil and lubricants' ? item.quantity : 0
-        const amount = item.total_amount || 0
+        const amount = getRisAmount(item)
 
         totalGasoline += gasoline
         totalDiesel += diesel
@@ -739,7 +727,7 @@ const Page: React.FC = () => {
       const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
       const oil =
         item.type?.toLowerCase() === 'oil and lubricants' ? item.quantity : 0
-      const amount = item.total_amount || 0
+      const amount = getRisAmount(item)
 
       // ⛔ Stop adding if threshold exceeded
       if (threshold && runningTotal + amount > threshold) break
@@ -1137,7 +1125,7 @@ const Page: React.FC = () => {
                   {formatListAmount(
                     widgetData
                       .filter((item) => item.status === 'Approved')
-                      .reduce((sum, item) => sum + (item.total_amount || 0), 0),
+                      .reduce((sum, item) => sum + getRisAmount(item), 0),
                   )}
                 </div>
               </div>
@@ -1397,7 +1385,7 @@ const Page: React.FC = () => {
                             <span className="font-light">Total Amount:</span>{' '}
                             <span className="font-medium">
                               ₱
-                              {formatListAmount(item.total_amount || 0)}
+                              {formatListAmount(getRisAmount(item))}
                             </span>
                           </div>
                           <div>

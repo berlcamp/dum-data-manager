@@ -13,6 +13,7 @@ import {
   Unauthorized,
 } from '@/components/index'
 import { fetchPurchaseOrders } from '@/utils/fetchApi'
+import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
 import { format } from 'date-fns'
 import Excel from 'exceljs'
 import { saveAs } from 'file-saver'
@@ -181,11 +182,7 @@ const Page: React.FC = () => {
     }
   }
 
-  const formatAmount = (n: number) =>
-    Number(n).toLocaleString('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 4,
-    })
+  const formatAmount = formatRisAmount
 
   // Consumed Quantity functions (for Diesel/Gasoline)
   const countConsumedQuantity = (item: RisPoTypes) => {
@@ -218,11 +215,7 @@ const Page: React.FC = () => {
     if (item.ddm_ris) {
       item.ddm_ris.forEach((ris) => {
         if (ris.status === 'Approved') {
-          // Use total_amount if available, otherwise calculate from quantity * price
-          const risAmount = Number(
-            ris.total_amount || ris.quantity * ris.price || 0,
-          )
-          totalAmount += risAmount
+          totalAmount += getRisAmount(ris)
         }
       })
     }
@@ -234,11 +227,7 @@ const Page: React.FC = () => {
     if (item.ddm_ris) {
       item.ddm_ris.forEach((ris) => {
         if (ris.status === 'Approved') {
-          // Use total_amount if available, otherwise calculate from quantity * price
-          const risAmount = Number(
-            ris.total_amount || ris.quantity * ris.price || 0,
-          )
-          totalAmount += risAmount
+          totalAmount += getRisAmount(ris)
         }
       })
     }
@@ -292,11 +281,7 @@ const Page: React.FC = () => {
     if (item.ddm_ris) {
       item.ddm_ris.forEach((ris) => {
         if (ris.status === 'Approved') {
-          // Use total_amount if available, otherwise calculate from quantity * price
-          const risAmount = Number(
-            ris.total_amount || ris.quantity * ris.price || 0,
-          )
-          totalAmount += risAmount
+          totalAmount += getRisAmount(ris)
         }
       })
     }
@@ -313,11 +298,7 @@ const Page: React.FC = () => {
     if (item.ddm_ris) {
       item.ddm_ris.forEach((ris) => {
         if (ris.status === 'Approved') {
-          // Use total_amount if available, otherwise calculate from quantity * price
-          const risAmount = Number(
-            ris.total_amount || ris.quantity * ris.price || 0,
-          )
-          totalAmount += risAmount
+          totalAmount += getRisAmount(ris)
         }
       })
     }

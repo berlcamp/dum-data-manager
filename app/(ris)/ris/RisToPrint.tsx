@@ -2,6 +2,7 @@
 'use client'
 
 import { RisTypes } from '@/types'
+import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
 import { format } from 'date-fns'
 import React from 'react'
 
@@ -97,16 +98,10 @@ const RisToPrint: React.FC<ChildProps> = ({ forwardedRef, ris }) => {
             </td>
             <td className="text-center border border-gray-700">Liters</td>
             <td className="text-center border border-gray-700">
-              {Number(ris.price ?? 0).toLocaleString('en-US', {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 4,
-              })}
+              {formatRisAmount(Number(ris.price ?? 0))}
             </td>
             <td className="text-center border border-gray-700">
-              {(ris.total_amount || 0).toLocaleString('en-US', {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 4,
-              })}
+              {formatRisAmount(getRisAmount(ris))}
             </td>
           </tr>
           <tr>
