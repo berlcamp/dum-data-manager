@@ -362,7 +362,7 @@ const Page: React.FC = () => {
         filterKeyword,
         filterAppropriation,
         filterVehicle,
-        filterStatus,
+        filterStatus: 'Approved', // summary only includes Approved RIS
         filterPo,
         filterCa,
         filterDateFrom,
@@ -628,7 +628,7 @@ const Page: React.FC = () => {
         filterKeyword,
         filterAppropriation,
         filterVehicle,
-        filterStatus,
+        filterStatus: 'Approved', // summary only includes Approved RIS
         filterPo,
         filterCa,
         filterDateFrom,
