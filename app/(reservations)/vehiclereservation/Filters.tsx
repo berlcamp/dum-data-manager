@@ -23,24 +23,30 @@ import { Filter } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { RESERVATION_STATUSES } from '@/utils/reservation-helpers'
 
 interface FilterTypes {
   setFilterKeyword: (keyword: string) => void
   setFilterVehicle: (vehicle: string) => void
+  setFilterStatus: (status: string) => void
   filterKeyword?: string
   filterVehicle?: string
+  filterStatus?: string
 }
 
 const FormSchema = z.object({
   keyword: z.string().optional(),
   vehicle: z.string().optional(),
+  status: z.string().optional(),
 })
 
 const Filters = ({
   setFilterKeyword,
   setFilterVehicle,
+  setFilterStatus,
   filterKeyword = '',
   filterVehicle = '',
+  filterStatus = '',
 }: FilterTypes) => {
   const [vehicles, setVehicles] = useState<ReservationVehicleTypes[] | []>([])
 
@@ -50,6 +56,7 @@ const Filters = ({
     defaultValues: {
       keyword: filterKeyword,
       vehicle: filterVehicle || 'all',
+      status: filterStatus || 'all',
     },
   })
 
@@ -57,24 +64,28 @@ const Filters = ({
     form.reset({
       keyword: filterKeyword,
       vehicle: filterVehicle || 'all',
+      status: filterStatus || 'all',
     })
-  }, [filterKeyword, filterVehicle])
+  }, [filterKeyword, filterVehicle, filterStatus])
 
   const onSubmit = (data: z.infer<typeof FormSchema>) => {
     setFilterKeyword(data.keyword || '')
     setFilterVehicle(data.vehicle === 'all' ? '' : data.vehicle || '')
+    setFilterStatus(data.status === 'all' ? '' : data.status || '')
   }
 
   const handleClear = () => {
     form.reset({
       keyword: '',
       vehicle: 'all',
+      status: 'all',
     })
     setFilterKeyword('')
     setFilterVehicle('')
+    setFilterStatus('')
   }
 
-  const hasActiveFilters = filterKeyword || filterVehicle
+  const hasActiveFilters = filterKeyword || filterVehicle || filterStatus
 
   useEffect(() => {
     void (async () => {
@@ -146,6 +157,38 @@ const Filters = ({
                             {v.plate_number
                               ? `${v.name} (${v.plate_number})`
                               : v.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col gap-1.5 min-w-[180px]">
+                    <FormLabel className="text-xs font-medium text-muted-foreground">
+                      Status
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="All statuses" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="all">All statuses</SelectItem>
+                        {RESERVATION_STATUSES.map((s) => (
+                          <SelectItem
+                            key={s}
+                            value={s}>
+                            {s}
                           </SelectItem>
                         ))}
                       </SelectContent>

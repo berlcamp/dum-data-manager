@@ -346,11 +346,20 @@ export interface ChartDataSetTypes {
   bgColor: string
 }
 
+export interface ReservationVehicleAssignmentTypes {
+  vehicle_id: string
+  vehicle: ReservationVehicleTypes | null
+}
+
 export interface ReservationTypes {
   id: string
   type: string
   date: string
   time: string
+  // End of the reservation span. Null on rows created before date ranges
+  // existed — treat those as same-day.
+  date_end: string | null
+  time_end: string | null
   status: string
   date_created: string
   requester: string
@@ -358,6 +367,9 @@ export interface ReservationTypes {
   purpose: string
   vehicle_id: string
   vehicle: ReservationVehicleTypes
+  // Every vehicle held by this reservation. `vehicle_id`/`vehicle` above mirror
+  // the first assignment for backwards compatibility.
+  assignments?: ReservationVehicleAssignmentTypes[]
 }
 
 export interface ReservationVehicleTypes {
@@ -365,6 +377,9 @@ export interface ReservationVehicleTypes {
   name: string
   plate_number: string | null
   type: string | null
+  // System-generated 4-character code, used to look the unit up in the
+  // public schedule portal. Null only on rows read before the migration ran.
+  code: string | null
 }
 
 export interface HoursTypes {

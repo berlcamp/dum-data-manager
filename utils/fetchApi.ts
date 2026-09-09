@@ -886,7 +886,10 @@ export async function fetchVehicleReservations(filters: {
   try {
     let query = supabase
       .from('ddm_reservations')
-      .select('*, vehicle:vehicle_id(*)', { count: 'exact' })
+      .select(
+        '*, vehicle:vehicle_id(*), assignments:ddm_reservation_vehicle_assignments(vehicle_id, vehicle:vehicle_id(*))',
+        { count: 'exact' },
+      )
 
     // Full text search (requester, department, purpose)
     if (
@@ -906,10 +909,14 @@ export async function fetchVehicleReservations(filters: {
         String(filters.filterVehicle).trim() !== '')
 
     if (!hasKeywordOrVehicleFilter) {
+      // Reservations are date spans, so match on overlap rather than on the
+      // departure date alone — a trip that started last month but runs into the
+      // visible window still belongs on the calendar. Rows predating date
+      // ranges have a null `date_end` and are treated as single-day.
       if (typeof filters.filterDateFrom !== 'undefined') {
-        query = query.gte(
-          'date',
-          format(new Date(filters.filterDateFrom), 'yyyy-MM-dd'),
+        const from = format(new Date(filters.filterDateFrom), 'yyyy-MM-dd')
+        query = query.or(
+          `date_end.gte.${from},and(date_end.is.null,date.gte.${from})`,
         )
       }
       if (typeof filters.filterDateTo !== 'undefined') {
@@ -920,9 +927,21 @@ export async function fetchVehicleReservations(filters: {
       }
     }
 
-    // Filter vehicle
+    // Filter vehicle — a reservation can hold several vehicles, so resolve the
+    // matching reservation ids through the assignments table first.
     if (filters.filterVehicle && filters.filterVehicle !== '') {
-      query = query.eq('vehicle_id', filters.filterVehicle)
+      const { data: assignments } = await supabase
+        .from('ddm_reservation_vehicle_assignments')
+        .select('reservation_id')
+        .eq('vehicle_id', filters.filterVehicle)
+
+      const ids = Array.from(
+        new Set((assignments ?? []).map((a: any) => a.reservation_id)),
+      )
+
+      if (ids.length === 0) return { data: [], count: 0 }
+
+      query = query.in('id', ids)
     }
 
     // Filter status
@@ -965,7 +984,7 @@ export async function fetchReservationVehicles(
       filters.filterKeyword.trim() !== ''
     ) {
       query = query.or(
-        `name.ilike.%${filters.filterKeyword}%,plate_number.ilike.%${filters.filterKeyword}%,type.ilike.%${filters.filterKeyword}%`,
+        `name.ilike.%${filters.filterKeyword}%,plate_number.ilike.%${filters.filterKeyword}%,type.ilike.%${filters.filterKeyword}%,code.ilike.%${filters.filterKeyword}%`,
       )
     }
 
@@ -986,6 +1005,89 @@ export async function fetchReservationVehicles(
     if (error) {
       throw new Error(error.message)
     }
+
+    return { data, count }
+  } catch (error) {
+    console.error('fetch error xx', error)
+    return { data: [], count: 0 }
+  }
+}
+
+/**
+ * Strips anything that is not part of a unit code and normalises the casing.
+ * Codes are always 4 characters from an unambiguous uppercase alphabet.
+ */
+export function normalizeUnitCode(code: string): string {
+  return code
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 4)
+}
+
+/**
+ * Public schedule portal — resolves a typed unit code to its unit.
+ * Returns null when the code is malformed or does not match a unit.
+ */
+export async function fetchReservationVehicleByCode(code: string) {
+  const cleaned = normalizeUnitCode(code)
+  if (cleaned.length !== 4) return null
+
+  try {
+    const { data, error } = await supabase
+      .from('ddm_reservation_vehicles')
+      .select()
+      .eq('code', cleaned)
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw new Error(error.message)
+
+    return data
+  } catch (error) {
+    console.error('fetch error xx', error)
+    return null
+  }
+}
+
+/**
+ * Every reservation holding the given unit that overlaps [dateFrom, dateTo].
+ * Matches on span overlap so a trip that began earlier still shows up.
+ */
+export async function fetchReservationsByVehicle(
+  vehicleId: string,
+  dateFrom: Date,
+  dateTo: Date,
+) {
+  try {
+    const { data: assignments, error: assignmentsError } = await supabase
+      .from('ddm_reservation_vehicle_assignments')
+      .select('reservation_id')
+      .eq('vehicle_id', vehicleId)
+
+    if (assignmentsError) throw new Error(assignmentsError.message)
+
+    const ids = Array.from(
+      new Set((assignments ?? []).map((a: any) => a.reservation_id)),
+    )
+
+    if (ids.length === 0) return { data: [], count: 0 }
+
+    const from = format(dateFrom, 'yyyy-MM-dd')
+    const to = format(dateTo, 'yyyy-MM-dd')
+
+    const { data, count, error } = await supabase
+      .from('ddm_reservations')
+      .select(
+        '*, vehicle:vehicle_id(*), assignments:ddm_reservation_vehicle_assignments(vehicle_id, vehicle:vehicle_id(*))',
+        { count: 'exact' },
+      )
+      .in('id', ids)
+      .lte('date', to)
+      .or(`date_end.gte.${from},and(date_end.is.null,date.gte.${from})`)
+      .order('date', { ascending: true })
+      .order('time', { ascending: true })
+
+    if (error) throw new Error(error.message)
 
     return { data, count }
   } catch (error) {

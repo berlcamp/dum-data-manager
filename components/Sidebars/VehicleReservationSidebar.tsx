@@ -1,5 +1,5 @@
 import { Cog8ToothIcon } from '@heroicons/react/20/solid'
-import { ListChecks } from 'lucide-react'
+import { ExternalLink, ListChecks } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -41,6 +41,17 @@ export default function VehicleReservationSidebar() {
                 : ''
             }`}>
             <span className="flex-1 ml-3 whitespace-nowrap">Units</span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/portal"
+            target="_blank"
+            className="app__menu_link">
+            <span className="flex-1 ml-3 whitespace-nowrap flex items-center gap-1.5">
+              Schedule Portal
+              <ExternalLink className="w-3 h-3" />
+            </span>
           </Link>
         </li>
       </ul>

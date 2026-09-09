@@ -12,6 +12,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { superAdmins } from '@/constants/TrackerConstants'
+import { reservationStatusColors } from '@/lib/constants'
+import { cn } from '@/lib/utils'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import type { ReservationTypes } from '@/types'
@@ -41,6 +43,10 @@ import CalendarView from './CalendarView'
 import Filters from './Filters'
 import ListView from './ListView'
 import Week from './Week'
+import {
+  RESERVATION_STATUSES,
+  getReservationVehicles,
+} from '@/utils/reservation-helpers'
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
@@ -55,6 +61,7 @@ const Page: React.FC = () => {
   // Filters
   const [filterKeyword, setFilterKeyword] = useState('')
   const [filterVehicle, setFilterVehicle] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
 
   // List
   const [list, setList] = useState<ReservationTypes[] | []>([])
@@ -66,7 +73,8 @@ const Page: React.FC = () => {
   const globallist = useSelector((state: any) => state.list.value)
   const dispatch = useDispatch()
 
-  const hasActiveFilters = filterKeyword !== '' || filterVehicle !== ''
+  const hasActiveFilters =
+    filterKeyword !== '' || filterVehicle !== '' || filterStatus !== ''
   const effectiveView = hasActiveFilters ? 'list' : view
 
   // Date range visible in the current view — used to scope the fetch so the
@@ -98,6 +106,7 @@ const Page: React.FC = () => {
       const result = await fetchVehicleReservations({
         filterKeyword,
         filterVehicle,
+        filterStatus,
         filterDateFrom: from,
         filterDateTo: to,
       })
@@ -142,9 +151,18 @@ const Page: React.FC = () => {
   useEffect(() => {
     setList([])
     void fetchData()
-  }, [filterKeyword, filterVehicle, currentDate, view])
+  }, [filterKeyword, filterVehicle, filterStatus, currentDate, view])
 
   const isDataEmpty = list.length < 1 || !list
+
+  // Quick read on what is in the window currently on screen.
+  const statusCounts = RESERVATION_STATUSES.map((status) => ({
+    status,
+    count: list.filter((item) => item.status === status).length,
+  })).filter((entry) => entry.count > 0)
+  const vehiclesInUse = new Set(
+    list.flatMap((item) => getReservationVehicles(item).map((v) => String(v.id)))
+  ).size
   const email: string = session?.user?.email ?? ''
 
   if (!hasAccess('vehiclereservation') && !superAdmins.includes(email))
@@ -192,12 +210,36 @@ const Page: React.FC = () => {
             </div>
           </div>
 
+          {/* Summary */}
+          {!loading && !isDataEmpty && (
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="rounded-full border bg-background px-2.5 py-1 font-medium">
+                {list.length} reservation{list.length === 1 ? '' : 's'}
+              </span>
+              <span className="rounded-full border bg-background px-2.5 py-1 font-medium">
+                {vehiclesInUse} vehicle{vehiclesInUse === 1 ? '' : 's'} booked
+              </span>
+              {statusCounts.map(({ status, count }) => (
+                <span
+                  key={status}
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 font-medium',
+                    reservationStatusColors[status]
+                  )}>
+                  {count} {status}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Filters */}
           <Filters
             setFilterKeyword={setFilterKeyword}
             setFilterVehicle={setFilterVehicle}
+            setFilterStatus={setFilterStatus}
             filterKeyword={filterKeyword}
             filterVehicle={filterVehicle}
+            filterStatus={filterStatus}
           />
 
           {/* Calendar Header */}

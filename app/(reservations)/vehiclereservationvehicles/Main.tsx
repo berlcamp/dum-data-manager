@@ -26,6 +26,7 @@ import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { useDispatch, useSelector } from 'react-redux'
 import AddEditModal from './AddEditModal'
+import UnitCode from './UnitCode'
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
@@ -165,6 +166,7 @@ const Page: React.FC = () => {
             <table className="app__table">
               <thead className="app__thead">
                 <tr>
+                  <th className="app__th">Code</th>
                   <th className="app__th">Unit Name</th>
                   <th className="app__th">Type</th>
                   <th className="app__th">Plate Number</th>
@@ -177,6 +179,9 @@ const Page: React.FC = () => {
                     <tr
                       key={index}
                       className="app__tr">
+                      <td className="app__td">
+                        <UnitCode code={item.code} />
+                      </td>
                       <td className="app__td">{item.name}</td>
                       <td className="app__td">{item.type ?? '-'}</td>
                       <td className="app__td">
@@ -197,7 +202,7 @@ const Page: React.FC = () => {
                   ))}
                 {loading && (
                   <TableRowLoading
-                    cols={4}
+                    cols={5}
                     rows={2}
                   />
                 )}

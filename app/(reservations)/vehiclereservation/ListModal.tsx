@@ -9,9 +9,15 @@ interface ModalProps {
   hideModal: () => void
   data: ReservationTypes[]
   onEdit: (item: ReservationTypes) => void
+  title?: string
 }
 
-export default function ListModal({ hideModal, data, onEdit }: ModalProps) {
+export default function ListModal({
+  hideModal,
+  data,
+  onEdit,
+  title,
+}: ModalProps) {
   const wrapperRef = useRef<HTMLDivElement>(null)
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -35,7 +41,7 @@ export default function ListModal({ hideModal, data, onEdit }: ModalProps) {
         <div className="app__modal_wrapper3">
           <div className="app__modal_header">
             <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
-              Reservations
+              {title ?? 'Reservations'}
             </h5>
             <Button variant="outline" size="sm" onClick={hideModal}>
               Close
