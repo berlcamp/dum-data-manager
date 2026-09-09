@@ -42,9 +42,10 @@ import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { RisDepartmentCodeTypes, RisVehicleTypes } from '@/types'
+import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
-import { CalendarIcon, Check, ChevronsUpDown } from 'lucide-react'
+import { CalendarIcon, Check, ChevronsUpDown, Droplet } from 'lucide-react'
 import { KeyboardEvent, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
@@ -68,6 +69,14 @@ const FormSchema = z.object({
     })
     .gte(1, {
       message: 'Quantity (L) is required...',
+    }),
+  starting_balance: z.coerce
+    .number({
+      required_error: 'Starting Balance (L) is required.',
+      invalid_type_error: 'Starting Balance must be a number.',
+    })
+    .gte(0, {
+      message: 'Starting Balance must be greater than or equal to 0.',
     }),
   purpose: z.string().min(1, {
     message: 'Purpose is required.',
@@ -95,6 +104,7 @@ export default function FuelRequest() {
       vehicle_id: '',
       type: '',
       quantity: 0,
+      starting_balance: 0,
       purpose: '',
       date_requested: new Date(),
     },
@@ -119,6 +129,7 @@ export default function FuelRequest() {
         origin: 'Portal',
         type: formdata.type,
         quantity: formdata.quantity,
+        starting_balance: formdata.starting_balance,
         price: price,
         purpose: formdata.purpose,
         date_requested: format(new Date(formdata.date_requested), 'yyyy-MM-dd'),
@@ -138,10 +149,46 @@ export default function FuelRequest() {
     }
   }
 
+  // Remaining balance of the department's P.O. — Fuel P.O.s are tracked by
+  // amount, the rest by liters. Only Approved RIS consume the P.O., same as the
+  // Purchase Orders list.
+  const getRemainingBalance = () => {
+    if (!selectedItem?.purchase_order) return null
+
+    const po = selectedItem.purchase_order
+    const ris = po.ddm_ris || []
+
+    if (po.type === 'Fuel') {
+      const totalAmountUsed = ris.reduce(
+        (acc, r) => acc + (r.status === 'Approved' ? getRisAmount(r) : 0),
+        0
+      )
+      return {
+        label: 'Remaining Balance',
+        value: `₱${formatRisAmount(
+          Math.max(0, Number(po.amount) - totalAmountUsed)
+        )}`,
+      }
+    }
+
+    const totalQuantityUsed = ris.reduce(
+      (acc, r) => acc + (r.status === 'Approved' ? Number(r.quantity) : 0),
+      0
+    )
+    return {
+      label: 'Remaining Balance',
+      value: `${Math.max(0, Number(po.quantity) - totalQuantityUsed).toFixed(
+        2
+      )} Liters`,
+    }
+  }
+
   const handleSubmitCode = async () => {
     const { data } = await supabase
       .from('ddm_ris_department_codes')
-      .select('*, purchase_order:po_id(*), department:department_id(*)')
+      .select(
+        '*, purchase_order:po_id(*, ddm_ris(id,quantity,price,status,total_amount)), department:department_id(*)'
+      )
       .eq('code', code)
       .eq('status', 'Active')
     if (code && data.length > 0) {
@@ -237,6 +284,16 @@ export default function FuelRequest() {
                     {selectedItem.department.name}
                   </div>
                 </div>
+                {getRemainingBalance() && (
+                  <div className="flex items-center space-x-2">
+                    <div className="text-sm font-medium text-gray-600">
+                      {getRemainingBalance()?.label}:{' '}
+                    </div>
+                    <div className="text-base text-emerald-700 font-bold">
+                      {getRemainingBalance()?.value}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="w-full">
                 <Form {...form}>
@@ -437,6 +494,29 @@ export default function FuelRequest() {
                                 placeholder="Quantity"
                                 {...field}
                               />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="starting_balance"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="app__form_label">
+                              Starting Balance (Liters)
+                            </FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Input
+                                  type="number"
+                                  step="any"
+                                  placeholder="0.00"
+                                  {...field}
+                                />
+                                <Droplet className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
