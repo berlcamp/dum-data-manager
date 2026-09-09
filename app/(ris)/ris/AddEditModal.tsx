@@ -151,6 +151,10 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const [remainingAmount, setRemainingAmount] = useState<number | null>(null)
   const [selectedPO, setSelectedPO] = useState<RisPoTypes | null>(null)
 
+  // 2-step wizard: 1) pick the appropriation + P.O., 2) fill in the R.I.S.
+  const [step, setStep] = useState<number>(editData ? 2 : 1)
+  const [selectedAppropriation, setSelectedAppropriation] = useState('')
+
   // Error message
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -210,6 +214,182 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       currentType === 'Oil and Lubricants'
     ) {
       return remainingLiters !== null ? remainingLiters : null
+    }
+
+    return null
+  }
+
+  // Purchase Orders the current user is allowed to consume
+  const visiblePurchaseOrders = purchaseOrders.filter((po) =>
+    hasRisAdminAccess ? true : po.department_id === user?.department_id,
+  )
+
+  // Appropriations are derived from the visible P.O.s so the wizard never
+  // offers an appropriation without a selectable P.O.
+  const NO_APPROPRIATION = '__none__'
+  const appropriationOptions = Array.from(
+    visiblePurchaseOrders
+      .reduce((map: Map<string, string>, po) => {
+        const id = po.appropriation ? po.appropriation.toString() : NO_APPROPRIATION
+        if (!map.has(id)) {
+          map.set(
+            id,
+            po.ddm_ris_appropriation?.name || 'No Appropriation',
+          )
+        }
+        return map
+      }, new Map<string, string>())
+      .entries(),
+  )
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  const purchaseOrdersForAppropriation = visiblePurchaseOrders.filter(
+    (po) =>
+      (po.appropriation ? po.appropriation.toString() : NO_APPROPRIATION) ===
+      selectedAppropriation,
+  )
+
+  const selectedAppropriationName =
+    appropriationOptions.find((a) => a.id === selectedAppropriation)?.name || ''
+
+  // Selecting a P.O. also seeds the department, fuel type, prices and the
+  // remaining balance used by the validations below.
+  const applyPurchaseOrder = (po: RisPoTypes | null) => {
+    setSelectedPO(po)
+    form.setValue('po_id', po ? po.id.toString() : '')
+
+    if (!po) {
+      setRemainingLiters(null)
+      setRemainingAmount(null)
+      return
+    }
+
+    // Automatically set the requesting department to the P.O.'s department
+    if (po.department_id) {
+      form.setValue('department_id', po.department_id.toString(), {
+        shouldValidate: true,
+      })
+    }
+    if (po.type !== 'Fuel') {
+      form.setValue('type', po.type)
+      // Quantity-based PO types carry a single price per liter — set it so the
+      // RIS price is populated even without re-selecting the type dropdown.
+      if (po.type === 'Diesel') {
+        form.setValue('price', po.diesel_price || 0)
+      }
+      if (po.type === 'Gasoline') {
+        form.setValue('price', po.gasoline_price || 0)
+      }
+      if (po.type === 'Oil and Lubricants') {
+        form.setValue('price', po.oil_price || 0)
+      }
+    }
+    setDieselPrice(po.diesel_price || 0)
+    setGasolinePrice(po.gasoline_price || 0)
+    setOilPrice(po.oil_price || 0)
+
+    // For Fuel PO type: calculate remaining amount (match Main.tsx countRemainingAmount)
+    if (po.type === 'Fuel') {
+      const availableAmount = po.amount || 0
+      // Only count Approved RIS (match Main.tsx widget)
+      const totalAmountUsed = po.ddm_ris
+        ? po.ddm_ris.reduce((accumulator, ris) => {
+            if (ris.status === 'Approved') {
+              return accumulator + getRisAmount(ris)
+            }
+            return accumulator
+          }, 0)
+        : 0
+      // If editing, add back the current record's amount only if it was Approved
+      const currentAmount =
+        editData &&
+        editData.po_id === po.id.toString() &&
+        editData.status === 'Approved'
+          ? getRisAmount(editData)
+          : 0
+      setRemainingAmount(availableAmount - totalAmountUsed + currentAmount)
+      setRemainingLiters(null)
+    } else {
+      // Calculate and store remaining liters for Diesel/Gasoline types
+      const totalQuantityUsed = po.ddm_ris
+        ? po.ddm_ris.reduce(
+            (accumulator, ris) => accumulator + Number(ris.quantity),
+            0,
+          )
+        : 0
+      // If editing, add back the current record's quantity
+      const currentQuantity =
+        editData && editData.po_id === po.id.toString()
+          ? Number(editData.quantity)
+          : 0
+      setRemainingLiters(
+        Number(po.quantity) - totalQuantityUsed + currentQuantity,
+      )
+      setRemainingAmount(null)
+    }
+  }
+
+  const handleAppropriationChange = (value: string) => {
+    setSelectedAppropriation(value)
+    // The previously picked P.O. may belong to another appropriation
+    applyPurchaseOrder(null)
+  }
+
+  // Remaining balance of the selected P.O., shown on both steps
+  const renderAvailability = () => {
+    const currentType = form.watch('type')
+    if (!selectedPO) return null
+
+    // For Fuel PO type: display available amount
+    if (selectedPO.type === 'Fuel' && remainingAmount !== null) {
+      const isOverused = remainingAmount < 0
+      return (
+        <div
+          className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm font-medium mt-2 ${
+            isOverused
+              ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
+              : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400'
+          }`}>
+          {isOverused ? (
+            <AlertCircle className="h-4 w-4" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4" />
+          )}
+          <span>
+            {isOverused ? 'Overused Amount' : 'Available Amount'}: ₱
+            {Math.abs(remainingAmount).toFixed(2)}
+          </span>
+        </div>
+      )
+    }
+
+    // For Diesel, Gasoline or Oil and Lubricants form type: display available liters
+    if (
+      (currentType === 'Diesel' ||
+        currentType === 'Gasoline' ||
+        currentType === 'Oil and Lubricants') &&
+      remainingLiters !== null
+    ) {
+      const isOverused = remainingLiters < 0
+      return (
+        <div
+          className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm font-medium mt-2 ${
+            isOverused
+              ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
+              : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400'
+          }`}>
+          {isOverused ? (
+            <AlertCircle className="h-4 w-4" />
+          ) : (
+            <Droplet className="h-4 w-4" />
+          )}
+          <span>
+            {isOverused ? 'Overused' : 'Available'}:{' '}
+            {Math.abs(remainingLiters).toFixed(2)} Liters
+          </span>
+        </div>
+      )
     }
 
     return null
@@ -608,6 +788,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       )
       if (po) {
         setSelectedPO(po)
+        setSelectedAppropriation(
+          po.appropriation ? po.appropriation.toString() : '__none__',
+        )
 
         // For Fuel PO type: calculate remaining amount
         if (po.type === 'Fuel') {
@@ -663,7 +846,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         <div className="app__modal_wrapper3">
           <div className="app__modal_header">
             <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
-              R.I.S. Details
+              {editData ? 'R.I.S. Details' : 'New R.I.S.'}
             </h5>
             <CustomButton
               containerStyles="app__btn_gray"
@@ -674,7 +857,184 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           </div>
 
           <div className="app__modal_body">
-            <Form {...form}>
+            {/* Wizard steps */}
+            <div className="mb-5 flex items-center gap-3">
+              {[
+                { n: 1, label: 'Appropriation & P.O.' },
+                { n: 2, label: 'R.I.S. Details' },
+              ].map((s, idx) => (
+                <div
+                  key={s.n}
+                  className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      'flex items-center gap-2',
+                      step === s.n
+                        ? 'text-blue-700 dark:text-blue-400'
+                        : 'text-gray-400 dark:text-gray-500',
+                    )}>
+                    <span
+                      className={cn(
+                        'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold',
+                        step === s.n
+                          ? 'bg-blue-600 text-white'
+                          : step > s.n
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400',
+                      )}>
+                      {step > s.n ? <Check className="h-3 w-3" /> : s.n}
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-wide">
+                      {s.label}
+                    </span>
+                  </div>
+                  {idx === 0 && (
+                    <div className="h-px w-8 bg-gray-300 dark:bg-gray-700" />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {step === 1 && (
+              <div className="space-y-5">
+                <div>
+                  <div className="app__form_label">Appropriation</div>
+                  <Select
+                    onValueChange={handleAppropriationChange}
+                    value={selectedAppropriation}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Choose Appropriation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {appropriationOptions.map((appropriation) => (
+                        <SelectItem
+                          key={appropriation.id}
+                          value={appropriation.id}>
+                          {appropriation.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Choose an appropriation to see the Purchase Orders under it.
+                  </p>
+                </div>
+
+                {selectedAppropriation !== '' && (
+                  <div>
+                    <div className="app__form_label">Purchase Order</div>
+                    {purchaseOrdersForAppropriation.length === 0 ? (
+                      <div className="mt-1 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-400">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>
+                          No available Purchase Order under this appropriation.
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="mt-1 max-h-72 space-y-2 overflow-y-auto pr-1">
+                        {purchaseOrdersForAppropriation.map((po) => {
+                          const isSelected =
+                            selectedPO?.id.toString() === po.id.toString()
+                          const remaining = (po.remaining_quantity || '')
+                            .trim()
+                            .replace(/^\(|\)$/g, '')
+                          return (
+                            <button
+                              key={po.id}
+                              type="button"
+                              onClick={() => applyPurchaseOrder(po)}
+                              className={cn(
+                                'w-full rounded-lg border-2 p-3 text-left transition-all hover:border-blue-400',
+                                isSelected
+                                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
+                                  : 'border-gray-200 dark:border-gray-700',
+                              )}>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="font-semibold text-gray-800 dark:text-gray-200">
+                                    P.O. {po.po_number}
+                                  </div>
+                                  <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                    {po.department?.name
+                                      ? `${po.department.name} • `
+                                      : ''}
+                                    {po.type}
+                                    {po.description ? ` • ${po.description}` : ''}
+                                  </div>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-2">
+                                  {remaining !== '' && (
+                                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                      {remaining}
+                                    </span>
+                                  )}
+                                  {isSelected && (
+                                    <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <hr className="my-4" />
+                <div className="app__modal_footer">
+                  <CustomButton
+                    btnType="button"
+                    isDisabled={!selectedPO}
+                    title="Next"
+                    handleClick={() => selectedPO && setStep(2)}
+                    containerStyles="app__btn_green"
+                  />
+                  <CustomButton
+                    btnType="button"
+                    title="Cancel"
+                    handleClick={hideModal}
+                    containerStyles="app__btn_gray"
+                  />
+                </div>
+              </div>
+            )}
+
+            {step === 2 && (
+              <>
+                {/* Appropriation and P.O. chosen on step 1 */}
+                <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/60 p-3 dark:border-blue-800 dark:bg-blue-950/20">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          Appropriation:{' '}
+                        </span>
+                        <span className="font-semibold text-gray-800 dark:text-gray-200">
+                          {selectedAppropriationName || '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          Purchase Order:{' '}
+                        </span>
+                        <span className="font-semibold text-gray-800 dark:text-gray-200">
+                          {selectedPO
+                            ? `${selectedPO.po_number} - ${selectedPO.type}`
+                            : '—'}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="shrink-0 text-xs font-medium text-blue-700 underline dark:text-blue-400">
+                      Change
+                    </button>
+                  </div>
+                  {renderAvailability()}
+                </div>
+                <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 <div className="md:grid md:grid-cols-2 md:gap-4">
                   <FormField
@@ -734,210 +1094,6 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                           />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="po_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="app__form_label">
-                          Purchase Order
-                        </FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            const po = purchaseOrders?.find(
-                              (po) => po.id.toString() === value,
-                            )
-                            form.setValue('po_id', value)
-                            setSelectedPO(po || null)
-                            if (po) {
-                              // Automatically set the requesting department to the P.O.'s department
-                              if (po.department_id) {
-                                form.setValue(
-                                  'department_id',
-                                  po.department_id.toString(),
-                                  { shouldValidate: true },
-                                )
-                              }
-                              if (po.type !== 'Fuel') {
-                                form.setValue('type', po.type)
-                                // Quantity-based PO types carry a single price per
-                                // liter — set it so the RIS price is populated even
-                                // without re-selecting the type dropdown.
-                                if (po.type === 'Diesel') {
-                                  form.setValue('price', po.diesel_price || 0)
-                                }
-                                if (po.type === 'Gasoline') {
-                                  form.setValue('price', po.gasoline_price || 0)
-                                }
-                                if (po.type === 'Oil and Lubricants') {
-                                  form.setValue('price', po.oil_price || 0)
-                                }
-                              }
-                              setDieselPrice(po.diesel_price || 0)
-                              setGasolinePrice(po.gasoline_price || 0)
-                              setOilPrice(po.oil_price || 0)
-
-                              // For Fuel PO type: calculate remaining amount (match Main.tsx countRemainingAmount)
-                              if (po.type === 'Fuel') {
-                                const availableAmount = po.amount || 0
-                                // Only count Approved RIS (match Main.tsx widget)
-                                const totalAmountUsed = po.ddm_ris
-                                  ? po.ddm_ris.reduce((accumulator, ris) => {
-                                      if (ris.status === 'Approved') {
-                                        return accumulator + getRisAmount(ris)
-                                      }
-                                      return accumulator
-                                    }, 0)
-                                  : 0
-                                // If editing, add back the current record's amount only if it was Approved
-                                const currentAmount =
-                                  editData &&
-                                  editData.po_id === po.id.toString() &&
-                                  editData.status === 'Approved'
-                                    ? getRisAmount(editData)
-                                    : 0
-                                const remaining =
-                                  availableAmount -
-                                  totalAmountUsed +
-                                  currentAmount
-                                setRemainingAmount(remaining)
-                                setRemainingLiters(null)
-                              } else {
-                                // Calculate and store remaining liters for Diesel/Gasoline types
-                                const totalQuantityUsed = po.ddm_ris
-                                  ? po.ddm_ris.reduce(
-                                      (accumulator, ris) =>
-                                        accumulator + Number(ris.quantity),
-                                      0,
-                                    )
-                                  : 0
-                                // If editing, add back the current record's quantity
-                                const currentQuantity =
-                                  editData &&
-                                  editData.po_id === po.id.toString()
-                                    ? Number(editData.quantity)
-                                    : 0
-                                const remaining =
-                                  Number(po.quantity) -
-                                  totalQuantityUsed +
-                                  currentQuantity
-                                setRemainingLiters(remaining)
-                                setRemainingAmount(null)
-                              }
-                            } else {
-                              setRemainingLiters(null)
-                              setRemainingAmount(null)
-                              setSelectedPO(null)
-                            }
-                          }}
-                          value={field.value?.toString() || ''}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Choose P.O." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {purchaseOrders
-                              ?.filter((po) => {
-                                // Allow ris_admin access to see all purchase orders
-                                if (hasAccess('ris_admin')) {
-                                  return true
-                                }
-                                // Otherwise, filter by department_id
-                                return po.department_id === user.department_id
-                              })
-                              .map((po, idx) => (
-                                <SelectItem
-                                  key={idx}
-                                  value={po.id.toString()}>
-                                  {po.po_number}-{po.type}
-                                  {po.remaining_quantity}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                        {(() => {
-                          const currentType = form.watch('type')
-                          if (!selectedPO) return null
-
-                          // For Fuel PO type: display available amount
-                          if (
-                            selectedPO.type === 'Fuel' &&
-                            remainingAmount !== null
-                          ) {
-                            // Show "Overused" if negative, otherwise show "Available"
-                            const isOverused = remainingAmount < 0
-                            const amountLabel = isOverused
-                              ? 'Overused Amount'
-                              : 'Available Amount'
-                            const bgColor = isOverused
-                              ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
-                              : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
-                            const textColor = isOverused
-                              ? 'text-red-700 dark:text-red-400'
-                              : 'text-blue-700 dark:text-blue-400'
-
-                            return (
-                              <div
-                                className={`flex items-center gap-2 px-3 py-2 rounded-md border ${bgColor} ${textColor} text-sm font-medium mt-2`}>
-                                {isOverused ? (
-                                  <AlertCircle className="h-4 w-4" />
-                                ) : (
-                                  <CheckCircle2 className="h-4 w-4" />
-                                )}
-                                <span>
-                                  {amountLabel}: ₱
-                                  {Math.abs(remainingAmount).toFixed(2)}
-                                </span>
-                              </div>
-                            )
-                          }
-
-                          // For Diesel, Gasoline or Oil and Lubricants form type: display available liters
-                          if (
-                            (currentType === 'Diesel' ||
-                              currentType === 'Gasoline' ||
-                              currentType === 'Oil and Lubricants') &&
-                            remainingLiters !== null
-                          ) {
-                            // Show "Overused" if negative, otherwise show "Available"
-                            const isOverused = remainingLiters < 0
-                            const label = isOverused ? 'Overused' : 'Available'
-                            const bgColor = isOverused
-                              ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
-                              : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
-                            const textColor = isOverused
-                              ? 'text-red-700 dark:text-red-400'
-                              : 'text-blue-700 dark:text-blue-400'
-
-                            return (
-                              <div
-                                className={`flex items-center gap-2 px-3 py-2 rounded-md border ${bgColor} ${textColor} text-sm font-medium mt-2`}>
-                                {isOverused ? (
-                                  <AlertCircle className="h-4 w-4" />
-                                ) : (
-                                  <Droplet className="h-4 w-4" />
-                                )}
-                                <span>
-                                  {label}:{' '}
-                                  {Math.abs(remainingLiters).toFixed(2)} Liters
-                                </span>
-                              </div>
-                            )
-                          }
-
-                          return null
-                        })()}
-                        <FormMessage />
-                        {errorMessage !== '' && (
-                          <div className="flex items-center gap-2 px-3 py-2 mt-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-400 text-sm font-medium">
-                            <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                            <span>{errorMessage}</span>
-                          </div>
-                        )}
                       </FormItem>
                     )}
                   />
@@ -1304,6 +1460,12 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                     )}
                   />
                 </div>
+                {errorMessage !== '' && (
+                  <div className="flex items-center gap-2 px-3 py-2 mt-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-400 text-sm font-medium">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
                 <hr className="my-4" />
                 <div className="app__modal_footer">
                   <CustomButton
@@ -1315,6 +1477,13 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                   <CustomButton
                     btnType="button"
                     isDisabled={form.formState.isSubmitting}
+                    title="Back"
+                    handleClick={() => setStep(1)}
+                    containerStyles="app__btn_blue"
+                  />
+                  <CustomButton
+                    btnType="button"
+                    isDisabled={form.formState.isSubmitting}
                     title="Cancel"
                     handleClick={hideModal}
                     containerStyles="app__btn_gray"
@@ -1322,6 +1491,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                 </div>
               </form>
             </Form>
+              </>
+            )}
           </div>
         </div>
       </div>
