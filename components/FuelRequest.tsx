@@ -284,6 +284,16 @@ export default function FuelRequest() {
                     {selectedItem.department.name}
                   </div>
                 </div>
+                {selectedItem.purchase_order?.po_number && (
+                  <div className="flex items-center space-x-2">
+                    <div className="text-sm font-medium text-gray-600">
+                      P.O.:{' '}
+                    </div>
+                    <div className="text-base text-gray-700 font-bold">
+                      {selectedItem.purchase_order.po_number}
+                    </div>
+                  </div>
+                )}
                 {getRemainingBalance() && (
                   <div className="flex items-center space-x-2">
                     <div className="text-sm font-medium text-gray-600">

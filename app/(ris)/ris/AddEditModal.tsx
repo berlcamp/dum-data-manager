@@ -60,6 +60,7 @@ import {
   DollarSign,
   Droplet,
   Fuel,
+  Search,
 } from 'lucide-react'
 
 import {
@@ -154,6 +155,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   // 2-step wizard: 1) pick the appropriation + P.O., 2) fill in the R.I.S.
   const [step, setStep] = useState<number>(editData ? 2 : 1)
   const [selectedAppropriation, setSelectedAppropriation] = useState('')
+  const [poSearch, setPoSearch] = useState('')
 
   // Error message
   const [errorMessage, setErrorMessage] = useState('')
@@ -250,6 +252,19 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       selectedAppropriation,
   )
 
+  // Free text search on the P.O.s of the chosen appropriation
+  const poSearchTerm = poSearch.trim().toLowerCase()
+  const filteredPurchaseOrders =
+    poSearchTerm === ''
+      ? purchaseOrdersForAppropriation
+      : purchaseOrdersForAppropriation.filter((po) =>
+          [po.po_number, po.department?.name, po.type, po.description]
+            .filter(Boolean)
+            .some((value) =>
+              value!.toString().toLowerCase().includes(poSearchTerm),
+            ),
+        )
+
   const selectedAppropriationName =
     appropriationOptions.find((a) => a.id === selectedAppropriation)?.name || ''
 
@@ -332,6 +347,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
   const handleAppropriationChange = (value: string) => {
     setSelectedAppropriation(value)
+    setPoSearch('')
     // The previously picked P.O. may belong to another appropriation
     applyPurchaseOrder(null)
   }
@@ -931,52 +947,70 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         </span>
                       </div>
                     ) : (
-                      <div className="mt-1 max-h-72 space-y-2 overflow-y-auto pr-1">
-                        {purchaseOrdersForAppropriation.map((po) => {
-                          const isSelected =
-                            selectedPO?.id.toString() === po.id.toString()
-                          const remaining = (po.remaining_quantity || '')
-                            .trim()
-                            .replace(/^\(|\)$/g, '')
-                          return (
-                            <button
-                              key={po.id}
-                              type="button"
-                              onClick={() => applyPurchaseOrder(po)}
-                              className={cn(
-                                'w-full rounded-lg border-2 p-3 text-left transition-all hover:border-blue-400',
-                                isSelected
-                                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
-                                  : 'border-gray-200 dark:border-gray-700',
-                              )}>
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="font-semibold text-gray-800 dark:text-gray-200">
-                                    P.O. {po.po_number}
+                      <>
+                        <div className="relative mt-1">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                          <Input
+                            type="text"
+                            value={poSearch}
+                            onChange={(e) => setPoSearch(e.target.value)}
+                            placeholder="Search P.O. number, department, type or description"
+                            className="pl-9"
+                          />
+                        </div>
+                        {filteredPurchaseOrders.length === 0 ? (
+                          <div className="mt-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                            No Purchase Order matches &quot;{poSearch}&quot;.
+                          </div>
+                        ) : (
+                          <div className="mt-2 max-h-72 space-y-2 overflow-y-auto pr-1">
+                            {filteredPurchaseOrders.map((po) => {
+                              const isSelected =
+                                selectedPO?.id.toString() === po.id.toString()
+                              const remaining = (po.remaining_quantity || '')
+                                .trim()
+                                .replace(/^\(|\)$/g, '')
+                              return (
+                                <button
+                                  key={po.id}
+                                  type="button"
+                                  onClick={() => applyPurchaseOrder(po)}
+                                  className={cn(
+                                    'w-full rounded-lg border-2 p-3 text-left transition-all hover:border-blue-400',
+                                    isSelected
+                                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
+                                      : 'border-gray-200 dark:border-gray-700',
+                                  )}>
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <div className="font-semibold text-gray-800 dark:text-gray-200">
+                                        P.O. {po.po_number}
+                                      </div>
+                                      <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                        {po.department?.name
+                                          ? `${po.department.name} • `
+                                          : ''}
+                                        {po.type}
+                                        {po.description ? ` • ${po.description}` : ''}
+                                      </div>
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-2">
+                                      {remaining !== '' && (
+                                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                          {remaining}
+                                        </span>
+                                      )}
+                                      {isSelected && (
+                                        <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                                    {po.department?.name
-                                      ? `${po.department.name} • `
-                                      : ''}
-                                    {po.type}
-                                    {po.description ? ` • ${po.description}` : ''}
-                                  </div>
-                                </div>
-                                <div className="flex shrink-0 items-center gap-2">
-                                  {remaining !== '' && (
-                                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                                      {remaining}
-                                    </span>
-                                  )}
-                                  {isSelected && (
-                                    <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                  )}
-                                </div>
-                              </div>
-                            </button>
-                          )
-                        })}
-                      </div>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
