@@ -13,6 +13,8 @@ interface UnitCodeInputProps {
   onComplete: (value: string) => void
   disabled?: boolean
   invalid?: boolean
+  /** Focus the first box on mount. Off when the field shares a page. */
+  autoFocus?: boolean
 }
 
 export default function UnitCodeInput({
@@ -21,6 +23,7 @@ export default function UnitCodeInput({
   onComplete,
   disabled,
   invalid,
+  autoFocus = true,
 }: UnitCodeInputProps) {
   const inputs = useRef<Array<HTMLInputElement | null>>([])
 
@@ -90,8 +93,8 @@ export default function UnitCodeInput({
   }
 
   useEffect(() => {
-    focusBox(0)
-  }, [])
+    if (autoFocus) focusBox(0)
+  }, [autoFocus])
 
   return (
     <div className="flex items-center justify-center gap-2 sm:gap-3">

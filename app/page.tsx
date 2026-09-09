@@ -22,7 +22,7 @@ export default async function Page() {
           <div className="mt-12 flex mb-20 flex-col space-y-6 items-center px-4">
             <UnitCodeLookupHeading compact />
             <div className="w-full max-w-md border bg-white p-6">
-              <UnitCodeLookup />
+              <UnitCodeLookup autoFocus={false} />
             </div>
           </div>
         </div>

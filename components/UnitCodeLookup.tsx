@@ -18,6 +18,11 @@ interface UnitCodeLookupProps {
   onResolved?: (unit: ReservationVehicleTypes) => void
   initialCode?: string
   className?: string
+  /**
+   * Focus the first box on mount. The portal wants this; the homepage does
+   * not, since it would pull focus away from the Fuel Request field above.
+   */
+  autoFocus?: boolean
 }
 
 /**
@@ -28,6 +33,7 @@ export default function UnitCodeLookup({
   onResolved,
   initialCode = '',
   className,
+  autoFocus = true,
 }: UnitCodeLookupProps) {
   const router = useRouter()
 
@@ -70,12 +76,15 @@ export default function UnitCodeLookup({
         onComplete={(next) => void lookup(next)}
         disabled={searching}
         invalid={notFound}
+        autoFocus={autoFocus}
       />
 
-      <div className="mt-6">
+      {/* Sized to its own label and centred under the code boxes, which are
+          much narrower than the card. */}
+      <div className="mt-6 flex justify-center">
         <Button
           type="button"
-          className="w-full"
+          className="px-8"
           disabled={code.length !== 4 || searching}
           onClick={() => void lookup(code)}>
           {searching ? (
