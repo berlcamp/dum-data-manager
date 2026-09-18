@@ -326,16 +326,22 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       setRemainingAmount(availableAmount - totalAmountUsed + currentAmount)
       setRemainingLiters(null)
     } else {
-      // Calculate and store remaining liters for Diesel/Gasoline types
+      // Calculate and store remaining liters for Diesel/Gasoline types.
+      // Only Approved RIS consume the P.O. (match Main.tsx
+      // countRemainingQuantity and the Fuel branch above).
       const totalQuantityUsed = po.ddm_ris
-        ? po.ddm_ris.reduce(
-            (accumulator, ris) => accumulator + Number(ris.quantity),
-            0,
-          )
+        ? po.ddm_ris.reduce((accumulator, ris) => {
+            if (ris.status === 'Approved') {
+              return accumulator + Number(ris.quantity)
+            }
+            return accumulator
+          }, 0)
         : 0
-      // If editing, add back the current record's quantity
+      // If editing, add back the current record's quantity only if it was Approved
       const currentQuantity =
-        editData && editData.po_id === po.id.toString()
+        editData &&
+        editData.po_id === po.id.toString() &&
+        editData.status === 'Approved'
           ? Number(editData.quantity)
           : 0
       setRemainingLiters(
@@ -470,14 +476,17 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
             ? po.ddm_ris.reduce(
                 (acc, ris) =>
                   acc +
-                  (!editData || ris.id !== editData.id
+                  (ris.status === 'Approved' &&
+                  (!editData || ris.id !== editData.id)
                     ? Number(ris.quantity)
                     : 0),
                 0,
               )
             : 0
           const currentQuantity =
-            editData && editData.po_id === po.id.toString()
+            editData &&
+            editData.po_id === po.id.toString() &&
+            editData.status === 'Approved'
               ? Number(editData.quantity)
               : 0
           const available =
@@ -727,12 +736,16 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
               remaining_quantity: amountLabel,
             })
           } else {
-            // For Diesel/Gasoline: calculate remaining quantity
+            // For Diesel/Gasoline: calculate remaining quantity.
+            // Only Approved RIS consume the P.O. (match Main.tsx
+            // countRemainingQuantity and the Fuel branch above).
             const totalQuantityUsed = item.ddm_ris
-              ? item.ddm_ris.reduce(
-                  (accumulator, ris) => accumulator + Number(ris.quantity),
-                  0,
-                )
+              ? item.ddm_ris.reduce((accumulator, ris) => {
+                  if (ris.status === 'Approved') {
+                    return accumulator + Number(ris.quantity)
+                  }
+                  return accumulator
+                }, 0)
               : 0
             const remainingQuantity = Number(item.quantity) - totalQuantityUsed
 

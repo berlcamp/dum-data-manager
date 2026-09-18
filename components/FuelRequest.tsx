@@ -42,7 +42,7 @@ import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { RisDepartmentCodeTypes, RisVehicleTypes } from '@/types'
-import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
+import type { PortalBalance } from '@/utils/portal-fuel'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
 import { CalendarIcon, Check, ChevronsUpDown, Droplet } from 'lucide-react'
@@ -93,6 +93,8 @@ export default function FuelRequest() {
   const [code, setCode] = useState('')
   const [selectedItem, setSelectedItem] =
     useState<RisDepartmentCodeTypes | null>(null)
+  // Computed server-side — the portal is anonymous and cannot read ddm_ris.
+  const [balance, setBalance] = useState<PortalBalance | null>(null)
 
   const { supabase } = useSupabase()
 
@@ -114,90 +116,65 @@ export default function FuelRequest() {
     if (!selectedItem) return
 
     try {
-      const price =
-        formdata.type === 'Diesel'
-          ? selectedItem.purchase_order.diesel_price
-          : selectedItem.purchase_order.gasoline_price
+      // The balance is re-checked on the server before the R.I.S. is created —
+      // the figure on screen may be stale and the browser cannot read ddm_ris.
+      const res = await fetch('/api/fuelrequest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          requester: formdata.requester,
+          destination: formdata.destination,
+          vehicle_id: formdata.vehicle_id,
+          type: formdata.type,
+          quantity: formdata.quantity,
+          starting_balance: formdata.starting_balance,
+          purpose: formdata.purpose,
+          date_requested: format(
+            new Date(formdata.date_requested),
+            'yyyy-MM-dd'
+          ),
+        }),
+        cache: 'no-store',
+      })
+      const result = await res.json()
 
-      const newData = {
-        requester: formdata.requester,
-        destination: formdata.destination,
-        department_id: selectedItem.department_id,
-        po_id: selectedItem.po_id,
-        vehicle_id: formdata.vehicle_id,
-        transaction_type: 'Purchase Order',
-        origin: 'Portal',
-        type: formdata.type,
-        quantity: formdata.quantity,
-        starting_balance: formdata.starting_balance,
-        price: price,
-        purpose: formdata.purpose,
-        date_requested: format(new Date(formdata.date_requested), 'yyyy-MM-dd'),
+      if (result.error_message !== '') {
+        setErrorMessage(result.error_message)
+        return
       }
-
-      const { data, error } = await supabase.from('ddm_ris').insert(newData)
-
-      if (error) throw new Error(error.message)
 
       setErrorMessage('')
       setSuccessMessage(
         'Request successfully submitted and waiting for approval. Once approved, you can go to MMO and Look for Arfel.'
       )
       setSelectedItem(null)
+      setBalance(null)
     } catch (error) {
       console.error('error', error)
-    }
-  }
-
-  // Remaining balance of the department's P.O. — Fuel P.O.s are tracked by
-  // amount, the rest by liters. Only Approved RIS consume the P.O., same as the
-  // Purchase Orders list.
-  const getRemainingBalance = () => {
-    if (!selectedItem?.purchase_order) return null
-
-    const po = selectedItem.purchase_order
-    const ris = po.ddm_ris || []
-
-    if (po.type === 'Fuel') {
-      const totalAmountUsed = ris.reduce(
-        (acc, r) => acc + (r.status === 'Approved' ? getRisAmount(r) : 0),
-        0
-      )
-      return {
-        label: 'Remaining Balance',
-        value: `₱${formatRisAmount(
-          Math.max(0, Number(po.amount) - totalAmountUsed)
-        )}`,
-      }
-    }
-
-    const totalQuantityUsed = ris.reduce(
-      (acc, r) => acc + (r.status === 'Approved' ? Number(r.quantity) : 0),
-      0
-    )
-    return {
-      label: 'Remaining Balance',
-      value: `${Math.max(0, Number(po.quantity) - totalQuantityUsed).toFixed(
-        2
-      )} Liters`,
+      setErrorMessage('Something went wrong. Please try again.')
     }
   }
 
   const handleSubmitCode = async () => {
-    const { data } = await supabase
-      .from('ddm_ris_department_codes')
-      .select(
-        '*, purchase_order:po_id(*, ddm_ris(id,quantity,price,status,total_amount)), department:department_id(*)'
-      )
-      .eq('code', code)
-      .eq('status', 'Active')
-    if (code && data.length > 0) {
+    // The remaining balance depends on ddm_ris, which anonymous visitors cannot
+    // read, so the lookup runs on the server with the service role.
+    const res = await fetch('/api/fuelcode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+      cache: 'no-store',
+    })
+    const result = await res.json()
+
+    if (result.error_message === '' && result.item) {
       setErrorMessage('')
-      setSelectedItem(data[0])
-      console.log(code, data[0])
+      setSelectedItem(result.item as RisDepartmentCodeTypes)
+      setBalance(result.balance)
     } else {
       setSelectedItem(null)
-      setErrorMessage('This code does not exist')
+      setBalance(null)
+      setErrorMessage(result.error_message || 'This code does not exist')
     }
   }
 
@@ -205,6 +182,7 @@ export default function FuelRequest() {
     setErrorMessage('')
     setCode('')
     setSelectedItem(null)
+    setBalance(null)
   }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
@@ -294,307 +272,329 @@ export default function FuelRequest() {
                     </div>
                   </div>
                 )}
-                {getRemainingBalance() && (
+                {balance && (
                   <div className="flex items-center space-x-2">
                     <div className="text-sm font-medium text-gray-600">
-                      {getRemainingBalance()?.label}:{' '}
+                      {balance.label}:{' '}
                     </div>
-                    <div className="text-base text-emerald-700 font-bold">
-                      {getRemainingBalance()?.value}
+                    <div
+                      className={`text-base font-bold ${
+                        balance.depleted ? 'text-red-600' : 'text-emerald-700'
+                      }`}>
+                      {balance.value}
                     </div>
                   </div>
                 )}
               </div>
-              <div className="w-full">
-                <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className="space-y-4">
-                    <div className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="requester"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="app__form_label">
-                              Requester
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Requester Name"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="date_requested"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col space-y-3">
-                            <FormLabel className="app__form_label">
-                              Date Requested
-                            </FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant={'outline'}
-                                    className={cn(
-                                      'pl-3 text-left font-normal',
-                                      !field.value && 'text-muted-foreground'
-                                    )}>
-                                    {field.value ? (
-                                      format(field.value, 'PPP')
-                                    ) : (
-                                      <span>Pick a date</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className="w-auto p-0"
-                                align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={field.onChange}
-                                  disabled={(date) =>
-                                    date < new Date('1900-01-01')
-                                  }
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="vehicle_id"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel className="app__form_label">
-                              Vehicle
-                            </FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    className={cn(
-                                      'w-full justify-between',
-                                      !field.value && 'text-muted-foreground'
-                                    )}>
-                                    {field.value
-                                      ? `${
-                                          vehicles.find(
-                                            (vehicle) =>
-                                              vehicle.id.toString() ===
-                                              field.value.toString()
-                                          )?.name
-                                        }-${
-                                          vehicles.find(
-                                            (vehicle) =>
-                                              vehicle.id.toString() ===
-                                              field.value.toString()
-                                          )?.plate_number
-                                        }`
-                                      : 'Select Vehicle'}
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-full p-0">
-                                <Command>
-                                  <CommandInput placeholder="Search vehicle..." />
-                                  <CommandList>
-                                    <CommandEmpty>
-                                      No vehicle found.
-                                    </CommandEmpty>
-                                    <CommandGroup>
-                                      {vehicles.map((vehicle) => (
-                                        <CommandItem
-                                          value={vehicle.id}
-                                          key={vehicle.id}
-                                          onSelect={() => {
-                                            form.setValue(
-                                              'vehicle_id',
-                                              field.value.toString() ===
-                                                vehicle.id
-                                                ? ''
-                                                : vehicle.id
-                                            )
-                                          }}>
-                                          {vehicle.name}-{vehicle.plate_number}
-                                          <Check
-                                            className={cn(
-                                              'ml-auto',
-                                              vehicle.id.toString() ===
-                                                field.value.toString()
-                                                ? 'opacity-100'
-                                                : 'opacity-0'
-                                            )}
-                                          />
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </CommandList>
-                                </Command>
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="type"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="app__form_label">
-                              Fuel Type
-                            </FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              value={field.value}
-                              defaultValue={field.value}>
+              {balance?.depleted ? (
+                <div className="w-full border border-red-200 bg-red-50 p-4 space-y-3">
+                  <div className="text-red-700 font-bold">
+                    No Remaining Balance
+                  </div>
+                  <div className="text-sm text-red-700">
+                    This P.O. has already used up its full allocation, so fuel
+                    requests can no longer be submitted with this code. Please
+                    contact your department head or MMO.
+                  </div>
+                  <CustomButton
+                    btnType="button"
+                    title="Enter Another Code"
+                    handleClick={handleCancel}
+                    containerStyles="app__btn_gray"
+                  />
+                </div>
+              ) : (
+                <div className="w-full">
+                  <Form {...form}>
+                    <form
+                      onSubmit={form.handleSubmit(onSubmit)}
+                      className="space-y-4">
+                      <div className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="requester"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="app__form_label">
+                                Requester
+                              </FormLabel>
                               <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Choose Type" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {(selectedItem.purchase_order.type === 'Fuel' ||
-                                  selectedItem.purchase_order.type ===
-                                    'Diesel') && (
-                                  <SelectItem value="Diesel">Diesel</SelectItem>
-                                )}
-                                {(selectedItem.purchase_order.type === 'Fuel' ||
-                                  selectedItem.purchase_order.type ===
-                                    'Gasoline') && (
-                                  <SelectItem value="Gasoline">
-                                    Gasoline
-                                  </SelectItem>
-                                )}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="quantity"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="app__form_label">
-                              Quantity (Liters)
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="Quantity"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="starting_balance"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="app__form_label">
-                              Starting Balance (Liters)
-                            </FormLabel>
-                            <FormControl>
-                              <div className="relative">
                                 <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="0.00"
+                                  placeholder="Requester Name"
                                   {...field}
                                 />
-                                <Droplet className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="destination"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="app__form_label">
-                              Destination
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Destination"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="purpose"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="app__form_label">
-                              Purpose
-                            </FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Purpose"
-                                className="resize-none"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="date_requested"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col space-y-3">
+                              <FormLabel className="app__form_label">
+                                Date Requested
+                              </FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant={'outline'}
+                                      className={cn(
+                                        'pl-3 text-left font-normal',
+                                        !field.value && 'text-muted-foreground'
+                                      )}>
+                                      {field.value ? (
+                                        format(field.value, 'PPP')
+                                      ) : (
+                                        <span>Pick a date</span>
+                                      )}
+                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  className="w-auto p-0"
+                                  align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    disabled={(date) =>
+                                      date < new Date('1900-01-01')
+                                    }
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="vehicle_id"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel className="app__form_label">
+                                Vehicle
+                              </FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant="outline"
+                                      role="combobox"
+                                      className={cn(
+                                        'w-full justify-between',
+                                        !field.value && 'text-muted-foreground'
+                                      )}>
+                                      {field.value
+                                        ? `${
+                                            vehicles.find(
+                                              (vehicle) =>
+                                                vehicle.id.toString() ===
+                                                field.value.toString()
+                                            )?.name
+                                          }-${
+                                            vehicles.find(
+                                              (vehicle) =>
+                                                vehicle.id.toString() ===
+                                                field.value.toString()
+                                            )?.plate_number
+                                          }`
+                                        : 'Select Vehicle'}
+                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-full p-0">
+                                  <Command>
+                                    <CommandInput placeholder="Search vehicle..." />
+                                    <CommandList>
+                                      <CommandEmpty>
+                                        No vehicle found.
+                                      </CommandEmpty>
+                                      <CommandGroup>
+                                        {vehicles.map((vehicle) => (
+                                          <CommandItem
+                                            value={vehicle.id}
+                                            key={vehicle.id}
+                                            onSelect={() => {
+                                              form.setValue(
+                                                'vehicle_id',
+                                                field.value.toString() ===
+                                                  vehicle.id
+                                                  ? ''
+                                                  : vehicle.id
+                                              )
+                                            }}>
+                                            {vehicle.name}-{vehicle.plate_number}
+                                            <Check
+                                              className={cn(
+                                                'ml-auto',
+                                                vehicle.id.toString() ===
+                                                  field.value.toString()
+                                                  ? 'opacity-100'
+                                                  : 'opacity-0'
+                                              )}
+                                            />
+                                          </CommandItem>
+                                        ))}
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="type"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="app__form_label">
+                                Fuel Type
+                              </FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Choose Type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {(selectedItem.purchase_order.type === 'Fuel' ||
+                                    selectedItem.purchase_order.type ===
+                                      'Diesel') && (
+                                    <SelectItem value="Diesel">Diesel</SelectItem>
+                                  )}
+                                  {(selectedItem.purchase_order.type === 'Fuel' ||
+                                    selectedItem.purchase_order.type ===
+                                      'Gasoline') && (
+                                    <SelectItem value="Gasoline">
+                                      Gasoline
+                                    </SelectItem>
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="quantity"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="app__form_label">
+                                Quantity (Liters)
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="Quantity"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="starting_balance"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="app__form_label">
+                                Starting Balance (Liters)
+                              </FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input
+                                    type="number"
+                                    step="any"
+                                    placeholder="0.00"
+                                    {...field}
+                                  />
+                                  <Droplet className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="destination"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="app__form_label">
+                                Destination
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Destination"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="purpose"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="app__form_label">
+                                Purpose
+                              </FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Purpose"
+                                  className="resize-none"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-                    <div className="app__modal_footer">
-                      <CustomButton
-                        btnType="button"
-                        isDisabled={form.formState.isSubmitting}
-                        title={
-                          form.formState.isSubmitting ? 'Saving...' : 'Cancel'
-                        }
-                        handleClick={handleCancel}
-                        containerStyles="app__btn_gray"
-                      />
-                      <CustomButton
-                        btnType="submit"
-                        isDisabled={form.formState.isSubmitting}
-                        title={
-                          form.formState.isSubmitting ? 'Saving...' : 'Submit'
-                        }
-                        containerStyles="app__btn_green"
-                      />
-                    </div>
-                  </form>
-                </Form>
-              </div>
+                      <div className="app__modal_footer">
+                        <CustomButton
+                          btnType="button"
+                          isDisabled={form.formState.isSubmitting}
+                          title={
+                            form.formState.isSubmitting ? 'Saving...' : 'Cancel'
+                          }
+                          handleClick={handleCancel}
+                          containerStyles="app__btn_gray"
+                        />
+                        <CustomButton
+                          btnType="submit"
+                          isDisabled={form.formState.isSubmitting}
+                          title={
+                            form.formState.isSubmitting ? 'Saving...' : 'Submit'
+                          }
+                          containerStyles="app__btn_green"
+                        />
+                      </div>
+                    </form>
+                  </Form>
+                </div>
+              )}
             </div>
           )}
         </div>
