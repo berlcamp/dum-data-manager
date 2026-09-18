@@ -102,6 +102,25 @@ const Filters = ({
     },
   })
 
+  // A P.O. belongs to an appropriation, so picking one narrows the P.O. list
+  // to that appropriation instead of every P.O. in the system.
+  const selectedAppropriation = form.watch('appropriation')
+
+  const filteredPurchaseOrders = purchaseOrders.filter((po) => {
+    if (!selectedAppropriation || selectedAppropriation === 'All') return true
+    return (po.appropriation?.toString() ?? '') === selectedAppropriation
+  })
+
+  // The P.O. picked earlier may not belong to the appropriation just chosen —
+  // clear it rather than leave the dropdown showing a value it no longer lists.
+  useEffect(() => {
+    const currentPo = form.getValues('purchase_order')
+    if (!currentPo) return
+    if (!filteredPurchaseOrders.some((po) => po.id.toString() === currentPo)) {
+      form.setValue('purchase_order', '')
+    }
+  }, [selectedAppropriation])
+
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     setFilterPo(data.purchase_order || 'All')
     setFilterDateFrom(data.dateFrom ? new Date(data.dateFrom) : undefined)
@@ -324,7 +343,12 @@ const Filters = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {purchaseOrders?.map((a, i) => (
+                        {filteredPurchaseOrders.length === 0 && (
+                          <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                            No P.O. for this appropriation
+                          </div>
+                        )}
+                        {filteredPurchaseOrders.map((a, i) => (
                           <SelectItem
                             key={i}
                             value={a.id.toString()}>
