@@ -969,6 +969,7 @@ export async function fetchVehicleReservations(filters: {
 export async function fetchReservationVehicles(
   filters: {
     filterKeyword?: string
+    filterCategory?: string
   },
   perPageCount: number,
   rangeFrom: number,
@@ -986,6 +987,12 @@ export async function fetchReservationVehicles(
       query = query.or(
         `name.ilike.%${filters.filterKeyword}%,plate_number.ilike.%${filters.filterKeyword}%,type.ilike.%${filters.filterKeyword}%,code.ilike.%${filters.filterKeyword}%`,
       )
+    }
+
+    // Category (`type`) — matches the stored value, so it expects the
+    // reservation unit categories migration to have been applied.
+    if (filters.filterCategory && filters.filterCategory.trim() !== '') {
+      query = query.eq('type', filters.filterCategory)
     }
 
     // Perform count before paginations

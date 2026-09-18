@@ -43,11 +43,18 @@ import { generateTimeArray } from '@/utils/text-helper'
 import { addDays, differenceInCalendarDays, format } from 'date-fns'
 import {
   AlertTriangle,
+  Boxes,
+  Building2,
   CalendarIcon,
   Car,
   CheckCircle2,
+  ChevronDown,
+  ClipboardList,
   Loader2,
   Search,
+  Speaker,
+  Tent,
+  type LucideIcon,
 } from 'lucide-react'
 import type { DateRange } from 'react-day-picker'
 import {
@@ -58,8 +65,91 @@ import {
   vehicleLabel,
   type ConflictCandidate,
 } from '@/utils/reservation-helpers'
+import {
+  reservationUnitCategories,
+  type ReservationUnitCategory,
+} from '@/constants/TrackerConstants'
+import { categoryOf, groupUnitsByCategory } from '@/utils/reservation-units'
+import type { ReactNode } from 'react'
 
 const NO_RETURN_TIME = 'none'
+
+type SectionId = 'schedule' | 'units' | 'details'
+
+const ALL_SECTIONS: SectionId[] = ['schedule', 'units', 'details']
+
+// Which section holds each field, so a validation error can open the section
+// hiding it instead of failing silently behind a collapsed header.
+const FIELD_SECTIONS: Record<string, SectionId> = {
+  date: 'schedule',
+  date_end: 'schedule',
+  time: 'schedule',
+  time_end: 'schedule',
+  vehicle_ids: 'units',
+  requester: 'details',
+  department: 'details',
+  status: 'details',
+  purpose: 'details',
+}
+
+const CATEGORY_ICONS: Record<ReservationUnitCategory, LucideIcon> = {
+  Vehicle: Car,
+  Tents: Tent,
+  Venue: Building2,
+  'Sound System': Speaker,
+}
+
+// The modal is filled in on phones out in the field, so every section folds
+// away and the collapsed header keeps showing what was chosen.
+const CollapsibleSection = ({
+  icon,
+  title,
+  badge,
+  summary,
+  open,
+  onToggle,
+  className,
+  children,
+}: {
+  icon: ReactNode
+  title: string
+  badge?: ReactNode
+  summary?: string
+  open: boolean
+  onToggle: () => void
+  className?: string
+  children: ReactNode
+}) => (
+  <section
+    className={cn(
+      'rounded-md border bg-white dark:bg-gray-700 dark:border-gray-600',
+      className,
+    )}>
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className="flex w-full items-center gap-2 p-4 text-left">
+      {icon}
+      <h6 className="text-sm font-semibold">{title}</h6>
+      {badge}
+      <div className="ml-auto flex min-w-0 items-center gap-2 pl-2">
+        {!open && summary && (
+          <span className="truncate text-xs text-muted-foreground">
+            {summary}
+          </span>
+        )}
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+            open && 'rotate-180',
+          )}
+        />
+      </div>
+    </button>
+    {open && <div className="px-4 pb-4">{children}</div>}
+  </section>
+)
 
 const FormSchema = z
   .object({
@@ -108,6 +198,13 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const [vehicles, setVehicles] = useState<ReservationVehicleTypes[]>([])
   const [vehicleSearch, setVehicleSearch] = useState('')
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+
+  // Collapsible sections: one at a time on a phone, all open on a desktop.
+  const [isMobile, setIsMobile] = useState(false)
+  const [openSections, setOpenSections] = useState<SectionId[]>(ALL_SECTIONS)
+  const [openCategories, setOpenCategories] = useState<
+    ReservationUnitCategory[]
+  >([...reservationUnitCategories])
 
   // Availability
   const [conflictMap, setConflictMap] = useState<
@@ -212,10 +309,159 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     return (
       v.name.toLowerCase().includes(kw) ||
       (v.plate_number ?? '').toLowerCase().includes(kw) ||
-      (v.type ?? '').toLowerCase().includes(kw) ||
+      categoryOf(v).toLowerCase().includes(kw) ||
       (v.code ?? '').toLowerCase().includes(kw)
     )
   })
+
+  // Units are not all vehicles — tents, venues and the sound system are booked
+  // here too, so the picker is grouped by category instead of one flat list.
+  const unitGroups = groupUnitsByCategory(filteredVehicles)
+  const searching = vehicleSearch.trim() !== ''
+
+  // A search expands every matching group, and a group holding something
+  // already selected stays open so an edit shows its own picks.
+  const isCategoryOpen = (
+    category: ReservationUnitCategory,
+    units: ReservationVehicleTypes[],
+  ) =>
+    searching ||
+    openCategories.includes(category) ||
+    units.some((unit) => selectedVehicleIds.includes(String(unit.id)))
+
+  const scheduleSummary =
+    dateFrom && dateTo
+      ? `${format(dateFrom, 'MMM d')}${
+          nights > 0 ? ` – ${format(dateTo, 'MMM d')}` : ''
+        }${timeFrom ? ` · ${timeFrom}` : ''}`
+      : 'Not set'
+
+  const unitsSummary =
+    selectedVehicleIds.length === 0
+      ? 'None selected'
+      : `${selectedVehicleIds.length} selected`
+
+  const requester = form.watch('requester')
+  const department = form.watch('department')
+  const detailsSummary =
+    requester || department
+      ? [requester, department].filter(Boolean).join(' — ')
+      : 'Not filled in'
+
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 767px)')
+
+    const apply = () => {
+      setIsMobile(query.matches)
+      setOpenSections(query.matches ? ['schedule'] : ALL_SECTIONS)
+      setOpenCategories(
+        query.matches ? [] : [...reservationUnitCategories],
+      )
+    }
+
+    apply()
+    query.addEventListener('change', apply)
+    return () => query.removeEventListener('change', apply)
+  }, [])
+
+  // Opening a section on a phone closes the others, so the form never turns
+  // into one long scroll.
+  const toggleSection = (section: SectionId) => {
+    setOpenSections((current) =>
+      current.includes(section)
+        ? current.filter((s) => s !== section)
+        : isMobile
+          ? [section]
+          : [...current, section],
+    )
+  }
+
+  const openSection = (section: SectionId) => {
+    setOpenSections((current) =>
+      current.includes(section)
+        ? current
+        : isMobile
+          ? [section]
+          : [...current, section],
+    )
+  }
+
+  const toggleCategory = (category: ReservationUnitCategory) => {
+    setOpenCategories((current) =>
+      current.includes(category)
+        ? current.filter((c) => c !== category)
+        : [...current, category],
+    )
+  }
+
+  // One unit card; pulled out so the grouped picker below stays readable.
+  const renderUnit = (vehicle: ReservationVehicleTypes) => {
+    const id = String(vehicle.id)
+    const conflicts = conflictMap[id] ?? []
+    const isBooked = conflicts.length > 0
+    const isSelected = selectedVehicleIds.includes(id)
+
+    return (
+      <label
+        key={id}
+        className={cn(
+          'flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors',
+          isSelected
+            ? 'border-primary bg-primary/5'
+            : 'hover:bg-accent/40',
+          isBooked &&
+            'border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30'
+        )}>
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={(checked) =>
+            toggleVehicle(id, checked === true)
+          }
+          className="mt-0.5"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate text-sm font-medium">
+              {vehicleLabel(vehicle)}
+            </span>
+            {isBooked ? (
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                <AlertTriangle className="h-3 w-3" />
+                Booked
+              </span>
+            ) : (
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                <CheckCircle2 className="h-3 w-3" />
+                Available
+              </span>
+            )}
+          </div>
+          <div className="mt-1 flex items-center gap-2">
+            {vehicle.code && (
+              <span className="rounded bg-gray-800 px-1.5 py-0.5 font-mono text-[10px] font-bold tracking-widest text-white">
+                {vehicle.code}
+              </span>
+            )}
+          </div>
+          {isBooked && (
+            <ul className="mt-1.5 space-y-0.5 text-xs text-red-700 dark:text-red-300">
+              {conflicts.slice(0, 2).map((c) => (
+                <li key={c.id}>
+                  {describeConflict(c)}
+                </li>
+              ))}
+              {conflicts.length > 2 && (
+                <li className="opacity-75">
+                  +{conflicts.length - 2} more booking
+                  {conflicts.length - 2 > 1 ? 's' : ''}
+                </li>
+              )}
+            </ul>
+          )}
+        </div>
+      </label>
+    )
+  }
 
   const toggleVehicle = (vehicleId: string, checked: boolean) => {
     const current = form.getValues('vehicle_ids')
@@ -223,6 +469,13 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       ? Array.from(new Set([...current, vehicleId]))
       : current.filter((id) => id !== vehicleId)
     form.setValue('vehicle_ids', next, { shouldValidate: true })
+  }
+
+  // A field that fails validation inside a collapsed section would otherwise
+  // just look like a form that refuses to submit.
+  const onInvalid = (errors: Record<string, unknown>) => {
+    const section = FIELD_SECTIONS[Object.keys(errors)[0]]
+    if (section) openSection(section)
   }
 
   const handleRangeSelect = (range: DateRange | undefined) => {
@@ -470,18 +723,23 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
 
           <div className="app__modal_body">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)}>
+              <form onSubmit={form.handleSubmit(onSubmit, onInvalid)}>
                 {/* Schedule */}
-                <section className="rounded-md border bg-white p-4 dark:bg-gray-700 dark:border-gray-600">
-                  <div className="mb-3 flex items-center gap-2">
+                <CollapsibleSection
+                  icon={
                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    <h6 className="text-sm font-semibold">Schedule</h6>
-                    {nights > 0 && (
+                  }
+                  title="Schedule"
+                  badge={
+                    nights > 0 ? (
                       <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                         {nights + 1} days
                       </span>
-                    )}
-                  </div>
+                    ) : undefined
+                  }
+                  summary={scheduleSummary}
+                  open={openSections.includes('schedule')}
+                  onToggle={() => toggleSection('schedule')}>
 
                   <div className="grid gap-4 md:grid-cols-3">
                     <FormField
@@ -654,18 +912,22 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                       </FormItem>
                     )}
                   />
-                </section>
+                </CollapsibleSection>
 
                 {/* Vehicles */}
-                <section className="mt-4 rounded-md border bg-white p-4 dark:bg-gray-700 dark:border-gray-600">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Car className="h-4 w-4 text-muted-foreground" />
-                      <h6 className="text-sm font-semibold">Vehicles</h6>
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                        {selectedVehicleIds.length} selected
-                      </span>
-                    </div>
+                <CollapsibleSection
+                  className="mt-4"
+                  icon={<Boxes className="h-4 w-4 text-muted-foreground" />}
+                  title="Units"
+                  badge={
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                      {selectedVehicleIds.length} selected
+                    </span>
+                  }
+                  summary={unitsSummary}
+                  open={openSections.includes('units')}
+                  onToggle={() => toggleSection('units')}>
+                  <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
                     <div className="flex items-center gap-3">
                       {checkingAvailability ? (
                         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -695,82 +957,54 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                     name="vehicle_ids"
                     render={() => (
                       <FormItem>
-                        <div className="grid max-h-72 gap-2 overflow-y-auto pr-1 md:grid-cols-2">
-                          {filteredVehicles.length === 0 && (
-                            <p className="col-span-full py-6 text-center text-sm text-muted-foreground">
-                              No vehicles match “{vehicleSearch}”.
+                        <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
+                          {unitGroups.length === 0 && (
+                            <p className="py-6 text-center text-sm text-muted-foreground">
+                              No units match “{vehicleSearch}”.
                             </p>
                           )}
-                          {filteredVehicles.map((vehicle) => {
-                            const id = String(vehicle.id)
-                            const conflicts = conflictMap[id] ?? []
-                            const isBooked = conflicts.length > 0
-                            const isSelected = selectedVehicleIds.includes(id)
+                          {unitGroups.map(({ category, units }) => {
+                            const Icon = CATEGORY_ICONS[category]
+                            const open = isCategoryOpen(category, units)
+                            const selectedInCategory = units.filter((unit) =>
+                              selectedVehicleIds.includes(String(unit.id)),
+                            ).length
 
                             return (
-                              <label
-                                key={id}
-                                className={cn(
-                                  'flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors',
-                                  isSelected
-                                    ? 'border-primary bg-primary/5'
-                                    : 'hover:bg-accent/40',
-                                  isBooked &&
-                                    'border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30'
-                                )}>
-                                <Checkbox
-                                  checked={isSelected}
-                                  onCheckedChange={(checked) =>
-                                    toggleVehicle(id, checked === true)
-                                  }
-                                  className="mt-0.5"
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span className="truncate text-sm font-medium">
-                                      {vehicleLabel(vehicle)}
+                              <div
+                                key={category}
+                                className="rounded-md border dark:border-gray-600">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleCategory(category)}
+                                  aria-expanded={open}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-left">
+                                  <Icon className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-sm font-medium">
+                                    {category}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {units.length} unit
+                                    {units.length > 1 ? 's' : ''}
+                                  </span>
+                                  {selectedInCategory > 0 && (
+                                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                                      {selectedInCategory} selected
                                     </span>
-                                    {isBooked ? (
-                                      <span className="flex shrink-0 items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-red-700 dark:bg-red-900/40 dark:text-red-300">
-                                        <AlertTriangle className="h-3 w-3" />
-                                        Booked
-                                      </span>
-                                    ) : (
-                                      <span className="flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-green-700 dark:bg-green-900/40 dark:text-green-300">
-                                        <CheckCircle2 className="h-3 w-3" />
-                                        Available
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="mt-1 flex items-center gap-2">
-                                    {vehicle.code && (
-                                      <span className="rounded bg-gray-800 px-1.5 py-0.5 font-mono text-[10px] font-bold tracking-widest text-white">
-                                        {vehicle.code}
-                                      </span>
-                                    )}
-                                    {vehicle.type && (
-                                      <span className="text-xs text-muted-foreground">
-                                        {vehicle.type}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {isBooked && (
-                                    <ul className="mt-1.5 space-y-0.5 text-xs text-red-700 dark:text-red-300">
-                                      {conflicts.slice(0, 2).map((c) => (
-                                        <li key={c.id}>
-                                          {describeConflict(c)}
-                                        </li>
-                                      ))}
-                                      {conflicts.length > 2 && (
-                                        <li className="opacity-75">
-                                          +{conflicts.length - 2} more booking
-                                          {conflicts.length - 2 > 1 ? 's' : ''}
-                                        </li>
-                                      )}
-                                    </ul>
                                   )}
-                                </div>
-                              </label>
+                                  <ChevronDown
+                                    className={cn(
+                                      'ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+                                      open && 'rotate-180',
+                                    )}
+                                  />
+                                </button>
+                                {open && (
+                                  <div className="grid gap-2 border-t p-2 dark:border-gray-600 md:grid-cols-2">
+                                    {units.map(renderUnit)}
+                                  </div>
+                                )}
+                              </div>
                             )
                           })}
                         </div>
@@ -793,13 +1027,18 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                       </div>
                     </div>
                   )}
-                </section>
+                </CollapsibleSection>
 
                 {/* Request details */}
-                <section className="mt-4 rounded-md border bg-white p-4 dark:bg-gray-700 dark:border-gray-600">
-                  <h6 className="mb-3 text-sm font-semibold">
-                    Request Details
-                  </h6>
+                <CollapsibleSection
+                  className="mt-4"
+                  icon={
+                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                  }
+                  title="Request Details"
+                  summary={detailsSummary}
+                  open={openSections.includes('details')}
+                  onToggle={() => toggleSection('details')}>
                   <div className="grid gap-4 md:grid-cols-2">
                     <FormField
                       control={form.control}
@@ -887,7 +1126,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                       )}
                     />
                   </div>
-                </section>
+                </CollapsibleSection>
 
                 <hr className="my-4" />
                 <div className="app__modal_footer">

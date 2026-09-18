@@ -28,26 +28,20 @@ import { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
 import { Input } from '@/components/ui/input'
+import {
+  reservationUnitCategories,
+  type ReservationUnitCategory,
+} from '@/constants/TrackerConstants'
 import type { ReservationVehicleTypes } from '@/types'
-
-const VEHICLE_UNIT_TYPES = [
-  'Vehicle',
-  'Tent',
-  'DOA BIG HALL',
-  'DOA SMALL HALL',
-  'GYM',
-  'SR CIT MULTIPURPOSE BUILDING',
-  'MMO CONFERENCE ROOM',
-  'SB SESSION HALL',
-] as const
+import { categoryOf } from '@/utils/reservation-units'
 
 const FormSchema = z
   .object({
     name: z.string().min(1, {
       message: 'Unit Name is required.',
     }),
-    type: z.enum(VEHICLE_UNIT_TYPES, {
-      required_error: 'Type is required.',
+    type: z.enum(reservationUnitCategories, {
+      required_error: 'Category is required.',
     }),
     plate_number: z.string().optional(),
   })
@@ -83,7 +77,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     resolver: zodResolver(FormSchema),
     defaultValues: {
       name: editData ? editData.name : '',
-      type: (editData?.type as (typeof VEHICLE_UNIT_TYPES)[number]) || 'Vehicle',
+      type: editData ? categoryOf(editData) : ('Vehicle' as ReservationUnitCategory),
       plate_number: editData?.plate_number ?? '',
     },
   })
@@ -253,7 +247,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="app__form_label">
-                            Type
+                            Category
                           </FormLabel>
                           <Select
                             onValueChange={field.onChange}
@@ -261,13 +255,13 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select type" />
+                                <SelectValue placeholder="Select category" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {VEHICLE_UNIT_TYPES.map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  {type}
+                              {reservationUnitCategories.map((category) => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
                                 </SelectItem>
                               ))}
                             </SelectContent>

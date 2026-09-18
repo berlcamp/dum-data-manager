@@ -288,3 +288,15 @@ export const trucks = [
   'Trailer / Prime Mover',
   'Heavy Equipment',
 ]
+
+// Reservation units are not all vehicles — tents, venues and the sound system
+// are booked through the same module. These are the values stored in
+// `ddm_reservation_vehicles.type`.
+export const reservationUnitCategories = [
+  'Vehicle',
+  'Tents',
+  'Venue',
+  'Sound System',
+] as const
+
+export type ReservationUnitCategory = (typeof reservationUnitCategories)[number]

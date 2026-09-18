@@ -11,6 +11,7 @@ import {
   Unauthorized,
 } from '@/components/index'
 import { fetchReservationVehicles } from '@/utils/fetchApi'
+import { categoryOf } from '@/utils/reservation-units'
 import React, { useEffect, useState } from 'react'
 
 import Filters from './Filters'
@@ -38,6 +39,7 @@ const Page: React.FC = () => {
 
   // Filters
   const [filterKeyword, setFilterKeyword] = useState('')
+  const [filterCategory, setFilterCategory] = useState('')
 
   // List
   const [list, setList] = useState<ReservationVehicleTypes[]>([])
@@ -59,6 +61,7 @@ const Page: React.FC = () => {
       const result = await fetchReservationVehicles(
         {
           filterKeyword,
+          filterCategory,
         },
         perPageCount,
         0
@@ -84,6 +87,7 @@ const Page: React.FC = () => {
       const result = await fetchReservationVehicles(
         {
           filterKeyword,
+          filterCategory,
         },
         perPageCount,
         list.length
@@ -121,7 +125,7 @@ const Page: React.FC = () => {
   useEffect(() => {
     setList([])
     void fetchData()
-  }, [filterKeyword, perPageCount])
+  }, [filterKeyword, filterCategory, perPageCount])
 
   const isDataEmpty = !Array.isArray(list) || list.length < 1 || !list
   const email: string = session.user.email
@@ -150,7 +154,10 @@ const Page: React.FC = () => {
 
           {/* Filters */}
           <div className="app__filters">
-            <Filters setFilterKeyword={setFilterKeyword} />
+            <Filters
+              setFilterKeyword={setFilterKeyword}
+              setFilterCategory={setFilterCategory}
+            />
           </div>
 
           {/* Per Page */}
@@ -183,9 +190,9 @@ const Page: React.FC = () => {
                         <UnitCode code={item.code} />
                       </td>
                       <td className="app__td">{item.name}</td>
-                      <td className="app__td">{item.type ?? '-'}</td>
+                      <td className="app__td">{categoryOf(item)}</td>
                       <td className="app__td">
-                        {item.type === 'Vehicle'
+                        {categoryOf(item) === 'Vehicle'
                           ? item.plate_number ?? '-'
                           : '-'}
                       </td>
