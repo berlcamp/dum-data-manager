@@ -11,7 +11,7 @@ import type { AccountTypes, RisDepartmentTypes } from '@/types'
 import { updateList } from '@/GlobalRedux/Features/listSlice'
 import { updateResultCounter } from '@/GlobalRedux/Features/resultsCounterSlice'
 import { departments } from '@/constants/TrackerConstants'
-import { createClient } from '@supabase/supabase-js'
+import { useSupabase } from '@/context/SupabaseProvider'
 import { useDispatch, useSelector } from 'react-redux'
 
 interface ModalProps {
@@ -25,15 +25,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
   const [errorMessage, setErrorMessage] = useState('')
   const [risDepartments, setRisDepartments] = useState<RisDepartmentTypes[]>([])
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-  const serviceRoleKey = process.env.NEXT_PUBLIC_SERVICE_ROLE_KEY ?? ''
-
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  })
+  const { supabase } = useSupabase()
 
   // Redux staff
   const globallist = useSelector((state: any) => state.list.value)
@@ -75,55 +67,46 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
         org_id: process.env.NEXT_PUBLIC_ORG_ID,
       }
 
-      // Sign up the user on the server side to fix pkce issue https://github.com/supabase/auth-helpers/issues/569
-      axios
-        .post('/api/signup', {
-          item: newData,
-        })
-        .then(async function (response) {
-          if (response.data.error_message === '') {
-            const { error: error2 } = await supabase
-              .from('ddm_users')
-              .insert({ ...newData, id: response.data.insert_id })
+      // The auth user and the ddm_users row are both created on the server:
+      // that needs the service role, which must not reach the browser.
+      const { data } = await axios.post('/api/accounts', { item: newData })
 
-            if (error2) throw new Error(error2.message)
+      if (data.error_message !== '') {
+        setErrorMessage(data.error_message)
+        setSaving(false)
+        return
+      }
 
-            // Append new data in redux
-            const updatedData = {
-              ...newData,
-              id: response.data.insert_id,
-            }
-            dispatch(updateList([updatedData, ...globallist]))
+      // Append new data in redux
+      const updatedData = {
+        ...newData,
+        id: data.insert_id,
+      }
+      dispatch(updateList([updatedData, ...globallist]))
 
-            // pop up the success message
-            setToast('success', 'Successfully saved.')
+      // pop up the success message
+      setToast('success', 'Successfully saved.')
 
-            // Updating showing text in redux
-            dispatch(
-              updateResultCounter({
-                showing: Number(resultsCounter.showing) + 1,
-                results: Number(resultsCounter.results) + 1,
-              }),
-            )
+      // Updating showing text in redux
+      dispatch(
+        updateResultCounter({
+          showing: Number(resultsCounter.showing) + 1,
+          results: Number(resultsCounter.results) + 1,
+        }),
+      )
 
-            setSaving(false)
+      setSaving(false)
 
-            // hide the modal
-            hideModal()
-            setErrorMessage('')
+      // hide the modal
+      hideModal()
+      setErrorMessage('')
 
-            // reset all form fields
-            reset()
-          } else {
-            setErrorMessage(response.data.error_message)
-            setSaving(false)
-          }
-        })
-        .catch(function (error) {
-          console.error(error)
-        })
+      // reset all form fields
+      reset()
     } catch (e) {
       console.error(e)
+      setErrorMessage('Something went wrong. Please try again.')
+      setSaving(false)
     }
   }
 
@@ -141,20 +124,18 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
     }
 
     try {
-      const { error } = await supabase
-        .from('ddm_users')
-        .update(newData)
-        .eq('id', editData.id)
+      // Changing another user's password is an admin call, so the update runs
+      // on the server too.
+      const { data } = await axios.patch('/api/accounts', {
+        id: editData.id,
+        item: newData,
+        password: formdata.password,
+      })
 
-      if (error) throw new Error(error.message)
-
-      if (formdata.password !== '') {
-        // update password on supabase
-        const { error: error2 } = await supabase.auth.admin.updateUserById(
-          editData.id,
-          { password: formdata.password },
-        )
-        if (error2) throw new Error(error2.message)
+      if (data.error_message !== '') {
+        setToast('error', data.error_message)
+        setSaving(false)
+        return
       }
 
       // Update data in redux
@@ -180,6 +161,7 @@ const AddEditModal = ({ hideModal, editData }: ModalProps) => {
     } catch (e) {
       setToast('error', 'Error occured.')
       console.error(e)
+      setSaving(false)
     }
   }
 
