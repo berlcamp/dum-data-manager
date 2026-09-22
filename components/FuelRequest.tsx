@@ -394,59 +394,61 @@ export default function FuelRequest() {
           )}
           {selectedItem && (
             <div className="w-4/5 md:w-1/2 p-4 border flex flex-col space-y-4 bg-white">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <div className="text-sm font-medium text-gray-600">
-                    Request Code:{' '}
-                  </div>
-                  <div className="text-base text-gray-700 font-bold">
-                    {code}
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="text-sm font-medium text-gray-600">
-                    Department:{' '}
-                  </div>
-                  <div className="text-base text-gray-700 font-bold">
-                    {selectedItem.department.name}
-                  </div>
-                </div>
-                {selectedItem.purchase_order?.po_number && (
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-4">
                   <div className="flex items-center space-x-2">
                     <div className="text-sm font-medium text-gray-600">
-                      P.O.:{' '}
+                      Request Code:{' '}
                     </div>
                     <div className="text-base text-gray-700 font-bold">
-                      {selectedItem.purchase_order.po_number}
+                      {code}
                     </div>
                   </div>
-                )}
-                {balance && (
                   <div className="flex items-center space-x-2">
                     <div className="text-sm font-medium text-gray-600">
-                      {balance.label}:{' '}
+                      Department:{' '}
                     </div>
-                    <div
-                      className={`text-base font-bold ${
-                        balance.depleted ? 'text-red-600' : 'text-emerald-700'
-                      }`}>
-                      {balance.value}
+                    <div className="text-base text-gray-700 font-bold">
+                      {selectedItem.department.name}
                     </div>
                   </div>
-                )}
+                  {selectedItem.purchase_order?.po_number && (
+                    <div className="flex items-center space-x-2">
+                      <div className="text-sm font-medium text-gray-600">
+                        P.O.:{' '}
+                      </div>
+                      <div className="text-base text-gray-700 font-bold">
+                        {selectedItem.purchase_order.po_number}
+                      </div>
+                    </div>
+                  )}
+                  {balance && (
+                    <div className="flex items-center space-x-2">
+                      <div className="text-sm font-medium text-gray-600">
+                        {balance.label}:{' '}
+                      </div>
+                      <div
+                        className={`text-base font-bold ${
+                          balance.depleted ? 'text-red-600' : 'text-emerald-700'
+                        }`}>
+                        {balance.value}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <CustomButton
+                  btnType="button"
+                  title={
+                    downloadingHistory
+                      ? 'Preparing PDF...'
+                      : 'Download Transaction History (PDF)'
+                  }
+                  isDisabled={downloadingHistory}
+                  handleClick={handleDownloadHistory}
+                  containerStyles="app__btn_blue ml-auto w-auto shrink-0 inline-flex items-center gap-2 whitespace-nowrap"
+                  rightIcon={<Download className="h-4 w-4" />}
+                />
               </div>
-              <CustomButton
-                btnType="button"
-                title={
-                  downloadingHistory
-                    ? 'Preparing PDF...'
-                    : 'Download Transaction History (PDF)'
-                }
-                isDisabled={downloadingHistory}
-                handleClick={handleDownloadHistory}
-                containerStyles="app__btn_blue flex items-center justify-center gap-2"
-                rightIcon={<Download className="h-4 w-4" />}
-              />
               {balance?.depleted ? (
                 <div className="w-full border border-red-200 bg-red-50 p-4 space-y-3">
                   <div className="text-red-700 font-bold">
