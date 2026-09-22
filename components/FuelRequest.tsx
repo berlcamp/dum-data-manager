@@ -55,7 +55,7 @@ import {
 import pdfMake from 'pdfmake/build/pdfmake'
 import pdfFonts from 'pdfmake/build/vfs_fonts'
 import { KeyboardEvent, useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type FieldErrors } from 'react-hook-form'
 
 pdfMake.vfs = (pdfFonts as any).pdfMake?.vfs || (pdfFonts as any).vfs
 
@@ -115,6 +115,7 @@ export default function FuelRequest() {
   // Computed server-side — the portal is anonymous and cannot read ddm_ris.
   const [balance, setBalance] = useState<PortalBalance | null>(null)
   const [downloadingHistory, setDownloadingHistory] = useState(false)
+  const [formError, setFormError] = useState('')
 
   const { supabase } = useSupabase()
 
@@ -132,8 +133,24 @@ export default function FuelRequest() {
     },
   })
 
+  // Validation failed — say so next to the button that was just clicked,
+  // naming the fields, since the per-field messages are further up the form.
+  const onInvalid = (errors: FieldErrors<z.infer<typeof FormSchema>>) => {
+    const messages = Object.values(errors)
+      .map((error) => error?.message)
+      .filter(Boolean)
+
+    setFormError(
+      messages.length > 0
+        ? (messages as string[]).join(' ')
+        : 'Please complete all the required fields.'
+    )
+  }
+
   const onSubmit = async (formdata: z.infer<typeof FormSchema>) => {
     if (!selectedItem) return
+
+    setFormError('')
 
     try {
       // The balance is re-checked on the server before the R.I.S. is created —
@@ -338,6 +355,7 @@ export default function FuelRequest() {
 
   const handleCancel = async () => {
     setErrorMessage('')
+    setFormError('')
     setCode('')
     setSelectedItem(null)
     setBalance(null)
@@ -479,7 +497,7 @@ export default function FuelRequest() {
                 <div className="w-full">
                   <Form {...form}>
                     <form
-                      onSubmit={form.handleSubmit(onSubmit)}
+                      onSubmit={form.handleSubmit(onSubmit, onInvalid)}
                       className="space-y-4">
                       <div className="space-y-4">
                         <FormField
@@ -744,6 +762,14 @@ export default function FuelRequest() {
                           )}
                         />
                       </div>
+
+                      {/* The per-field messages sit mid-form, so a blocked
+                          submit also reports itself next to the button. */}
+                      {formError !== '' && (
+                        <div className="border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+                          {formError}
+                        </div>
+                      )}
 
                       <div className="app__modal_footer">
                         <CustomButton
