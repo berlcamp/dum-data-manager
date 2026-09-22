@@ -88,6 +88,58 @@ export const lookupFuelCode = async (supabase: any, code: string) => {
   return { error_message: '', item: data[0] }
 }
 
+export interface PortalHistoryItem {
+  id: number
+  date_requested: string
+  requester: string
+  destination: string
+  vehicle: string
+  type: string
+  quantity: number
+  price: number
+  amount: number
+  status: string
+}
+
+// The portal's "transaction history" is every fuel request submitted against
+// this code's P.O. + department — the anonymous portal has no per-visitor
+// identity beyond the code itself, and a code is shared by everyone at that
+// department. Runs server-side for the same reason as the balance: RLS hides
+// ddm_ris from the anon key.
+export const getPortalHistory = async (
+  supabase: any,
+  item: any,
+): Promise<PortalHistoryItem[]> => {
+  const { data, error } = await supabase
+    .from('ddm_ris')
+    .select(
+      'id,date_requested,requester,destination,type,quantity,price,total_amount,status,vehicle:vehicle_id(name,plate_number)',
+    )
+    .eq('po_id', item.po_id)
+    .eq('department_id', item.department_id)
+    .eq('is_deleted', false)
+    .order('date_requested', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(500)
+
+  if (error || !data) return []
+
+  return data.map((r: any) => ({
+    id: r.id,
+    date_requested: r.date_requested,
+    requester: r.requester,
+    destination: r.destination,
+    vehicle: [r.vehicle?.name, r.vehicle?.plate_number]
+      .filter(Boolean)
+      .join(' - '),
+    type: r.type,
+    quantity: Number(r.quantity ?? 0),
+    price: Number(r.price ?? 0),
+    amount: getRisAmount(r),
+    status: r.status,
+  }))
+}
+
 // Only the fields the portal actually renders — the R.I.S. rows behind the
 // balance never reach the browser.
 export const toPortalItem = (item: any) => {

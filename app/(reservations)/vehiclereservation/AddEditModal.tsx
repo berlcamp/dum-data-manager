@@ -65,10 +65,7 @@ import {
   vehicleLabel,
   type ConflictCandidate,
 } from '@/utils/reservation-helpers'
-import {
-  reservationUnitCategories,
-  type ReservationUnitCategory,
-} from '@/constants/TrackerConstants'
+import { type ReservationUnitCategory } from '@/constants/TrackerConstants'
 import { categoryOf, groupUnitsByCategory } from '@/utils/reservation-units'
 import type { ReactNode } from 'react'
 
@@ -202,9 +199,11 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   // Collapsible sections: one at a time on a phone, all open on a desktop.
   const [isMobile, setIsMobile] = useState(false)
   const [openSections, setOpenSections] = useState<SectionId[]>(ALL_SECTIONS)
+  // Closed by default — `isCategoryOpen` still expands a category on search or
+  // when it holds an already-selected unit (e.g. editing an existing booking).
   const [openCategories, setOpenCategories] = useState<
     ReservationUnitCategory[]
-  >([...reservationUnitCategories])
+  >([])
 
   // Availability
   const [conflictMap, setConflictMap] = useState<
@@ -354,9 +353,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     const apply = () => {
       setIsMobile(query.matches)
       setOpenSections(query.matches ? ['schedule'] : ALL_SECTIONS)
-      setOpenCategories(
-        query.matches ? [] : [...reservationUnitCategories],
-      )
+      setOpenCategories([])
     }
 
     apply()

@@ -45,9 +45,19 @@ import { RisDepartmentCodeTypes, RisVehicleTypes } from '@/types'
 import type { PortalBalance } from '@/utils/portal-fuel'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
-import { CalendarIcon, Check, ChevronsUpDown, Droplet } from 'lucide-react'
+import {
+  CalendarIcon,
+  Check,
+  ChevronsUpDown,
+  Download,
+  Droplet,
+} from 'lucide-react'
+import pdfMake from 'pdfmake/build/pdfmake'
+import pdfFonts from 'pdfmake/build/vfs_fonts'
 import { KeyboardEvent, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+
+pdfMake.vfs = (pdfFonts as any).pdfMake?.vfs || (pdfFonts as any).vfs
 
 const FormSchema = z.object({
   requester: z.string().min(1, {
@@ -95,6 +105,7 @@ export default function FuelRequest() {
     useState<RisDepartmentCodeTypes | null>(null)
   // Computed server-side — the portal is anonymous and cannot read ddm_ris.
   const [balance, setBalance] = useState<PortalBalance | null>(null)
+  const [downloadingHistory, setDownloadingHistory] = useState(false)
 
   const { supabase } = useSupabase()
 
@@ -175,6 +186,144 @@ export default function FuelRequest() {
       setSelectedItem(null)
       setBalance(null)
       setErrorMessage(result.error_message || 'This code does not exist')
+    }
+  }
+
+  const handleDownloadHistory = async () => {
+    if (!code || downloadingHistory) return
+
+    setDownloadingHistory(true)
+    try {
+      const res = await fetch('/api/fuelhistory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+        cache: 'no-store',
+      })
+      const result = await res.json()
+
+      if (result.error_message) {
+        setErrorMessage(result.error_message)
+        return
+      }
+
+      const items: {
+        date_requested: string
+        requester: string
+        destination: string
+        vehicle: string
+        type: string
+        quantity: number
+        price: number
+        amount: number
+        status: string
+      }[] = result.items ?? []
+
+      const tableBody: any[] = [
+        [
+          { text: 'Date', style: 'tableHeader' },
+          { text: 'Requester', style: 'tableHeader' },
+          { text: 'Vehicle', style: 'tableHeader' },
+          { text: 'Destination', style: 'tableHeader' },
+          { text: 'Type', style: 'tableHeader' },
+          { text: 'Qty (L)', style: 'tableHeader' },
+          { text: 'Price', style: 'tableHeader' },
+          { text: 'Amount', style: 'tableHeader' },
+          { text: 'Status', style: 'tableHeader' },
+        ],
+      ]
+
+      for (const item of items) {
+        tableBody.push([
+          item.date_requested
+            ? format(new Date(item.date_requested), 'MM/dd/yyyy')
+            : '',
+          item.requester || '',
+          item.vehicle || '',
+          item.destination || '',
+          item.type || '',
+          Number(item.quantity ?? 0).toFixed(2),
+          Number(item.price ?? 0).toFixed(4),
+          Number(item.amount ?? 0).toFixed(4),
+          item.status || '',
+        ])
+      }
+
+      const docDefinition: any = {
+        pageOrientation: 'landscape',
+        pageSize: 'A4',
+        content: [
+          { text: 'FUEL REQUEST TRANSACTION HISTORY', style: 'header' },
+          {
+            text: `Code: ${code}${
+              selectedItem?.department?.name
+                ? `   •   Department: ${selectedItem.department.name}`
+                : ''
+            }${
+              selectedItem?.purchase_order?.po_number
+                ? `   •   P.O.: ${selectedItem.purchase_order.po_number}`
+                : ''
+            }`,
+            style: 'subHeader',
+          },
+          items.length === 0
+            ? {
+                text: 'No fuel requests have been submitted using this code yet.',
+                margin: [0, 10, 0, 0],
+              }
+            : {
+                table: {
+                  headerRows: 1,
+                  widths: [
+                    'auto',
+                    '*',
+                    '*',
+                    '*',
+                    'auto',
+                    'auto',
+                    'auto',
+                    'auto',
+                    'auto',
+                  ],
+                  body: tableBody,
+                },
+                layout: {
+                  hLineWidth: () => 0.5,
+                  vLineWidth: () => 0.5,
+                  hLineColor: () => '#000000',
+                  vLineColor: () => '#000000',
+                },
+              },
+        ],
+        styles: {
+          header: {
+            fontSize: 14,
+            bold: true,
+            alignment: 'center',
+            margin: [0, 0, 0, 5],
+          },
+          subHeader: {
+            fontSize: 9,
+            alignment: 'center',
+            margin: [0, 0, 0, 10],
+          },
+          tableHeader: {
+            bold: true,
+            alignment: 'center',
+          },
+        },
+        defaultStyle: {
+          fontSize: 8,
+          alignment: 'center',
+        },
+      }
+
+      pdfMake.createPdf(docDefinition).download(`FuelRequestHistory_${code}.pdf`)
+    } catch (error) {
+      console.error('error', error)
+      setErrorMessage('Something went wrong. Please try again.')
+    } finally {
+      setDownloadingHistory(false)
     }
   }
 
@@ -286,6 +435,18 @@ export default function FuelRequest() {
                   </div>
                 )}
               </div>
+              <CustomButton
+                btnType="button"
+                title={
+                  downloadingHistory
+                    ? 'Preparing PDF...'
+                    : 'Download Transaction History (PDF)'
+                }
+                isDisabled={downloadingHistory}
+                handleClick={handleDownloadHistory}
+                containerStyles="app__btn_blue flex items-center justify-center gap-2"
+                rightIcon={<Download className="h-4 w-4" />}
+              />
               {balance?.depleted ? (
                 <div className="w-full border border-red-200 bg-red-50 p-4 space-y-3">
                   <div className="text-red-700 font-bold">
