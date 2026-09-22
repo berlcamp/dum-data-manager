@@ -43,6 +43,7 @@ import { Input } from '@/components/ui/input'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { RisDepartmentCodeTypes, RisVehicleTypes } from '@/types'
 import type { PortalBalance } from '@/utils/portal-fuel'
+import { startingBalanceSchema } from '@/utils/ris-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
 import {
@@ -80,23 +81,7 @@ const FormSchema = z.object({
     .gte(1, {
       message: 'Quantity (L) is required...',
     }),
-  starting_balance: z.preprocess(
-    // A blank field coerces to 0 on its own, which reads as a real gauge
-    // reading and lets the request through — keep it undefined so the
-    // required check below fires instead.
-    (value) =>
-      value === '' || value === null || typeof value === 'undefined'
-        ? undefined
-        : Number(value),
-    z
-      .number({
-        required_error: 'Starting Balance (L) is required.',
-        invalid_type_error: 'Starting Balance must be a number.',
-      })
-      .gte(0, {
-        message: 'Starting Balance must be greater than or equal to 0.',
-      })
-  ),
+  starting_balance: startingBalanceSchema(true),
   purpose: z.string().min(1, {
     message: 'Purpose is required.',
   }),
