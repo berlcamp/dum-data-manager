@@ -26,7 +26,15 @@ export async function POST(req: NextRequest) {
   const payload: FuelRequestPayload = await req.json()
 
   const quantity = Number(payload.quantity)
-  const startingBalance = Number(payload.starting_balance)
+  // Number('') and Number(null) are both 0, which would let a blank starting
+  // balance through as a real gauge reading — treat those as missing so the
+  // check below rejects them.
+  const startingBalance =
+    payload.starting_balance === null ||
+    typeof payload.starting_balance === 'undefined' ||
+    `${payload.starting_balance}`.trim() === ''
+      ? NaN
+      : Number(payload.starting_balance)
 
   if (
     !payload.code ||

@@ -110,21 +110,20 @@ const FormSchema = z.object({
       message: 'Quantity (L) is required...',
     }),
   starting_balance: z.preprocess(
-    // A blank field coerces to 0 on its own, which reads as a real gauge
-    // reading and lets the R.I.S. through — keep it undefined so the
-    // required check below fires instead.
+    // A blank field coerces to 0 on its own, which would save as a real gauge
+    // reading — keep it undefined so NewRisFormSchema below can require it.
     (value) =>
       value === '' || value === null || typeof value === 'undefined'
         ? undefined
         : Number(value),
     z
       .number({
-        required_error: 'Starting Balance (L) is required.',
         invalid_type_error: 'Starting Balance must be a number.',
       })
       .gte(0, {
         message: 'Starting Balance must be greater than or equal to 0.',
       })
+      .optional()
   ),
   price: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
     .number()
@@ -135,6 +134,20 @@ const FormSchema = z.object({
   date_requested: z.date({
     required_error: 'Date is required.',
   }),
+})
+
+// Starting Balance is only required on new R.I.S. — older records were saved
+// before the field was enforced, and an edit should not force one in just to
+// change a status or a purpose. Same output type as FormSchema, so both share
+// one resolver type.
+const NewRisFormSchema = FormSchema.superRefine((data, ctx) => {
+  if (typeof data.starting_balance === 'undefined') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['starting_balance'],
+      message: 'Starting Balance (L) is required.',
+    })
+  }
 })
 
 interface ModalProps {
@@ -182,7 +195,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const dispatch = useDispatch()
 
   const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(FormSchema),
+    resolver: zodResolver(editData ? FormSchema : NewRisFormSchema),
     defaultValues: {
       requester: editData ? editData.requester : '',
       destination: editData ? editData.destination : '',
