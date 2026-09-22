@@ -80,14 +80,23 @@ const FormSchema = z.object({
     .gte(1, {
       message: 'Quantity (L) is required...',
     }),
-  starting_balance: z.coerce
-    .number({
-      required_error: 'Starting Balance (L) is required.',
-      invalid_type_error: 'Starting Balance must be a number.',
-    })
-    .gte(0, {
-      message: 'Starting Balance must be greater than or equal to 0.',
-    }),
+  starting_balance: z.preprocess(
+    // A blank field coerces to 0 on its own, which reads as a real gauge
+    // reading and lets the request through — keep it undefined so the
+    // required check below fires instead.
+    (value) =>
+      value === '' || value === null || typeof value === 'undefined'
+        ? undefined
+        : Number(value),
+    z
+      .number({
+        required_error: 'Starting Balance (L) is required.',
+        invalid_type_error: 'Starting Balance must be a number.',
+      })
+      .gte(0, {
+        message: 'Starting Balance must be greater than or equal to 0.',
+      })
+  ),
   purpose: z.string().min(1, {
     message: 'Purpose is required.',
   }),
@@ -117,7 +126,7 @@ export default function FuelRequest() {
       vehicle_id: '',
       type: '',
       quantity: 0,
-      starting_balance: 0,
+      starting_balance: undefined,
       purpose: '',
       date_requested: new Date(),
     },
@@ -686,6 +695,7 @@ export default function FuelRequest() {
                                     step="any"
                                     placeholder="0.00"
                                     {...field}
+                                    value={field.value ?? ''}
                                   />
                                   <Droplet className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                                 </div>

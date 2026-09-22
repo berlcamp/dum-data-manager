@@ -109,14 +109,23 @@ const FormSchema = z.object({
     .gte(1, {
       message: 'Quantity (L) is required...',
     }),
-  starting_balance: z.coerce
-    .number({
-      required_error: 'Starting Balance (L) is required.',
-      invalid_type_error: 'Starting Balance must be a number.',
-    })
-    .gte(0, {
-      message: 'Starting Balance must be greater than or equal to 0.',
-    }),
+  starting_balance: z.preprocess(
+    // A blank field coerces to 0 on its own, which reads as a real gauge
+    // reading and lets the R.I.S. through — keep it undefined so the
+    // required check below fires instead.
+    (value) =>
+      value === '' || value === null || typeof value === 'undefined'
+        ? undefined
+        : Number(value),
+    z
+      .number({
+        required_error: 'Starting Balance (L) is required.',
+        invalid_type_error: 'Starting Balance must be a number.',
+      })
+      .gte(0, {
+        message: 'Starting Balance must be greater than or equal to 0.',
+      })
+  ),
   price: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
     .number()
     .optional(),
@@ -184,7 +193,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       po_id: editData ? editData.po_id || '' : '',
       ca_id: editData ? editData.ca_id || '' : '',
       quantity: editData ? editData.quantity : 0,
-      starting_balance: editData ? editData.starting_balance : 0,
+      starting_balance: editData?.starting_balance ?? undefined,
       price: editData ? editData.price || 0 : 0,
       purpose: editData ? editData.purpose : '',
       date_requested: editData ? new Date(editData.date_requested) : new Date(),
@@ -1461,6 +1470,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               step="any"
                               placeholder="0.00"
                               {...field}
+                              value={field.value ?? ''}
                             />
                             <Droplet className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                           </div>
