@@ -254,8 +254,8 @@ export default function FuelRequest() {
           item.destination || '',
           item.type || '',
           Number(item.quantity ?? 0).toFixed(2),
-          Number(item.price ?? 0).toFixed(4),
-          Number(item.amount ?? 0).toFixed(4),
+          Number(item.price ?? 0).toFixed(2),
+          Number(item.amount ?? 0).toFixed(2),
           item.status || '',
         ])
       }

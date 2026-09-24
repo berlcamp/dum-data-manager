@@ -120,7 +120,7 @@ const Page: React.FC = () => {
   const formatAmount = (n: number) =>
     Number(n).toLocaleString('en-US', {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 4,
+      maximumFractionDigits: 2,
     })
 
   const countRemainingAmount = (item: RisCaTypes) => {

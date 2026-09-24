@@ -66,7 +66,7 @@ A module page typically follows the pattern: `page.tsx` (server) renders `<Main 
 
 - shadcn/ui generator config in `components.json` (style `new-york`, slate base, `@/components` alias, utils at `@/lib/utils`). Primitives go in `components/ui/`.
 - Shared app components are barrel-exported via `components/index.ts` — import as `import { Sidebar, TopBar, ... } from '@/components/index'`. Module sidebars live in `components/Sidebars/`.
-- Money formatting in RIS uses up to **4 decimal places** (`maximumFractionDigits: 4`) — preserve this when touching RIS lists, exports, prints, and PDFs.
+- Money formatting in RIS uses up to **2 decimal places** (`RIS_DECIMALS` in `utils/ris-helper.ts`) — preserve this when touching RIS lists, exports, prints, and PDFs.
 - Exports use `exceljs` + `file-saver`; printing uses `pdfmake` (vfs init pattern: `pdfMake.vfs = pdfFonts.pdfMake?.vfs || pdfFonts.vfs`).
 - Path alias: `@/*` → repo root (configured in `tsconfig.json`).
 

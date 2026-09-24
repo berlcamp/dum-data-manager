@@ -13,7 +13,7 @@ import {
   Unauthorized,
 } from '@/components/index'
 import { fetchRis } from '@/utils/fetchApi'
-import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
+import { formatRisAmount, getRisAmount, toRisFixed } from '@/utils/ris-helper'
 import Excel from 'exceljs'
 import { saveAs } from 'file-saver'
 import React, { useEffect, useState } from 'react'
@@ -330,8 +330,8 @@ const Page: React.FC = () => {
         purpose: `${item.purpose}`,
         destination: `${item.destination || ''}`,
         type: `${item.type}`,
-        starting_balance: `${item.starting_balance}`,
-        quantity: `${item.quantity}`,
+        starting_balance: toRisFixed(item.starting_balance),
+        quantity: toRisFixed(item.quantity),
         price: formatRisAmount(Number(item.price ?? 0)),
         total_amount: formatRisAmount(amount),
         po: `${item.purchase_order?.po_number || ''}`,
@@ -484,14 +484,14 @@ const Page: React.FC = () => {
           format(new Date(item.date_requested), 'MM/dd/yyyy'),
           item.purpose,
           item.destination || '',
-          item.starting_balance,
-          gasoline || '',
-          diesel || '',
-          oil || '',
-          item.quantity, // Consume
-          item.starting_balance, // Finished Balance
-          Number(item.price ?? 0).toFixed(4), // Price/L
-          amount.toFixed(4), // Amount
+          toRisFixed(item.starting_balance),
+          gasoline ? toRisFixed(gasoline) : '',
+          diesel ? toRisFixed(diesel) : '',
+          oil ? toRisFixed(oil) : '',
+          toRisFixed(item.quantity), // Consume
+          toRisFixed(item.starting_balance), // Finished Balance
+          toRisFixed(item.price ?? 0), // Price/L
+          toRisFixed(amount), // Amount
         ])
       }
 
@@ -504,13 +504,13 @@ const Page: React.FC = () => {
         {},
         {},
         {},
-        { text: totalGasoline.toFixed(4), bold: true },
-        { text: totalDiesel.toFixed(4), bold: true },
-        { text: totalOil.toFixed(4), bold: true },
+        { text: toRisFixed(totalGasoline), bold: true },
+        { text: toRisFixed(totalDiesel), bold: true },
+        { text: toRisFixed(totalOil), bold: true },
         {},
         '', // Finished Balance
         '', // Price/L
-        { text: totalAmount.toFixed(4), bold: true },
+        { text: toRisFixed(totalAmount), bold: true },
       ])
 
       // Signatories from PO department (ddm_ris_departments.issued_by, issued_by_designation)
@@ -745,14 +745,14 @@ const Page: React.FC = () => {
         `${item.vehicle?.name || ''} - ${item.vehicle?.plate_number || ''}`,
         item.purpose,
         item.destination || '',
-        item.starting_balance,
-        gasoline || '',
-        diesel || '',
-        oil || '',
-        item.quantity,
-        item.starting_balance, // ⚠️ you can compute ending balance if needed
-        Number(item.price ?? 0).toFixed(4),
-        amount.toFixed(4),
+        toRisFixed(item.starting_balance),
+        gasoline ? toRisFixed(gasoline) : '',
+        diesel ? toRisFixed(diesel) : '',
+        oil ? toRisFixed(oil) : '',
+        toRisFixed(item.quantity),
+        toRisFixed(item.starting_balance), // ⚠️ you can compute ending balance if needed
+        toRisFixed(item.price ?? 0),
+        toRisFixed(amount),
       ])
     }
 
@@ -763,13 +763,13 @@ const Page: React.FC = () => {
       {},
       {},
       {},
-      { text: totalGasoline.toFixed(4), bold: true },
-      { text: totalDiesel.toFixed(4), bold: true },
-      { text: totalOil.toFixed(4), bold: true },
+      { text: toRisFixed(totalGasoline), bold: true },
+      { text: toRisFixed(totalDiesel), bold: true },
+      { text: toRisFixed(totalOil), bold: true },
       {},
       {}, // finished balance not totaled
       {}, // price not totaled
-      { text: totalAmount.toFixed(4), bold: true },
+      { text: toRisFixed(totalAmount), bold: true },
     ])
 
     content.push({

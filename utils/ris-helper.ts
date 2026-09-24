@@ -1,4 +1,4 @@
-// RIS monetary values are tracked up to 4 decimal places.
+// RIS monetary values are tracked up to 2 decimal places (centavos).
 //
 // `ddm_ris.total_amount` is computed by the database and comes back rounded to
 // whole pesos (e.g. 188.956 L x 92 = 17,383.952 is stored as 17,384), which
@@ -6,12 +6,12 @@
 // amount from quantity x price and only fall back to the stored column when
 // either operand is missing.
 
-export const RIS_DECIMALS = 4
+export const RIS_DECIMALS = 2
 
 const FACTOR = 10 ** RIS_DECIMALS
 
 // Trims binary floating point noise (e.g. 17383.952000000002) without dropping
-// any of the 4 decimals we care about.
+// any of the decimals we care about.
 export const roundRisAmount = (n: number): number => {
   const value = Number(n)
   if (!isFinite(value)) return 0
@@ -40,3 +40,10 @@ export const formatRisAmount = (n: number): string =>
     minimumFractionDigits: 0,
     maximumFractionDigits: RIS_DECIMALS,
   })
+
+// Fixed RIS_DECIMALS places for printed/exported tables (PDFs, Excel), where
+// columns should line up. Blank stays blank so empty cells don't print "0.00".
+export const toRisFixed = (n?: number | string | null): string => {
+  if (n === null || n === undefined || n === '') return ''
+  return roundRisAmount(Number(n)).toFixed(RIS_DECIMALS)
+}

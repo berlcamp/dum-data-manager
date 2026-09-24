@@ -2,7 +2,7 @@
 import { CustomButton, TwoColTableLoading } from '@/components/index'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { RisPoTypes, RisTypes } from '@/types'
-import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
+import { formatRisAmount, getRisAmount, toRisFixed } from '@/utils/ris-helper'
 import { format } from 'date-fns'
 // Redux imports
 import Excel from 'exceljs'
@@ -58,7 +58,7 @@ export default function RisModal({ hideModal, po }: ModalProps) {
         purpose: `${item.purpose}`,
         requester: `${item.requester}`,
         type: `${item.type}`,
-        quantity: `${item.quantity}`,
+        quantity: toRisFixed(item.quantity),
         price: formatRisAmount(Number(item.price ?? 0)),
         total_amount: formatRisAmount(getRisAmount(item)),
         vehicle: `${item.vehicle.name}-${item.vehicle.plate_number}`,
@@ -173,7 +173,7 @@ export default function RisModal({ hideModal, po }: ModalProps) {
                         {item.vehicle?.name}-{item.vehicle?.plate_number}
                       </td>
                       <td className="app__td">
-                        <div>{item.quantity} Liters</div>
+                        <div>{toRisFixed(item.quantity)} Liters</div>
                       </td>
                       <td className="app__td whitespace-nowrap">
                         {formatRisAmount(Number(item.price ?? 0))} per Liter

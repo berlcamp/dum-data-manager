@@ -2,7 +2,7 @@
 'use client'
 
 import { RisTypes } from '@/types'
-import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
+import { formatRisAmount, getRisAmount, toRisFixed } from '@/utils/ris-helper'
 import { format } from 'date-fns'
 import React from 'react'
 
@@ -94,7 +94,7 @@ const RisToPrint: React.FC<ChildProps> = ({ forwardedRef, ris }) => {
           <tr>
             <td className="text-center border border-gray-700">{ris.type}</td>
             <td className="text-center border border-gray-700">
-              {ris.quantity}
+              {toRisFixed(ris.quantity)}
             </td>
             <td className="text-center border border-gray-700">Liters</td>
             <td className="text-center border border-gray-700">
