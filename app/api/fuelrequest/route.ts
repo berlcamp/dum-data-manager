@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  if (balance.depleted) {
+  if (balance.depleted && !balance.allowOverconsumed) {
     return NextResponse.json({
       error_message:
         'This P.O. no longer has a remaining balance. You can no longer submit a fuel request using this code.',
@@ -86,7 +86,11 @@ export async function POST(req: NextRequest) {
 
   const price = payload.type === 'Diesel' ? po.diesel_price : po.gasoline_price
 
-  if (balance.unit === 'amount') {
+  // P.O.s with "Allow Overconsumed" enabled accept requests past the allocation,
+  // matching the admin R.I.S. form.
+  if (balance.allowOverconsumed) {
+    // Skip the remaining-balance checks below
+  } else if (balance.unit === 'amount') {
     const requestedAmount = roundRisAmount(quantity * Number(price || 0))
     if (requestedAmount > balance.remaining) {
       return NextResponse.json({

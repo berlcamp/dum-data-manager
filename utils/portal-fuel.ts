@@ -32,6 +32,8 @@ export interface PortalBalance {
   // Raw figure, negative when the P.O. is already over-consumed
   remaining: number
   depleted: boolean
+  // The P.O. setting that lets requests go through past the allocation
+  allowOverconsumed: boolean
 }
 
 // Mirrors the P.O. list widgets (app/(ris)/rispo/Main.tsx): Fuel P.O.s are
@@ -40,6 +42,7 @@ export const getPortalBalance = (po: any): PortalBalance | null => {
   if (!po) return null
 
   const ris: any[] = po.ddm_ris || []
+  const allowOverconsumed = po.allow_overconsumed === true
 
   if (po.type === 'Fuel') {
     const totalAmountUsed = ris.reduce(
@@ -53,6 +56,7 @@ export const getPortalBalance = (po: any): PortalBalance | null => {
       unit: 'amount',
       remaining,
       depleted: remaining <= 0,
+      allowOverconsumed,
     }
   }
 
@@ -67,6 +71,7 @@ export const getPortalBalance = (po: any): PortalBalance | null => {
     unit: 'liters',
     remaining,
     depleted: remaining <= 0,
+    allowOverconsumed,
   }
 }
 

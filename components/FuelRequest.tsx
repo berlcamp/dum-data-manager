@@ -461,7 +461,7 @@ export default function FuelRequest() {
                   rightIcon={<Download className="h-4 w-4" />}
                 />
               </div>
-              {balance?.depleted ? (
+              {balance?.depleted && !balance.allowOverconsumed ? (
                 <div className="w-full border border-red-200 bg-red-50 p-4 space-y-3">
                   <div className="text-red-700 font-bold">
                     No Remaining Balance
