@@ -6,16 +6,29 @@ import { formatRisAmount, getRisAmount, toRisFixed } from '@/utils/ris-helper'
 import { format } from 'date-fns'
 import React from 'react'
 
+export type SlipAlignment = 'left' | 'center' | 'right'
+
+const alignmentClasses: Record<SlipAlignment, string> = {
+  left: 'mr-auto',
+  center: 'mx-auto',
+  right: 'ml-auto',
+}
+
 interface ChildProps {
   forwardedRef: React.ForwardedRef<HTMLDivElement>
   ris: RisTypes
+  alignment?: SlipAlignment
 }
 
-const RisToPrint: React.FC<ChildProps> = ({ forwardedRef, ris }) => {
+const RisToPrint: React.FC<ChildProps> = ({
+  forwardedRef,
+  ris,
+  alignment = 'center',
+}) => {
   return (
     <div
       ref={forwardedRef}
-      className="w-[350px] mx-auto mt-8 text-xs">
+      className={`w-[350px] ${alignmentClasses[alignment]} mt-8 text-xs`}>
       <table className="w-full">
         <thead>
           <tr>
