@@ -106,11 +106,11 @@ export interface PortalHistoryItem {
   status: string
 }
 
-// The portal's "transaction history" is every fuel request submitted against
-// this code's P.O. + department — the anonymous portal has no per-visitor
-// identity beyond the code itself, and a code is shared by everyone at that
-// department. Runs server-side for the same reason as the balance: RLS hides
-// ddm_ris from the anon key.
+// The portal's "transaction history" is every fuel request charged to this
+// code's P.O., across all departments — so its total matches the admin R.I.S.
+// list filtered by the same P.O. and the P.O.-wide balance above. Runs
+// server-side for the same reason as the balance: RLS hides ddm_ris from the
+// anon key.
 export const getPortalHistory = async (
   supabase: any,
   item: any,
@@ -121,11 +121,10 @@ export const getPortalHistory = async (
       'id,date_requested,requester,destination,type,quantity,price,total_amount,status,vehicle:vehicle_id(name,plate_number)',
     )
     .eq('po_id', item.po_id)
-    .eq('department_id', item.department_id)
     .eq('is_deleted', false)
     .order('date_requested', { ascending: false })
     .order('id', { ascending: false })
-    .limit(500)
+    .limit(5000)
 
   if (error || !data) return []
 
