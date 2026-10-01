@@ -27,6 +27,9 @@ export const createServiceClient = () => {
 export interface PortalBalance {
   label: string
   value: string
+  // The P.O.'s full allocation, in the same unit as `value`
+  allocatedLabel: string
+  allocatedValue: string
   // 'amount' for Fuel P.O.s (tracked in pesos), 'liters' for the rest
   unit: 'amount' | 'liters'
   // Raw figure, negative when the P.O. is already over-consumed
@@ -53,6 +56,8 @@ export const getPortalBalance = (po: any): PortalBalance | null => {
     return {
       label: 'Remaining Balance',
       value: `₱${formatRisAmount(Math.max(0, remaining))}`,
+      allocatedLabel: 'Allocated Amount',
+      allocatedValue: `₱${formatRisAmount(Number(po.amount))}`,
       unit: 'amount',
       remaining,
       depleted: remaining <= 0,
@@ -68,6 +73,8 @@ export const getPortalBalance = (po: any): PortalBalance | null => {
   return {
     label: 'Remaining Balance',
     value: `${Math.max(0, remaining).toFixed(2)} Liters`,
+    allocatedLabel: 'Allocated Quantity',
+    allocatedValue: `${Number(po.quantity).toFixed(2)} Liters`,
     unit: 'liters',
     remaining,
     depleted: remaining <= 0,

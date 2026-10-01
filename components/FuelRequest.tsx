@@ -294,6 +294,16 @@ export default function FuelRequest() {
                   {balance && (
                     <div className="flex items-center space-x-2">
                       <div className="text-sm font-medium text-gray-600">
+                        {balance.allocatedLabel}:{' '}
+                      </div>
+                      <div className="text-base text-gray-700 font-bold">
+                        {balance.allocatedValue}
+                      </div>
+                    </div>
+                  )}
+                  {balance && (
+                    <div className="flex items-center space-x-2">
+                      <div className="text-sm font-medium text-gray-600">
                         {balance.label}:{' '}
                       </div>
                       <div
