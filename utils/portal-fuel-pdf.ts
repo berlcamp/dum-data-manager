@@ -1,7 +1,7 @@
 import { format, parseISO } from 'date-fns'
 
 import type { PortalHistoryItem } from '@/utils/portal-fuel'
-import { roundRisAmount, toRisFixed } from '@/utils/ris-helper'
+import { RIS_DECIMALS, roundRisAmount } from '@/utils/ris-helper'
 
 // Server-only: builds the portal's transaction history PDF. It is rendered on
 // the server and sent as an attachment because mobile browsers (iOS Safari,
@@ -14,6 +14,15 @@ const vfsFonts = require('pdfmake/build/vfs_fonts.js')
 
 const vfs = vfsFonts.pdfMake?.vfs || vfsFonts.vfs || vfsFonts
 const font = (name: string) => Buffer.from(vfs[name], 'base64')
+
+// toRisFixed with thousands separators, e.g. 165439 -> "165,439.00"
+const money = (n?: number | null): string => {
+  if (n === null || n === undefined) return ''
+  return roundRisAmount(Number(n)).toLocaleString('en-US', {
+    minimumFractionDigits: RIS_DECIMALS,
+    maximumFractionDigits: RIS_DECIMALS,
+  })
+}
 
 let printer: any = null
 const getPrinter = () => {
@@ -74,10 +83,10 @@ export const buildHistoryPdf = ({
       item.vehicle || '',
       item.destination || '',
       item.type || '',
-      toRisFixed(poAllocatedAmount),
-      toRisFixed(item.quantity),
-      toRisFixed(item.price),
-      toRisFixed(item.amount),
+      money(poAllocatedAmount),
+      money(item.quantity),
+      money(item.price),
+      money(item.amount),
       item.status || '',
     ])
   }
@@ -89,9 +98,9 @@ export const buildHistoryPdf = ({
     '',
     '',
     '',
-    { text: toRisFixed(roundRisAmount(totalQuantity)), bold: true },
+    { text: money(totalQuantity), bold: true },
     '',
-    { text: toRisFixed(roundRisAmount(totalAmount)), bold: true },
+    { text: money(totalAmount), bold: true },
     '',
   ])
 
