@@ -111,7 +111,7 @@ export const buildHistoryPdf = ({
       { text: subHeader, style: 'subHeader' },
       items.length === 0
         ? {
-            text: 'No fuel requests have been submitted using this code yet.',
+            text: 'No approved fuel requests yet for this P.O.',
             margin: [0, 10, 0, 0],
           }
         : {

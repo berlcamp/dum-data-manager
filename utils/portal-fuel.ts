@@ -106,9 +106,10 @@ export interface PortalHistoryItem {
   status: string
 }
 
-// The portal's "transaction history" is every fuel request charged to this
-// code's P.O., across all departments — so its total matches the admin R.I.S.
-// list filtered by the same P.O. and the P.O.-wide balance above. Runs
+// The portal's "transaction history" is every Approved fuel request charged to
+// this code's P.O., across all departments — the same R.I.S. that consume the
+// P.O.-wide balance above, so its total matches the admin R.I.S. list filtered
+// by the same P.O. and status Approved. Runs
 // server-side for the same reason as the balance: RLS hides ddm_ris from the
 // anon key.
 export const getPortalHistory = async (
@@ -121,6 +122,7 @@ export const getPortalHistory = async (
       'id,date_requested,requester,destination,type,quantity,price,total_amount,status,vehicle:vehicle_id(name,plate_number)',
     )
     .eq('po_id', item.po_id)
+    .eq('status', 'Approved')
     .eq('is_deleted', false)
     .order('date_requested', { ascending: false })
     .order('id', { ascending: false })
