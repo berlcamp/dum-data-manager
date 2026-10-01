@@ -41,9 +41,11 @@ export const formatRisAmount = (n: number): string =>
     maximumFractionDigits: RIS_DECIMALS,
   })
 
-// Fixed RIS_DECIMALS places for printed/exported tables (PDFs, Excel), where
-// columns should line up. Blank stays blank so empty cells don't print "0.00".
+// For printed/exported tables (PDFs, Excel): whole numbers print bare ("3",
+// not "3.00"), anything with a fraction gets RIS_DECIMALS places ("3.50").
+// Blank stays blank so empty cells don't print "0".
 export const toRisFixed = (n?: number | string | null): string => {
   if (n === null || n === undefined || n === '') return ''
-  return roundRisAmount(Number(n)).toFixed(RIS_DECIMALS)
+  const value = roundRisAmount(Number(n))
+  return Number.isInteger(value) ? String(value) : value.toFixed(RIS_DECIMALS)
 }

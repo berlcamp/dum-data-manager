@@ -45,9 +45,10 @@ type PoSummary = {
   totalAmount: number
 }
 
+// Whole numbers print bare ("3", not "3.00")
 const formatNum = (n: number, decimals = 2) =>
   n.toLocaleString('en-US', {
-    minimumFractionDigits: decimals,
+    minimumFractionDigits: Number.isInteger(n) ? 0 : decimals,
     maximumFractionDigits: decimals,
   })
 

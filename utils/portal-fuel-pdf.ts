@@ -15,11 +15,13 @@ const vfsFonts = require('pdfmake/build/vfs_fonts.js')
 const vfs = vfsFonts.pdfMake?.vfs || vfsFonts.vfs || vfsFonts
 const font = (name: string) => Buffer.from(vfs[name], 'base64')
 
-// toRisFixed with thousands separators, e.g. 165439 -> "165,439.00"
+// toRisFixed with thousands separators, e.g. 165439 -> "165,439" and
+// 2214.5 -> "2,214.50"
 const money = (n?: number | null): string => {
   if (n === null || n === undefined) return ''
-  return roundRisAmount(Number(n)).toLocaleString('en-US', {
-    minimumFractionDigits: RIS_DECIMALS,
+  const value = roundRisAmount(Number(n))
+  return value.toLocaleString('en-US', {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : RIS_DECIMALS,
     maximumFractionDigits: RIS_DECIMALS,
   })
 }
