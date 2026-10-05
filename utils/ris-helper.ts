@@ -49,3 +49,24 @@ export const toRisFixed = (n?: number | string | null): string => {
   const value = roundRisAmount(Number(n))
   return Number.isInteger(value) ? String(value) : value.toFixed(RIS_DECIMALS)
 }
+
+// Summary report figures with thousands separators. Quantities follow the
+// toRisFixed rule ("1,000", "1,000.50"); money always shows RIS_DECIMALS
+// places ("8,000.00").
+export const toRisQty = (n?: number | string | null): string => {
+  if (n === null || n === undefined || n === '') return ''
+  const value = roundRisAmount(Number(n))
+  const decimals = Number.isInteger(value) ? 0 : RIS_DECIMALS
+  return value.toLocaleString('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })
+}
+
+export const toRisMoney = (n?: number | string | null): string => {
+  if (n === null || n === undefined || n === '') return ''
+  return roundRisAmount(Number(n)).toLocaleString('en-US', {
+    minimumFractionDigits: RIS_DECIMALS,
+    maximumFractionDigits: RIS_DECIMALS,
+  })
+}
