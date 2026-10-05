@@ -9,6 +9,7 @@ import {
   Unauthorized,
 } from '@/components/index'
 import { fetchRis } from '@/utils/fetchApi'
+import { toRisQty } from '@/utils/ris-helper'
 import React, { useEffect, useState } from 'react'
 
 import Filters from './Filters'
@@ -39,7 +40,7 @@ const findLowestAndHighestValues = (items: any, key: any) => {
       }
       return acc
     },
-    { lowest: Infinity, highest: -Infinity }
+    { lowest: Infinity, highest: -Infinity },
   )
 }
 
@@ -49,7 +50,7 @@ const Page: React.FC = () => {
   const [filterCa, setFilterCa] = useState('All')
   const [filterAppropriation, setFilterAppropriation] = useState('All')
   const [filterDateFrom, setFilterDateFrom] = useState<Date | undefined>(
-    undefined
+    undefined,
   )
   const [filterDateTo, setFilterDateTo] = useState<Date | undefined>(undefined)
 
@@ -110,7 +111,7 @@ const Page: React.FC = () => {
         9999,
         0,
         session?.user?.email,
-        currentUser?.department_id
+        currentUser?.department_id,
       )
 
       const dataSetsData: any = []
@@ -133,26 +134,20 @@ const Page: React.FC = () => {
 
       dataSetsData.push(
         {
-          label: `Diesel (${
-            countDiesel % 1 !== 0 ? countDiesel.toFixed(2) : countDiesel
-          })`,
+          label: `Diesel (${toRisQty(countDiesel)})`,
           data: [countDiesel],
           bgColor: colors[Math.floor(Math.random() * 11)],
         },
         {
-          label: `Gasoline (${
-            countGasoline % 1 !== 0 ? countGasoline.toFixed(2) : countGasoline
-          })`,
+          label: `Gasoline (${toRisQty(countGasoline)})`,
           data: [countGasoline],
           bgColor: colors[Math.floor(Math.random() * 11)],
         },
         {
-          label: `Oil and Lubricants (${
-            countOil % 1 !== 0 ? countOil.toFixed(2) : countOil
-          })`,
+          label: `Oil and Lubricants (${toRisQty(countOil)})`,
           data: [countOil],
           bgColor: colors[Math.floor(Math.random() * 11)],
-        }
+        },
       )
 
       // Charts data
@@ -171,9 +166,7 @@ const Page: React.FC = () => {
 
         // Create datasets array
         departmentDataSetsData.push({
-          label: `${department.name} (${
-            count % 1 !== 0 ? count.toFixed(2) : count
-          })`,
+          label: `${department.name} (${toRisQty(count)})`,
           count: count,
           bgColor: colors[Math.floor(Math.random() * 11)],
         })
@@ -181,7 +174,7 @@ const Page: React.FC = () => {
 
       const highandlow = findLowestAndHighestValues(
         departmentDataSetsData,
-        'count'
+        'count',
       )
 
       const newDepartmentArray = departmentDataSetsData.map((d: any) => {
@@ -209,9 +202,7 @@ const Page: React.FC = () => {
 
         // Create datasets array
         poDataSetsData.push({
-          label: `${po.po_number} (${
-            count % 1 !== 0 ? count.toFixed(2) : count
-          })`,
+          label: `${po.po_number} (${toRisQty(count)})`,
           count: count,
           bgColor: colors[Math.floor(Math.random() * 11)],
         })
@@ -244,9 +235,7 @@ const Page: React.FC = () => {
 
         // Create datasets array
         caDataSetsData.push({
-          label: `${po.ca_number} (${
-            count % 1 !== 0 ? count.toFixed(2) : count
-          })`,
+          label: `${po.ca_number} (${toRisQty(count)})`,
           count: count,
           bgColor: colors[Math.floor(Math.random() * 11)],
         })
