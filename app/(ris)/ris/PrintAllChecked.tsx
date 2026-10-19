@@ -1,6 +1,7 @@
 /* eslint-disable react/display-name */
 'use client'
 
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -10,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { RisTypes } from '@/types'
+import { Printer } from 'lucide-react'
 import React, { forwardRef, useRef, useState } from 'react'
 import { useReactToPrint } from 'react-to-print'
 import RisToPrint, { SlipAlignment } from './RisToPrint'
@@ -65,70 +67,89 @@ export default function PrintAllChecked({ selectedRis }: ModalProps) {
 
   if (printableRis.length === 0) {
     return (
-      <button
-        className="app__btn_blue"
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
         disabled
-        title="Pending R.I.S. cannot be printed"
-        type="button">
-        Print Selected (0)
-      </button>
+        title="Pending R.I.S. cannot be printed">
+        <Printer
+          aria-hidden="true"
+          className="mr-1.5 h-4 w-4"
+        />
+        Print (0)
+      </Button>
     )
   }
 
   return (
     <>
-      {excludedCount > 0 && (
-        <div className="self-center text-xs text-red-500 font-medium">
-          {excludedCount} pending R.I.S. excluded from printing
-        </div>
-      )}
-      <button
-        className="app__btn_blue"
+      <Button
         type="button"
+        size="sm"
+        variant="outline"
+        title={
+          excludedCount > 0
+            ? `${excludedCount} pending R.I.S. will be skipped`
+            : undefined
+        }
         onClick={() => {
           setAlignment('center')
           setShowAlignment(true)
         }}>
-        Print Selected ({printableRis.length})
-      </button>
+        <Printer
+          aria-hidden="true"
+          className="mr-1.5 h-4 w-4"
+        />
+        Print ({printableRis.length})
+      </Button>
+      {excludedCount > 0 && (
+        <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+          {excludedCount} pending skipped
+        </span>
+      )}
       <Dialog
         open={showAlignment}
         onOpenChange={setShowAlignment}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Print Slip</DialogTitle>
+            <DialogTitle>Print Gas Slips</DialogTitle>
             <DialogDescription>
               Choose where the slip is placed on the page.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex space-x-2">
+          <div
+            role="radiogroup"
+            aria-label="Slip alignment"
+            className="grid grid-cols-3 gap-2">
             {alignmentOptions.map((option) => (
-              <button
+              <Button
                 key={option.value}
                 type="button"
-                onClick={() => setAlignment(option.value)}
-                className={`flex-1 ${
-                  alignment === option.value
-                    ? 'app__btn_blue'
-                    : 'app__btn_gray'
-                }`}>
+                role="radio"
+                aria-checked={alignment === option.value}
+                variant={alignment === option.value ? 'default' : 'outline'}
+                onClick={() => setAlignment(option.value)}>
                 {option.label}
-              </button>
+              </Button>
             ))}
           </div>
-          <DialogFooter>
-            <button
+          <DialogFooter className="gap-2">
+            <Button
               type="button"
-              className="app__btn_gray"
+              variant="outline"
               onClick={() => setShowAlignment(false)}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="app__btn_blue"
               onClick={handlePrint}>
+              <Printer
+                aria-hidden="true"
+                className="mr-1.5 h-4 w-4"
+              />
               Print ({printableRis.length})
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,4 +1,12 @@
-import { CustomButton } from '@/components/index'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Form,
   FormControl,
@@ -23,6 +31,7 @@ import {
   RisPoTypes,
   RisVehicleTypes,
 } from '@/types'
+import { Filter, Lock, LockOpen, Search, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -43,6 +52,7 @@ interface FilterTypes {
   onMarkAsLock?: () => void
   onMarkAsUnlock?: () => void
   isSuperAdmin?: boolean
+  filteredCount?: number
 }
 
 const FormSchema = z.object({
@@ -74,7 +84,11 @@ const Filters = ({
   onMarkAsLock,
   onMarkAsUnlock,
   isSuperAdmin,
+  filteredCount,
 }: FilterTypes) => {
+  const [lockAction, setLockAction] = useState<'lock' | 'unlock' | null>(
+    null,
+  )
   const [appropriations, setAppropriations] = useState<
     RisAppropriationTypes[] | []
   >([])
@@ -187,13 +201,6 @@ const Filters = ({
       const isAdmin =
         adminEmails.includes(session.user.email) || hasRisAdminAccess
 
-      console.log('PO Filter Debug:', {
-        email: session.user.email,
-        isAdmin,
-        hasRisAdminAccess,
-        currentUserDepartmentId: currentUser?.department_id,
-      })
-
       // For non-admin users, filter by department_id
       if (!isAdmin) {
         if (currentUser?.department_id) {
@@ -202,12 +209,9 @@ const Filters = ({
             .select()
             .eq('department_id', currentUser.department_id)
             .order('po_number', { ascending: true })
-          
-          console.log('Non-admin PO query result:', { data, error, count: data?.length })
           setPurchaseOrders(data || [])
         } else {
           // No department_id available, show empty list
-          console.log('No department_id for non-admin user')
           setPurchaseOrders([])
         }
       } else {
@@ -216,7 +220,6 @@ const Filters = ({
           .from('ddm_ris_purchase_orders')
           .select()
           .order('po_number', { ascending: true })
-        console.log('Admin PO query result:', { count: data?.length })
         setPurchaseOrders(data || [])
       }
     })()
@@ -265,305 +268,297 @@ const Filters = ({
       
       setVehicles(data || [])
     })()
-    console.log('filter data fetched successfully')
   }, [session?.user?.email, currentUser?.department_id, hasRisAdminAccess])
 
+  type SelectFieldName =
+    | 'purchase_order'
+    | 'cash_advance'
+    | 'department'
+    | 'appropriation'
+    | 'vehicle'
+    | 'status'
+
+  // Every dropdown starts with "All" so a single filter can be undone without
+  // clearing the rest
+  const renderSelect = (
+    name: SelectFieldName,
+    label: string,
+    options: { value: string; label: string }[],
+    emptyText?: string,
+  ) => (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className="min-w-0">
+          <FormLabel className="app__form_label">{label}</FormLabel>
+          <Select
+            onValueChange={field.onChange}
+            value={field.value != null ? field.value.toString() : ''}>
+            <FormControl>
+              <SelectTrigger className="h-9 bg-white dark:bg-gray-900">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              <SelectItem value="All">All</SelectItem>
+              {options.length === 0 && emptyText && (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                  {emptyText}
+                </div>
+              )}
+              {options.map((o) => (
+                <SelectItem
+                  key={o.value}
+                  value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormItem>
+      )}
+    />
+  )
+
+  const watched = form.watch()
+  const activeFilterCount = Object.entries(watched).filter(
+    ([key, value]) =>
+      (hasRisAdminAccess ||
+        ['keyword', 'dateFrom', 'dateTo', 'purchase_order'].includes(key)) &&
+      value !== undefined &&
+      value !== '' &&
+      value !== 'All',
+  ).length
+
+  const confirmLockAction = () => {
+    if (lockAction === 'lock') onMarkAsLock?.()
+    if (lockAction === 'unlock') onMarkAsUnlock?.()
+    setLockAction(null)
+  }
+
   return (
-    <div className="">
+    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="items-center space-x-2 space-y-1">
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="keyword"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="app__form_label">Search</FormLabel>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+            <FormField
+              control={form.control}
+              name="keyword"
+              render={({ field }) => (
+                <FormItem className="min-w-0 sm:col-span-2">
+                  <FormLabel className="app__form_label">Search</FormLabel>
+                  <div className="relative">
+                    <Search
+                      aria-hidden="true"
+                      className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                    />
                     <Input
-                      placeholder="Requester / Purpose"
-                      className="w-[200px]"
+                      placeholder="Requester or purpose"
+                      className="h-9 bg-white pl-8 dark:bg-gray-900"
                       {...field}
                     />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="dateFrom"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="app__form_label">Date From</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        className="w-[140px]"
-                        {...field}
-                        value={field.value ?? ''}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="dateTo"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="app__form_label">Date To</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        className="w-[140px]"
-                        {...field}
-                        value={field.value ?? ''}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="purchase_order"
-                render={({ field }) => (
-                  <FormItem className="w-[140px]">
-                    <FormLabel className="app__form_label">Department Allocation</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value != null ? field.value.toString() : ''}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="All" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {filteredPurchaseOrders.length === 0 && (
-                          <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                            No Department Allocation for this appropriation
-                          </div>
-                        )}
-                        {filteredPurchaseOrders.map((a, i) => (
-                          <SelectItem
-                            key={i}
-                            value={a.id.toString()}>
-                            {a.po_number}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
+                  </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="dateFrom"
+              render={({ field }) => (
+                <FormItem className="min-w-0">
+                  <FormLabel className="app__form_label">Date From</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      className="h-9 bg-white dark:bg-gray-900"
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="dateTo"
+              render={({ field }) => (
+                <FormItem className="min-w-0">
+                  <FormLabel className="app__form_label">Date To</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      className="h-9 bg-white dark:bg-gray-900"
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <div className="min-w-0 sm:col-span-2">
+              {renderSelect(
+                'purchase_order',
+                'Department Allocation',
+                filteredPurchaseOrders.map((a) => ({
+                  value: a.id.toString(),
+                  label: a.po_number,
+                })),
+                'No Department Allocation for this appropriation',
+              )}
             </div>
             {hasRisAdminAccess && (
               <>
-                <div className="items-center inline-flex app__filter_field_container">
-                  <FormField
-                    control={form.control}
-                    name="cash_advance"
-                    render={({ field }) => (
-                      <FormItem className="w-[140px]">
-                        <FormLabel className="app__form_label">C.A.</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value != null ? field.value.toString() : ''}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="All" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {cashAdvances?.map((a, i) => (
-                              <SelectItem
-                                key={i}
-                                value={a.id.toString()}>
-                                {a.ca_number}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="items-center inline-flex app__filter_field_container">
-                  <FormField
-                    control={form.control}
-                    name="department"
-                    render={({ field }) => (
-                      <FormItem className="w-[140px]">
-                        <FormLabel className="app__form_label">
-                          Departments
-                        </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value != null ? field.value.toString() : ''}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="All" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {departments?.map((item, idx) => (
-                              <SelectItem
-                                key={idx}
-                                value={item.id.toString()}>
-                                {item.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="items-center inline-flex app__filter_field_container">
-                  <FormField
-                    control={form.control}
-                    name="appropriation"
-                    render={({ field }) => (
-                      <FormItem className="w-[140px]">
-                        <FormLabel className="app__form_label">
-                          Appropriation
-                        </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value != null ? field.value.toString() : ''}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="All" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {appropriations?.map((item, idx) => (
-                              <SelectItem
-                                key={idx}
-                                value={item.id.toString()}>
-                                {item.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="items-center inline-flex app__filter_field_container">
-                  <FormField
-                    control={form.control}
-                    name="vehicle"
-                    render={({ field }) => (
-                      <FormItem className="w-[140px]">
-                        <FormLabel className="app__form_label">Vehicle</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value != null ? field.value.toString() : ''}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="All" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {vehicles?.map((item, idx) => (
-                              <SelectItem
-                                key={idx}
-                                value={item.id.toString()}>
-                                {item.name} - {item.plate_number}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="items-center inline-flex app__filter_field_container">
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem className="w-[140px]">
-                        <FormLabel className="app__form_label">Status</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value != null ? field.value.toString() : ''}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="All" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Pending">Pending</SelectItem>
-                            <SelectItem value="Approved">Approved</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="items-center inline-flex app__filter_field_container">
-                  <FormField
-                    control={form.control}
-                    name="threshold"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="app__form_label">
-                          Amount Threshold
-                        </FormLabel>
-                        <Input
-                          placeholder="Amount Threshold"
-                          className="w-[200px]"
-                          type="number"
-                          {...field}
-                        />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                {renderSelect(
+                  'appropriation',
+                  'Appropriation',
+                  (appropriations || []).map((a) => ({
+                    value: a.id.toString(),
+                    label: a.name,
+                  })),
+                )}
+                {renderSelect(
+                  'department',
+                  'Department',
+                  (departments || []).map((d) => ({
+                    value: d.id.toString(),
+                    label: d.name,
+                  })),
+                )}
+                {renderSelect(
+                  'vehicle',
+                  'Vehicle',
+                  (vehicles || []).map((v) => ({
+                    value: v.id.toString(),
+                    label: `${v.name} - ${v.plate_number}`,
+                  })),
+                )}
+                {renderSelect(
+                  'cash_advance',
+                  'C.A.',
+                  (cashAdvances || []).map((c) => ({
+                    value: c.id.toString(),
+                    label: c.ca_number,
+                  })),
+                )}
+                {renderSelect('status', 'Status', [
+                  { value: 'Pending', label: 'Pending' },
+                  { value: 'Approved', label: 'Approved' },
+                ])}
+                <FormField
+                  control={form.control}
+                  name="threshold"
+                  render={({ field }) => (
+                    <FormItem className="min-w-0">
+                      <FormLabel className="app__form_label">
+                        Amount Threshold
+                      </FormLabel>
+                      <Input
+                        placeholder="e.g. 5000"
+                        className="h-9 bg-white dark:bg-gray-900"
+                        type="number"
+                        inputMode="decimal"
+                        {...field}
+                      />
+                    </FormItem>
+                  )}
+                />
               </>
             )}
           </div>
 
-          <div className="flex items-center space-x-2 mt-4">
-            <CustomButton
-              containerStyles="app__btn_green"
-              title="Apply Filter"
-              btnType="submit"
-              handleClick={form.handleSubmit(onSubmit)}
-            />
-            <CustomButton
-              containerStyles="app__btn_gray"
-              title="Clear Filter"
-              btnType="button"
-              handleClick={handleClear}
-            />
-            {isSuperAdmin &&
-              onMarkAsLock &&
-              onMarkAsUnlock && (
-                <>
-                  <CustomButton
-                    containerStyles="app__btn_blue"
-                    title="Marked as Lock"
-                    btnType="button"
-                    handleClick={onMarkAsLock}
-                  />
-                  <CustomButton
-                    containerStyles="app__btn_blue"
-                    title="Marked as Unlocked"
-                    btnType="button"
-                    handleClick={onMarkAsUnlock}
-                  />
-                </>
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
+            <Button
+              type="submit"
+              size="sm"
+              className="bg-emerald-600 text-white hover:bg-emerald-700">
+              <Filter
+                aria-hidden="true"
+                className="mr-1.5 h-4 w-4"
+              />
+              Apply Filters
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleClear}
+              disabled={activeFilterCount === 0}>
+              <X
+                aria-hidden="true"
+                className="mr-1.5 h-4 w-4"
+              />
+              Clear
+              {activeFilterCount > 0 && (
+                <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 text-[11px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                  {activeFilterCount}
+                </span>
               )}
+            </Button>
+            {isSuperAdmin && onMarkAsLock && onMarkAsUnlock && (
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setLockAction('lock')}>
+                  <Lock
+                    aria-hidden="true"
+                    className="mr-1.5 h-4 w-4"
+                  />
+                  Lock Filtered
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setLockAction('unlock')}>
+                  <LockOpen
+                    aria-hidden="true"
+                    className="mr-1.5 h-4 w-4"
+                  />
+                  Unlock Filtered
+                </Button>
+              </div>
+            )}
           </div>
         </form>
       </Form>
+
+      {/* Lock/Unlock touches every record matching the filters, not only the
+          rows on screen, so it asks first */}
+      <Dialog
+        open={lockAction !== null}
+        onOpenChange={(open) => !open && setLockAction(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {lockAction === 'lock'
+                ? 'Lock filtered R.I.S.?'
+                : 'Unlock filtered R.I.S.?'}
+            </DialogTitle>
+            <DialogDescription>
+              This will {lockAction === 'lock' ? 'lock' : 'unlock'} every
+              R.I.S. that matches the current filters
+              {filteredCount !== undefined ? ` (${filteredCount})` : ''}, not
+              just the rows shown on this page.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setLockAction(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={confirmLockAction}>
+              {lockAction === 'lock' ? 'Lock' : 'Unlock'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

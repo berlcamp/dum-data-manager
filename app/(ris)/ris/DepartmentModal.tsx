@@ -1,3 +1,14 @@
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 
 interface DepartmentModalProps {
@@ -13,36 +24,50 @@ export default function DepartmentModal({
 }: DepartmentModalProps) {
   const [deptName, setDeptName] = useState('')
 
-  if (!isOpen) return null
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (deptName.trim()) {
+      onConfirm(deptName.trim())
+    }
+  }
 
   return (
-    <div className="fixed z-50 inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white p-6 rounded-lg shadow-md w-[400px]">
-        <h2 className="text-lg font-bold mb-4">Enter Department Name</h2>
-        <input
-          type="text"
-          value={deptName}
-          onChange={(e) => setDeptName(e.target.value)}
-          className="w-full border rounded p-2 mb-4"
-          placeholder="Department name"
-        />
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
-            Cancel
-          </button>
-          <button
-            onClick={() => {
-              if (deptName.trim()) {
-                onConfirm(deptName.trim())
-              }
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-            Confirm
-          </button>
-        </div>
-      </div>
-    </div>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Summary by Department</DialogTitle>
+            <DialogDescription>
+              Enter the department name to print on the report.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="my-4 space-y-1.5">
+            <Label htmlFor="ris-summary-dept">Department name</Label>
+            <Input
+              id="ris-summary-dept"
+              autoFocus
+              value={deptName}
+              onChange={(e) => setDeptName(e.target.value)}
+              placeholder="e.g. Municipal Engineering Office"
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={!deptName.trim()}>
+              Generate PDF
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

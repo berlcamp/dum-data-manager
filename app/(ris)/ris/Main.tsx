@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  CustomButton,
   DeleteModal,
   PerPage,
   RisSidebar,
@@ -20,6 +19,14 @@ import {
   toRisMoney,
   toRisQty,
 } from '@/utils/ris-helper'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import Excel from 'exceljs'
 import { saveAs } from 'file-saver'
 import React, { useEffect, useState } from 'react'
@@ -38,6 +45,22 @@ import { superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { format } from 'date-fns'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  Clock,
+  Download,
+  Droplet,
+  FileSpreadsheet,
+  FileText,
+  Inbox,
+  Loader2,
+  Lock,
+  Pencil,
+  Plus,
+  Wallet,
+} from 'lucide-react'
 import { TDocumentDefinitions } from 'pdfmake/interfaces'
 import { useDispatch, useSelector } from 'react-redux'
 import AddEditModal from './AddEditModal'
@@ -1050,6 +1073,27 @@ const Page: React.FC = () => {
     perPageCount,
   ])
 
+  const clearSelection = () => {
+    setSelectedIds([])
+    setSelectedItems([])
+    setCheckAll(false)
+  }
+
+  // Widget figures, from every record matching the current filters
+  const approvedRis = widgetData.filter((item) => item.status === 'Approved')
+  const approvedCount = approvedRis.length
+  const pendingCount = widgetData.filter(
+    (item) => item.status === 'Pending',
+  ).length
+  const approvedLiters = approvedRis.reduce(
+    (sum, item) => sum + Number(item.quantity || 0),
+    0,
+  )
+  const approvedAmount = approvedRis.reduce(
+    (sum, item) => sum + getRisAmount(item),
+    0,
+  )
+
   const isDataEmpty = !Array.isArray(list) || list.length < 1 || !list
   const email: string = session.user.email
 
@@ -1065,14 +1109,24 @@ const Page: React.FC = () => {
         <div>
           {/* Header */}
           <TopBar />
-          <div className="app__title">
-            <Title title="Requisition & Issue Slip" />
-            <CustomButton
-              containerStyles="app__btn_green"
-              title="Add New RIS"
-              btnType="button"
-              handleClick={handleAdd}
-            />
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 mt-4 dark:border-gray-700">
+            <div>
+              <Title title="Requisition & Issue Slip" />
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                Fuel requests charged against department allocations
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleAdd}
+              className="bg-emerald-600 text-white hover:bg-emerald-700">
+              <Plus
+                aria-hidden="true"
+                className="mr-1.5 h-4 w-4"
+              />
+              New R.I.S.
+            </Button>
           </div>
 
           {/* Filters */}
@@ -1093,177 +1147,251 @@ const Page: React.FC = () => {
               onMarkAsLock={handleMarkAsLock}
               onMarkAsUnlock={handleMarkAsUnlock}
               isSuperAdmin={superAdmins.includes(email)}
+              filteredCount={widgetData.length}
             />
           </div>
 
           {/* Summary Widgets */}
-          <div className="mx-4 mb-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Total Approved Requests */}
-              <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-                <div className="text-sm text-gray-600 mb-1">
-                  Total Approved Requests
+          <div className="mx-4 mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              {
+                label: 'Approved Requests',
+                value: approvedCount.toLocaleString('en-US'),
+                icon: CheckCircle2,
+                tone: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40',
+              },
+              {
+                label: 'Pending Requests',
+                value: pendingCount.toLocaleString('en-US'),
+                icon: Clock,
+                tone: 'text-amber-600 bg-amber-50 dark:bg-amber-950/40',
+              },
+              {
+                label: 'Total Liters (Approved)',
+                value: approvedLiters.toLocaleString('en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }),
+                icon: Droplet,
+                tone: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40',
+              },
+              {
+                label: 'Total Amount (Approved)',
+                value: `₱${formatListAmount(approvedAmount)}`,
+                icon: Wallet,
+                tone: 'text-violet-600 bg-violet-50 dark:bg-violet-950/40',
+              },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-900 sm:p-4">
+                <div
+                  className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-md sm:flex ${stat.tone}`}>
+                  <stat.icon
+                    aria-hidden="true"
+                    className="h-5 w-5"
+                  />
                 </div>
-                <div className="text-2xl font-bold text-green-600">
-                  {
-                    widgetData.filter((item) => item.status === 'Approved')
-                      .length
-                  }
+                <div className="min-w-0">
+                  <div className="truncate text-xs font-medium text-gray-500 dark:text-gray-400">
+                    {stat.label}
+                  </div>
+                  <div className="truncate text-lg font-semibold tabular-nums text-gray-900 dark:text-gray-100 sm:text-xl">
+                    {stat.value}
+                  </div>
                 </div>
               </div>
-
-              {/* Total Liters */}
-              <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-                <div className="text-sm text-gray-600 mb-1">Total Liters</div>
-                <div className="text-2xl font-bold text-blue-600">
-                  {widgetData
-                    .filter((item) => item.status === 'Approved')
-                    .reduce((sum, item) => sum + (item.quantity || 0), 0)
-                    .toFixed(2)}
-                </div>
-              </div>
-
-              {/* Total Amount */}
-              <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-                <div className="text-sm text-gray-600 mb-1">Total Amount</div>
-                <div className="text-2xl font-bold text-purple-600">
-                  ₱
-                  {formatListAmount(
-                    widgetData
-                      .filter((item) => item.status === 'Approved')
-                      .reduce((sum, item) => sum + getRisAmount(item), 0),
-                  )}
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* Warning Message - Only show for admin users */}
           {hasRisAdminAccess && zeroPrices.length > 0 && (
-            <div className="mx-4 mb-4">
-              <div className="text-xs">
-                <span className="text-red-500 font-bold">
-                  Warning! The following R.I.S. currently have 0 Price:{' '}
-                </span>
-                {zeroPrices.map((ris, idx) => (
-                  <span
-                    key={idx}
-                    className="text-gray-600">
-                    {ris.id},{' '}
-                  </span>
-                ))}
+            <div
+              role="alert"
+              className="mx-4 mb-4 flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+              <AlertTriangle
+                aria-hidden="true"
+                className="h-4 w-4 shrink-0"
+              />
+              <div>
+                <span className="font-semibold">
+                  {zeroPrices.length} R.I.S. have a price of 0:
+                </span>{' '}
+                {zeroPrices.map((ris) => ris.id).join(', ')}
               </div>
             </div>
           )}
 
           {/* PO List Widget - Only show for non-admin users */}
           {!hasRisAdminAccess && (
-            <div className="mx-4 mb-4">
-              <div className="bg-white rounded-lg shadow-md p-2 border border-gray-200">
-                <div className="text-xs text-gray-600 mb-1.5 font-semibold">
-                  Department Allocations - Remaining Amounts
-                </div>
-                <div className="space-y-0.5 max-h-40 overflow-y-auto">
-                  {poWidgetData.length > 0 ? (
-                    poWidgetData.map((po) => {
-                      const remainingAmount = countRemainingAmount(po)
-                      return (
-                        <div
-                          key={po.id}
-                          className="flex justify-between items-center py-1 border-b border-gray-100 last:border-b-0 text-sm">
-                          <div className="flex-1 min-w-0">
-                            <span className="font-medium text-gray-800">
+            <div className="mx-4 mb-4 rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+              <div className="border-b border-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-800 dark:border-gray-800 dark:text-gray-200">
+                Department Allocations
+              </div>
+              <div className="max-h-60 divide-y divide-gray-100 overflow-y-auto dark:divide-gray-800">
+                {poWidgetData.length > 0 ? (
+                  poWidgetData.map((po) => {
+                    const allocated = Number(po.amount ?? 0)
+                    const remainingAmount = countRemainingAmount(po)
+                    const usedPct =
+                      allocated > 0
+                        ? Math.min(
+                            100,
+                            ((allocated - remainingAmount) / allocated) * 100,
+                          )
+                        : 100
+                    const isLow = remainingAmount < 1000
+                    return (
+                      <div
+                        key={po.id}
+                        className="px-4 py-2.5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
                               {po.po_number}
-                            </span>
+                            </div>
                             {po.description && (
-                              <span className="text-gray-500 text-xs ml-1">
-                                - {po.description}
-                              </span>
+                              <div className="truncate text-xs text-gray-500 dark:text-gray-400">
+                                {po.description}
+                              </div>
                             )}
                           </div>
-                          <div className="flex gap-3 text-right shrink-0 ml-2">
-                            <div>
-                              <div className="text-[10px] text-gray-500">
-                                Allocated Amount
-                              </div>
-                              <div className="font-bold text-gray-800 text-xs">
-                                ₱
-                                {formatListAmount(po.amount ?? 0)}
-                              </div>
+                          <div className="shrink-0 text-right">
+                            <div
+                              className={`text-sm font-semibold tabular-nums ${
+                                isLow
+                                  ? 'text-red-600 dark:text-red-400'
+                                  : 'text-emerald-600 dark:text-emerald-400'
+                              }`}>
+                              ₱{formatListAmount(remainingAmount)}
                             </div>
-                            <div>
-                              <div className="text-[10px] text-gray-500">
-                                Remaining
-                              </div>
-                              <div
-                                className={`font-bold text-xs ${
-                                  remainingAmount < 1000
-                                    ? 'text-red-600'
-                                    : 'text-green-600'
-                                }`}>
-                                ₱
-                                {formatListAmount(remainingAmount)}
-                              </div>
+                            <div className="text-[11px] tabular-nums text-gray-500 dark:text-gray-400">
+                              left of ₱{formatListAmount(allocated)}
                             </div>
                           </div>
                         </div>
-                      )
-                    })
-                  ) : (
-                    <div className="text-gray-500 text-xs py-1">
-                      No Department Allocations found
-                    </div>
-                  )}
-                </div>
+                        <div
+                          className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800"
+                          role="progressbar"
+                          aria-label={`${po.po_number} used`}
+                          aria-valuenow={Math.round(usedPct)}
+                          aria-valuemin={0}
+                          aria-valuemax={100}>
+                          <div
+                            className={`h-full rounded-full ${
+                              isLow ? 'bg-red-500' : 'bg-emerald-500'
+                            }`}
+                            style={{ width: `${usedPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="px-4 py-3 text-xs text-gray-500">
+                    No Department Allocations found
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* Export Button */}
-          <div className="mx-4 mb-4 flex justify-end space-x-2">
-            {selectedItems.length > 0 && (
-              <>
-                <CustomButton
-                  containerStyles="app__btn_green"
-                  isDisabled={downloading}
-                  title={`Approve Selected (${selectedItems.length})`}
-                  btnType="button"
-                  handleClick={handleApproveSelected}
-                />
-                <CustomButton
-                  containerStyles="app__btn_orange"
-                  isDisabled={downloading}
-                  title={`Mark Selected as Pending (${selectedItems.length})`}
-                  btnType="button"
-                  handleClick={handlePendingSelected}
-                />
+          {/* Toolbar: bulk actions for the selected rows + exports */}
+          <div className="mx-4 mb-3 flex flex-wrap items-center gap-2">
+            {selectedItems.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1.5 dark:border-blue-900 dark:bg-blue-950/30">
+                <span className="px-1 text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  {selectedItems.length} selected
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleApproveSelected}
+                  className="bg-emerald-600 text-white hover:bg-emerald-700">
+                  <CheckCircle2
+                    aria-hidden="true"
+                    className="mr-1.5 h-4 w-4"
+                  />
+                  Approve
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handlePendingSelected}>
+                  <Clock
+                    aria-hidden="true"
+                    className="mr-1.5 h-4 w-4"
+                  />
+                  Mark as Pending
+                </Button>
                 <PrintAllChecked selectedRis={selectedItems} />
-              </>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={clearSelection}>
+                  Clear selection
+                </Button>
+              </div>
+            ) : (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Select rows to approve, mark as pending or print.
+              </span>
             )}
-            <CustomButton
-              containerStyles="app__btn_blue"
-              isDisabled={downloading}
-              title={downloading ? 'Downloading...' : 'Export to Excel'}
-              btnType="button"
-              handleClick={handleDownloadExcel}
-              // handleClick={handleDownloadPDF}
-            />
-            <CustomButton
-              containerStyles="app__btn_blue"
-              isDisabled={downloading}
-              title={downloading ? 'Downloading...' : 'Summary by Vehicle'}
-              btnType="button"
-              // handleClick={handleDownloadExcel}
-              handleClick={handleDownloadPDF}
-            />
-            <CustomButton
-              containerStyles="app__btn_blue"
-              isDisabled={downloading}
-              title={downloading ? 'Downloading...' : 'Summary by Department'}
-              btnType="button"
-              // handleClick={handleDownloadExcel}
-              handleClick={() => setShowDepartmentModal(true)}
-            />
+            <div className="ml-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={downloading}>
+                    {downloading ? (
+                      <Loader2
+                        aria-hidden="true"
+                        className="mr-1.5 h-4 w-4 animate-spin"
+                      />
+                    ) : (
+                      <Download
+                        aria-hidden="true"
+                        className="mr-1.5 h-4 w-4"
+                      />
+                    )}
+                    {downloading ? 'Preparing…' : 'Export'}
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="ml-1.5 h-4 w-4"
+                    />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => void handleDownloadExcel()}>
+                    <FileSpreadsheet
+                      aria-hidden="true"
+                      className="mr-2 h-4 w-4"
+                    />
+                    Excel list
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => void handleDownloadPDF()}>
+                    <FileText
+                      aria-hidden="true"
+                      className="mr-2 h-4 w-4"
+                    />
+                    Summary by Vehicle (PDF)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => setShowDepartmentModal(true)}>
+                    <FileText
+                      aria-hidden="true"
+                      className="mr-2 h-4 w-4"
+                    />
+                    Summary by Department (PDF)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             <DepartmentModal
               isOpen={showDepartmentModal}
               onClose={() => setShowDepartmentModal(false)}
@@ -1287,129 +1415,78 @@ const Page: React.FC = () => {
             <table className="app__table">
               <thead className="app__thead">
                 <tr>
-                  <th className="hidden md:table-cell app__th">
+                  <th className="hidden md:table-cell app__th w-10">
                     <input
                       type="checkbox"
+                      aria-label="Select all rows"
+                      className="h-4 w-4 cursor-pointer accent-emerald-600"
                       checked={checkAll}
                       onChange={handleCheckAllChange}
                     />
                   </th>
                   <th className="hidden md:table-cell app__th">RIS #</th>
                   <th className="app__th">Details</th>
-                  <th className="app__th"></th>
+                  <th className="app__th">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {!isDataEmpty &&
-                  list.map((item: RisTypes, index: number) => (
-                    <tr
-                      key={index}
-                      onClick={() => handleCheckboxChange(item.id.toString())}
-                      className="app__tr cursor-pointer">
-                      <td className="hidden md:table-cell app__td">
-                        <input
-                          type="checkbox"
-                          value={item.id.toString()}
-                          checked={selectedIds.includes(item.id.toString())}
-                          readOnly
-                        />
-                      </td>
-                      <td className="hidden md:table-cell app__td">
-                        <div className="font-medium">{item.id}</div>
-                      </td>
-                      <td className="app__td">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          <div className="md:hidden">
-                            <span className="font-light">RIS No:</span>{' '}
-                            <span className="font-medium">{item.id}</span>
+                  list.map((item: RisTypes, index: number) => {
+                    const isSelected = selectedIds.includes(item.id.toString())
+                    return (
+                      <tr
+                        key={index}
+                        onClick={() =>
+                          handleCheckboxChange(item.id.toString())
+                        }
+                        className={`app__tr cursor-pointer transition-colors ${
+                          isSelected
+                            ? '!bg-blue-50 dark:!bg-blue-950/30'
+                            : ''
+                        }`}>
+                        <td className="hidden md:table-cell app__td align-top pt-3">
+                          <input
+                            type="checkbox"
+                            aria-label={`Select R.I.S. ${item.id}`}
+                            className="h-4 w-4 cursor-pointer accent-emerald-600"
+                            value={item.id.toString()}
+                            checked={isSelected}
+                            readOnly
+                          />
+                        </td>
+                        <td className="hidden md:table-cell app__td align-top pt-3">
+                          <div className="font-semibold text-gray-900 dark:text-gray-100">
+                            {item.id}
                           </div>
-                          <div>
-                            <span className="font-light">Type:</span>{' '}
-                            <span className="font-medium">{item.type}</span>
-                          </div>
-                          <div>
-                            <span className="font-light">Status:</span>{' '}
+                        </td>
+                        <td className="app__td py-2.5">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-gray-900 md:hidden dark:text-gray-100">
+                              #{item.id}
+                            </span>
                             <span
-                              className={`font-medium uppercase ${
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                                 item.status === 'Pending'
-                                  ? ' text-red-500'
-                                  : 'text-green-500'
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300'
+                                  : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300'
                               }`}>
                               {item.status}
                             </span>
                             {item.is_locked && (
-                              <span className="ml-1 text-xs font-medium text-gray-500">
-                                (Locked)
+                              <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                <Lock
+                                  aria-hidden="true"
+                                  className="h-3 w-3"
+                                />
+                                Locked
                               </span>
                             )}
-                          </div>
-                          <div>
-                            <span className="font-light">
-                              Transaction Type:
-                            </span>{' '}
-                            <span className="font-medium">
-                              {item.transaction_type}
+                            <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                              ₱{formatListAmount(getRisAmount(item))}
                             </span>
-                            {' - '}
-                            {item.transaction_type === 'Cash Advance' && (
-                              <span className="font-medium">
-                                {item.cash_advance?.ca_number}
-                              </span>
-                            )}
-                            {item.transaction_type === 'Purchase Order' && (
-                              <span className="font-medium">
-                                {item.purchase_order?.po_number}
-                              </span>
-                            )}
-                          </div>
-
-                          <div>
-                            <span className="font-light">Quantity (L):</span>{' '}
-                            <span className="font-medium">{item.quantity}</span>
-                          </div>
-                          <div>
-                            <span className="font-light">
-                              Starting Balance (L):
-                            </span>{' '}
-                            <span className="font-medium">
-                              {item.starting_balance}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-light">Requester:</span>{' '}
-                            <span className="font-medium">
-                              {item.requester}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-light">Price /L:</span>{' '}
-                            <span className="font-medium">
-                              {formatListAmount(Number(item.price ?? 0))}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-light">Total Amount:</span>{' '}
-                            <span className="font-medium">
-                              ₱
-                              {formatListAmount(getRisAmount(item))}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-light">Vehicle:</span>{' '}
-                            <span className="font-medium">
-                              {item.vehicle?.name} -{' '}
-                              {item.vehicle?.plate_number}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-light">Department:</span>{' '}
-                            <span className="font-medium">
-                              {item.department?.name}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-light">Date Requested:</span>{' '}
-                            <span className="font-medium">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
                               {item.date_requested &&
                                 format(
                                   new Date(item.date_requested),
@@ -1417,37 +1494,67 @@ const Page: React.FC = () => {
                                 )}
                             </span>
                           </div>
-                          <div className="flex items-start space-x-1">
-                            <span className="font-light">Purpose:</span>{' '}
-                            <span className="font-medium">{item.purpose}</span>
-                          </div>
-                          <div className="flex items-start space-x-1">
-                            <span className="font-light">Destination:</span>{' '}
-                            <span className="font-medium">
-                              {item.destination}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="app__td">
-                        <div className="flex space-x-2 items-center">
-                          <button
-                            onClick={() => handleEdit(item)}
-                            className="app__btn_green_xs">
-                            Edit
-                          </button>
-                          {/* <button
-                            onClick={() => {
-                              setSelectedId(item.id.toString())
-                              setShowDeleteModal(true)
-                            }}
-                            className="app__btn_red_xs">
-                            Delete
-                          </button> */}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                          <dl className="grid grid-cols-1 gap-x-6 gap-y-1 md:grid-cols-2 xl:grid-cols-3">
+                            {[
+                              ['Type', item.type],
+                              [
+                                'Allocation',
+                                item.transaction_type === 'Cash Advance'
+                                  ? `C.A. ${item.cash_advance?.ca_number ?? ''}`
+                                  : item.purchase_order?.po_number,
+                              ],
+                              ['Department', item.department?.name],
+                              ['Requester', item.requester],
+                              [
+                                'Vehicle',
+                                item.vehicle
+                                  ? `${item.vehicle.name} - ${item.vehicle.plate_number}`
+                                  : '',
+                              ],
+                              [
+                                'Quantity',
+                                `${item.quantity} L @ ₱${formatListAmount(
+                                  Number(item.price ?? 0),
+                                )}/L`,
+                              ],
+                              ['Starting Balance', `${item.starting_balance} L`],
+                              ['Purpose', item.purpose],
+                              ['Destination', item.destination],
+                            ].map(([label, value]) => (
+                              <div
+                                key={label}
+                                className="flex min-w-0 gap-1.5">
+                                <dt className="shrink-0 text-gray-500 dark:text-gray-400">
+                                  {label}:
+                                </dt>
+                                <dd className="min-w-0 font-medium text-gray-800 dark:text-gray-200">
+                                  {value || '—'}
+                                </dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </td>
+                        <td className="app__td align-top pt-2.5">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            aria-label={`Edit R.I.S. ${item.id}`}
+                            onClick={(e) => {
+                              // Don't toggle the row selection too
+                              e.stopPropagation()
+                              handleEdit(item)
+                            }}>
+                            <Pencil
+                              aria-hidden="true"
+                              className="h-3.5 w-3.5 md:mr-1.5"
+                            />
+                            <span className="hidden md:inline">Edit</span>
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 {loading && (
                   <TableRowLoading
                     cols={3}
@@ -1457,7 +1564,18 @@ const Page: React.FC = () => {
               </tbody>
             </table>
             {!loading && isDataEmpty && (
-              <div className="app__norecordsfound">No records found.</div>
+              <div className="flex flex-col items-center gap-1 px-4 py-10 text-center">
+                <Inbox
+                  aria-hidden="true"
+                  className="h-8 w-8 text-gray-300"
+                />
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  No R.I.S. found
+                </div>
+                <div className="text-xs text-gray-500">
+                  Try adjusting or clearing the filters.
+                </div>
+              </div>
             )}
           </div>
 
