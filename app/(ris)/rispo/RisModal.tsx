@@ -34,7 +34,7 @@ export default function RisModal({ hideModal, po }: ModalProps) {
     worksheet.columns = [
       { header: '#', key: 'no', width: 20 },
       { header: 'Date Requested', key: 'date', width: 20 },
-      { header: 'PO', key: 'po', width: 20 },
+      { header: 'Department Allocation', key: 'po', width: 20 },
       { header: 'Purpose', key: 'purpose', width: 20 },
       { header: 'Requester', key: 'requester', width: 20 },
       { header: 'Type', key: 'type', width: 20 },
@@ -75,7 +75,7 @@ export default function RisModal({ hideModal, po }: ModalProps) {
       const blob = new Blob([buffer], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       })
-      saveAs(blob, `PO-${po.po_number}.xlsx`)
+      saveAs(blob, `Department-Allocation-${po.po_number}.xlsx`)
     })
     setDownloading(false)
   }
@@ -117,7 +117,7 @@ export default function RisModal({ hideModal, po }: ModalProps) {
         <div className="app__modal_wrapper3">
           <div className="app__modal_header">
             <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
-              P.O. #: {po.po_number}
+              Dept. Allocation #: {po.po_number}
             </h5>
             <div className="flex space-x-2">
               {list.length > 0 && (

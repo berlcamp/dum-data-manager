@@ -333,7 +333,7 @@ const Filters = ({
                 name="purchase_order"
                 render={({ field }) => (
                   <FormItem className="w-[140px]">
-                    <FormLabel className="app__form_label">P.O.</FormLabel>
+                    <FormLabel className="app__form_label">Department Allocation</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value != null ? field.value.toString() : ''}>
@@ -345,7 +345,7 @@ const Filters = ({
                       <SelectContent>
                         {filteredPurchaseOrders.length === 0 && (
                           <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                            No P.O. for this appropriation
+                            No Department Allocation for this appropriation
                           </div>
                         )}
                         {filteredPurchaseOrders.map((a, i) => (

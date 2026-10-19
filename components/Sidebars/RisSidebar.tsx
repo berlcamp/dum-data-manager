@@ -57,7 +57,7 @@ export default function RisSidebar() {
                   currentRoute === '/rispo' ? 'app_menu_link_active' : ''
                 }`}>
                 <span className="flex-1 ml-3 whitespace-nowrap">
-                  Purchase Orders
+                  Department Allocations
                 </span>
               </Link>
             </li>

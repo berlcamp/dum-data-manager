@@ -63,7 +63,7 @@ export const buildHistoryPdf = ({
       { text: 'Vehicle', style: 'tableHeader' },
       { text: 'Destination', style: 'tableHeader' },
       { text: 'Type', style: 'tableHeader' },
-      { text: 'PO Allocated Amount', style: 'tableHeader' },
+      { text: 'Allocated Amount', style: 'tableHeader' },
       { text: 'Qty (L)', style: 'tableHeader' },
       { text: 'Price', style: 'tableHeader' },
       { text: 'Amount', style: 'tableHeader' },
@@ -109,7 +109,7 @@ export const buildHistoryPdf = ({
   const subHeader = [
     `Code: ${code}`,
     department ? `Department: ${department}` : '',
-    poNumber ? `P.O.: ${poNumber}` : '',
+    poNumber ? `Department Allocation: ${poNumber}` : '',
   ]
     .filter(Boolean)
     .join('   •   ')
@@ -122,7 +122,7 @@ export const buildHistoryPdf = ({
       { text: subHeader, style: 'subHeader' },
       items.length === 0
         ? {
-            text: 'No approved fuel requests yet for this P.O.',
+            text: 'No approved fuel requests yet for this Department Allocation.',
             margin: [0, 10, 0, 0],
           }
         : {

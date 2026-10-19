@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
 
   if (!po || !balance) {
     return NextResponse.json({
-      error_message: 'This code is not linked to a P.O. Please contact MMO.',
+      error_message: 'This code is not linked to a Department Allocation. Please contact MMO.',
     })
   }
 
@@ -73,14 +73,14 @@ export async function POST(req: NextRequest) {
     po.type === 'Fuel' ? ['Diesel', 'Gasoline'] : [po.type as string]
   if (!allowedTypes.includes(payload.type)) {
     return NextResponse.json({
-      error_message: `This P.O. does not cover ${payload.type}.`,
+      error_message: `This Department Allocation does not cover ${payload.type}.`,
     })
   }
 
   if (balance.depleted && !balance.allowOverconsumed) {
     return NextResponse.json({
       error_message:
-        'This P.O. no longer has a remaining balance. You can no longer submit a fuel request using this code.',
+        'This Department Allocation no longer has a remaining balance. You can no longer submit a fuel request using this code.',
     })
   }
 

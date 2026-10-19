@@ -36,7 +36,7 @@ import { generateRandomAlphaNumber } from '@/utils/text-helper'
 
 const FormSchema = z.object({
   po_id: z.string().min(1, {
-    message: 'P.O. is required.',
+    message: 'Department Allocation is required.',
   }),
   department_id: z.string().min(1, {
     message: 'Department is required.',
@@ -295,7 +295,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="app__form_label">
-                            P.O.
+                            Department Allocation
                           </FormLabel>
                           <Select
                             onValueChange={field.onChange}
@@ -304,7 +304,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             }>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Choose P.O." />
+                                <SelectValue placeholder="Choose Department Allocation" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>

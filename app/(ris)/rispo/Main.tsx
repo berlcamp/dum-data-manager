@@ -336,7 +336,7 @@ const Page: React.FC = () => {
     worksheet.columns = [
       { header: '#', key: 'no', width: 20 },
       { header: 'Date', key: 'date', width: 20 },
-      { header: 'PO', key: 'po', width: 20 },
+      { header: 'Department Allocation', key: 'po', width: 20 },
       { header: 'Supplier', key: 'supplier', width: 24 },
       { header: 'Description', key: 'description', width: 20 },
       { header: 'Type', key: 'type', width: 20 },
@@ -460,10 +460,10 @@ const Page: React.FC = () => {
           {/* Header */}
           <TopBar />
           <div className="app__title">
-            <Title title="Purchase Orders" />
+            <Title title="Department Allocations" />
             <CustomButton
               containerStyles="app__btn_green"
-              title="Add New PO"
+              title="Add New Department Allocation"
               btnType="button"
               handleClick={handleAdd}
             />
@@ -502,7 +502,7 @@ const Page: React.FC = () => {
             <table className="app__table">
               <thead className="app__thead">
                 <tr>
-                  <th className="hidden md:table-cell app__th">PO #</th>
+                  <th className="hidden md:table-cell app__th">Dept. Allocation #</th>
                   <th className="app__th">Details</th>
                   <th className="app__th"></th>
                 </tr>
@@ -519,7 +519,7 @@ const Page: React.FC = () => {
                       <td className="app__td">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           <div className="md:hidden">
-                            <span className="font-light">PO #:</span>{' '}
+                            <span className="font-light">Dept. Allocation #:</span>{' '}
                             <span className="font-medium">
                               {item.po_number}
                             </span>
@@ -699,7 +699,7 @@ const Page: React.FC = () => {
             <ConfirmModal
               header="Confirm delete"
               btnText="Delete"
-              message={`Delete PO ${itemToDelete.po_number}? This cannot be undone.`}
+              message={`Delete Department Allocation ${itemToDelete.po_number}? This cannot be undone.`}
               onConfirm={handleConfirmDelete}
               onCancel={() => {
                 setShowDeleteModal(false)

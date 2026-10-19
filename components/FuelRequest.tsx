@@ -284,7 +284,7 @@ export default function FuelRequest() {
                   {selectedItem.purchase_order?.po_number && (
                     <div className="flex items-center space-x-2">
                       <div className="text-sm font-medium text-gray-600">
-                        P.O.:{' '}
+                        Department Allocation:{' '}
                       </div>
                       <div className="text-base text-gray-700 font-bold">
                         {selectedItem.purchase_order.po_number}
@@ -340,7 +340,7 @@ export default function FuelRequest() {
                     No Remaining Balance
                   </div>
                   <div className="text-sm text-red-700">
-                    This P.O. has already used up its full allocation, so fuel
+                    This Department Allocation has already used up its full allocation, so fuel
                     requests can no longer be submitted with this code. Please
                     contact your department head or MMO.
                   </div>

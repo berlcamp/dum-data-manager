@@ -341,7 +341,7 @@ const Page: React.FC = () => {
                 </div>
                 <div>
                   <div className="mx-4 mt-10 text-lg">
-                    Liters Consumed By P.O.
+                    Liters Consumed By Department Allocation
                   </div>
                   <div className="mx-4 mt-2 bg-slate-100">
                     <div className="p-4 mx-auto w-full border">

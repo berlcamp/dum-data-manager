@@ -38,7 +38,7 @@ const MainMenu: React.FC = () => {
                       Fuel Requisition & Issue Slip
                     </div>
                     <div className="app__menu_item_label_description">
-                      Fuel P.O. / Requisition & Issue Slip
+                      Department Allocation / Requisition & Issue Slip
                     </div>
                   </div>
                 </div>

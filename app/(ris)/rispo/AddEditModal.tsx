@@ -54,7 +54,7 @@ const FormSchema = z.object({
     message: 'Type is required.',
   }),
   po_number: z.string().min(1, {
-    message: 'PO No is required.',
+    message: 'Department Allocation No. is required.',
   }),
   appropriation: z.string().min(1, {
     message: 'Appropriation No is required.',
@@ -92,7 +92,7 @@ const FormSchema = z.object({
       invalid_type_error: 'Oil and Lubricants price is required..',
     }),
   po_date: z.date({
-    required_error: 'PO Date is required.',
+    required_error: 'Department Allocation Date is required.',
   }),
   allow_overconsumed: z.boolean(),
 })
@@ -365,7 +365,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         <div className="app__modal_wrapper3">
           <div className="app__modal_header">
             <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
-              P.O. Details
+              Department Allocation Details
             </h5>
             <CustomButton
               containerStyles="app__btn_gray"
@@ -386,7 +386,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                       render={({ field }) => (
                         <FormItem className="flex flex-col space-y-3">
                           <FormLabel className="app__form_label">
-                            P.O. Date
+                            Department Allocation Date
                           </FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
@@ -430,11 +430,11 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="app__form_label">
-                            P.O. Number
+                            Department Allocation No.
                           </FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="P.O. Number"
+                              placeholder="Department Allocation No."
                               {...field}
                             />
                           </FormControl>
@@ -699,7 +699,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="app__form_label">
-                            Over-consumed PO
+                            Over-consumed Department Allocation
                           </FormLabel>
                           <Select
                             onValueChange={(value) =>
@@ -718,7 +718,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             </SelectContent>
                           </Select>
                           <p className="text-xs text-muted-foreground">
-                            When allowed, this PO stays selectable even when
+                            When allowed, this Department Allocation stays selectable even when
                             fully consumed or over-consumed.
                           </p>
                           <FormMessage />

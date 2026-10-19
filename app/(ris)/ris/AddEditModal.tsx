@@ -426,7 +426,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       formdata.transaction_type === 'Purchase Order' &&
       formdata.po_id === ''
     ) {
-      setErrorMessage('Please select P.O.')
+      setErrorMessage('Please select Department Allocation.')
       return
     }
     setErrorMessage('')
@@ -438,7 +438,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       )
       if (!po) {
         setErrorMessage(
-          'This P.O. is over-consumed and no longer available. Please select a different P.O.',
+          'This Department Allocation is over-consumed and no longer available. Please select a different Department Allocation.',
         )
         return
       }
@@ -468,7 +468,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
             Number(po.amount) - totalAmountUsed + currentAmount
           if (totalAmount > available) {
             setErrorMessage(
-              `Amount exceeds available (₱${available.toFixed(2)}). Over-consumption is not allowed for this P.O.`,
+              `Amount exceeds available (₱${available.toFixed(2)}). Over-consumption is not allowed for this Department Allocation.`,
             )
             return
           }
@@ -495,7 +495,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
           const quantity = formdata.quantity || 0
           if (quantity > available) {
             setErrorMessage(
-              `Quantity exceeds available (${available.toFixed(2)} Liters). Over-consumption is not allowed for this P.O.`,
+              `Quantity exceeds available (${available.toFixed(2)} Liters). Over-consumption is not allowed for this Department Allocation.`,
             )
             return
           }
@@ -890,7 +890,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
             {/* Wizard steps */}
             <div className="mb-5 flex items-center gap-3">
               {[
-                { n: 1, label: 'Appropriation & P.O.' },
+                { n: 1, label: 'Appropriation & Department Allocation' },
                 { n: 2, label: 'R.I.S. Details' },
               ].map((s, idx) => (
                 <div
@@ -946,18 +946,18 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                     </SelectContent>
                   </Select>
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Choose an appropriation to see the Purchase Orders under it.
+                    Choose an appropriation to see the Department Allocations under it.
                   </p>
                 </div>
 
                 {selectedAppropriation !== '' && (
                   <div>
-                    <div className="app__form_label">Purchase Order</div>
+                    <div className="app__form_label">Department Allocation</div>
                     {purchaseOrdersForAppropriation.length === 0 ? (
                       <div className="mt-1 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-400">
                         <AlertCircle className="h-4 w-4" />
                         <span>
-                          No available Purchase Order under this appropriation.
+                          No available Department Allocation under this appropriation.
                         </span>
                       </div>
                     ) : (
@@ -968,13 +968,13 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             type="text"
                             value={poSearch}
                             onChange={(e) => setPoSearch(e.target.value)}
-                            placeholder="Search P.O. number, department, type or description"
+                            placeholder="Search allocation number, department, type or description"
                             className="pl-9"
                           />
                         </div>
                         {filteredPurchaseOrders.length === 0 ? (
                           <div className="mt-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                            No Purchase Order matches &quot;{poSearch}&quot;.
+                            No Department Allocation matches &quot;{poSearch}&quot;.
                           </div>
                         ) : (
                           <div className="mt-2 max-h-72 space-y-2 overflow-y-auto pr-1">
@@ -998,7 +998,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
                                       <div className="font-semibold text-gray-800 dark:text-gray-200">
-                                        P.O. {po.po_number}
+                                        Dept. Allocation {po.po_number}
                                       </div>
                                       <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                                         {po.department?.name
@@ -1064,7 +1064,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                       </div>
                       <div>
                         <span className="text-gray-500 dark:text-gray-400">
-                          Purchase Order:{' '}
+                          Department Allocation:{' '}
                         </span>
                         <span className="font-semibold text-gray-800 dark:text-gray-200">
                           {selectedPO

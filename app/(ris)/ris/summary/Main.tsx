@@ -260,10 +260,10 @@ const Page: React.FC = () => {
   const exportPoExcel = async () => {
     setDownloadingPo(true)
     const workbook = new Excel.Workbook()
-    const worksheet = workbook.addWorksheet('By PO')
+    const worksheet = workbook.addWorksheet('By Department Allocation')
     worksheet.columns = [
       { header: '#', key: 'no', width: 8 },
-      { header: 'PO Number', key: 'poNumber', width: 18 },
+      { header: 'Department Allocation No.', key: 'poNumber', width: 18 },
       { header: 'Appropriation', key: 'appropriation', width: 20 },
       { header: 'Department', key: 'department', width: 22 },
       { header: 'Gasoline (L)', key: 'gasoline', width: 15 },
@@ -423,7 +423,7 @@ const Page: React.FC = () => {
                   {/* PO Summary Table */}
                   <Card className="mx-4">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle>Summary by Purchase Order</CardTitle>
+                      <CardTitle>Summary by Department Allocation</CardTitle>
                       <CustomButton
                         containerStyles="app__btn_green"
                         title={
@@ -440,7 +440,7 @@ const Page: React.FC = () => {
                           <thead className="app__thead">
                             <tr>
                               <th className="app__th w-12">#</th>
-                              <th className="app__th">PO</th>
+                              <th className="app__th">Department Allocation</th>
                               <th className="app__th">Appropriation</th>
                               <th className="app__th">Department</th>
                               <th className="app__th text-right">

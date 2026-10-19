@@ -203,8 +203,8 @@ const Page: React.FC = () => {
                 <tr>
                   <th className="app__th">Code</th>
                   <th className="app__th">Department</th>
-                  <th className="app__th">P.O.</th>
-                  <th className="app__th">P.O. Type</th>
+                  <th className="app__th">Department Allocation</th>
+                  <th className="app__th">Allocation Type</th>
                   <th className="app__th">Status</th>
                   <th className="app__th"></th>
                 </tr>

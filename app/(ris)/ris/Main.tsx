@@ -285,7 +285,7 @@ const Page: React.FC = () => {
       { header: 'Quantity', key: 'quantity', width: 20 },
       { header: 'Price', key: 'price', width: 20 },
       { header: 'Total Amount', key: 'total_amount', width: 20 },
-      { header: 'PO', key: 'po', width: 20 },
+      { header: 'Department Allocation', key: 'po', width: 20 },
       { header: 'Requester', key: 'requester', width: 20 },
       { header: 'Department', key: 'department', width: 20 },
       // Add more columns based on your data structure
@@ -1161,7 +1161,7 @@ const Page: React.FC = () => {
             <div className="mx-4 mb-4">
               <div className="bg-white rounded-lg shadow-md p-2 border border-gray-200">
                 <div className="text-xs text-gray-600 mb-1.5 font-semibold">
-                  Purchase Orders - Remaining Amounts
+                  Department Allocations - Remaining Amounts
                 </div>
                 <div className="space-y-0.5 max-h-40 overflow-y-auto">
                   {poWidgetData.length > 0 ? (
@@ -1184,7 +1184,7 @@ const Page: React.FC = () => {
                           <div className="flex gap-3 text-right shrink-0 ml-2">
                             <div>
                               <div className="text-[10px] text-gray-500">
-                                PO Amount
+                                Allocated Amount
                               </div>
                               <div className="font-bold text-gray-800 text-xs">
                                 ₱
@@ -1211,7 +1211,7 @@ const Page: React.FC = () => {
                     })
                   ) : (
                     <div className="text-gray-500 text-xs py-1">
-                      No Purchase Orders found
+                      No Department Allocations found
                     </div>
                   )}
                 </div>

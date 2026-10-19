@@ -208,7 +208,7 @@ const Filters = ({
                 name="purchase_order"
                 render={({ field }) => (
                   <FormItem className="w-[140px]">
-                    <FormLabel className="app__form_label">P.O.</FormLabel>
+                    <FormLabel className="app__form_label">Department Allocation</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value?.toString()}

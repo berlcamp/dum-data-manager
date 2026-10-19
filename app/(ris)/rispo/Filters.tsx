@@ -85,10 +85,10 @@ const Filters = ({
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel className="app__form_label">
-                      Search P.O.
+                      Search Department Allocation
                     </FormLabel>
                     <Input
-                      placeholder="P.O. Number / Description"
+                      placeholder="Department Allocation No. / Description"
                       {...field}
                     />
                   </FormItem>
