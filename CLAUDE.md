@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Live database — read-only for Claude
+
+The Supabase project in `.env.local` is the **live, shared production project** (other apps and users depend on it). Claude must **never** reset, update, insert into, delete from, truncate, drop, migrate, or otherwise modify it — not via the Supabase MCP tools (`execute_sql` writes, `apply_migration`, `reset_branch`, `pause_project`, etc.), not via scripts/curl with the service role key, and not by running the app against it to "test" a write. Read-only `SELECT` queries for investigation are fine. If a change to data or schema is needed, write the SQL (e.g. a file in `supabase/migrations/`) and hand it to the user to apply.
+
 ## Commands
 
 ```bash
