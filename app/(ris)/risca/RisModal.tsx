@@ -1,5 +1,13 @@
 'use client'
-import { CustomButton, TwoColTableLoading } from '@/components/index'
+import { TwoColTableLoading } from '@/components/index'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { RisCaTypes, RisTypes } from '@/types'
 import { formatRisAmount, getRisAmount, toRisFixed } from '@/utils/ris-helper'
@@ -7,7 +15,8 @@ import { format } from 'date-fns'
 // Redux imports
 import Excel from 'exceljs'
 import { saveAs } from 'file-saver'
-import { useEffect, useRef, useState } from 'react'
+import { FileSpreadsheet, Inbox, Loader2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 interface ModalProps {
   hideModal: () => void
@@ -20,8 +29,6 @@ export default function RisModal({ hideModal, ca }: ModalProps) {
   const [downloading, setDownloading] = useState(false)
 
   const { supabase } = useSupabase()
-
-  const wrapperRef = useRef<HTMLDivElement>(null)
 
   const handleDownloadExcel = async () => {
     setDownloading(true)
@@ -76,19 +83,6 @@ export default function RisModal({ hideModal, ca }: ModalProps) {
     setDownloading(false)
   }
 
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') {
-      hideModal()
-    }
-  }
-
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [wrapperRef])
-
   useEffect(() => {
     // fetch RIS list
     ;(async () => {
@@ -98,94 +92,121 @@ export default function RisModal({ hideModal, ca }: ModalProps) {
         .select('*, vehicle:vehicle_id(*), department:department_id(*)')
         .eq('ca_id', ca.id)
         .eq('is_deleted', false)
-      setList(data)
+      setList(data ?? [])
       setLoading(false)
     })()
   }, [])
 
   return (
-    <div
-      ref={wrapperRef}
-      className="app__modal_wrapper">
-      <div className="app__modal_wrapper2_large">
-        <div className="app__modal_wrapper3">
-          <div className="app__modal_header">
-            <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
-              C.A. #: {ca.ca_number}
-            </h5>
-            <div className="flex space-x-2">
-              {list.length > 0 && (
-                <CustomButton
-                  containerStyles="app__btn_blue"
-                  title={downloading ? 'Downloading' : 'Export to Excel'}
-                  btnType="button"
-                  handleClick={handleDownloadExcel}
-                />
-              )}
-              <CustomButton
-                containerStyles="app__btn_gray"
-                title="Close"
-                btnType="button"
-                handleClick={hideModal}
-              />
+    <Dialog
+      open
+      onOpenChange={(open) => !open && hideModal()}>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-4xl dark:border-gray-700 dark:bg-gray-900">
+        <DialogHeader className="border-b border-gray-200 px-5 py-4 pr-12 dark:border-gray-700">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <DialogTitle className="text-gray-900 dark:text-gray-100">
+                R.I.S. charged to C.A. {ca.ca_number}
+              </DialogTitle>
+              <DialogDescription className="mt-1 text-xs tabular-nums">
+                C.A. amount: ₱{formatRisAmount(Number(ca.amount ?? 0))}
+                {ca.ca_date &&
+                  ` · ${format(new Date(ca.ca_date), 'MMMM dd, yyyy')}`}
+              </DialogDescription>
             </div>
-          </div>
-
-          <div className="app__modal_body">
-            {loading && <TwoColTableLoading />}
-            {!loading && list.length == 0 && (
-              <div className="my-10 text-center">No R.I.S. records found.</div>
-            )}
             {list.length > 0 && (
-              <table className="app__table">
-                <thead className="app__thead">
-                  <tr>
-                    <th className="app__th">Date</th>
-                    <th className="app__th">Vehicle</th>
-                    <th className="app__th">Quantity</th>
-                    <th className="app__th">Price</th>
-                    <th className="app__th">Amount</th>
-                    <th className="app__th">Requester</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {list.map((item, index: number) => (
-                    <tr
-                      key={index}
-                      className="app__tr">
-                      <td className="app__td">
-                        <div className="flex items-center space-x-2 whitespace-nowrap uppercase">
-                          <span className="text-lg">
-                            {format(new Date(item.date_requested), 'dd')}
-                          </span>
-                          <span>
-                            {format(new Date(item.date_requested), 'MMM yyyy')}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="app__td">
-                        {item.vehicle?.name}-{item.vehicle?.plate_number}
-                      </td>
-                      <td className="app__td">
-                        <div>{toRisFixed(item.quantity)} Liters</div>
-                      </td>
-                      <td className="app__td whitespace-nowrap">
-                        {formatRisAmount(Number(item.price ?? 0))} per Liter
-                      </td>
-                      <td className="app__td">
-                        {formatRisAmount(getRisAmount(item))}
-                      </td>
-                      <td className="app__td">
-                        {item.requester} / {item.department?.name}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={downloading}
+                onClick={() => void handleDownloadExcel()}>
+                {downloading ? (
+                  <Loader2
+                    aria-hidden="true"
+                    className="mr-1.5 h-4 w-4 animate-spin"
+                  />
+                ) : (
+                  <FileSpreadsheet
+                    aria-hidden="true"
+                    className="mr-1.5 h-4 w-4"
+                  />
+                )}
+                {downloading ? 'Preparing…' : 'Export to Excel'}
+              </Button>
             )}
           </div>
+        </DialogHeader>
+
+        <div className="min-h-0 flex-1 overflow-auto">
+          {loading && <TwoColTableLoading />}
+          {!loading && list.length == 0 && (
+            <div className="flex flex-col items-center gap-1 px-4 py-10 text-center">
+              <Inbox
+                aria-hidden="true"
+                className="h-8 w-8 text-gray-300"
+              />
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                No R.I.S. found
+              </div>
+              <div className="text-xs text-gray-500">
+                No R.I.S. has been charged to this C.A. yet.
+              </div>
+            </div>
+          )}
+          {!loading && list.length > 0 && (
+            <table className="app__table">
+              <thead className="app__thead">
+                <tr>
+                  <th className="app__th">Date</th>
+                  <th className="app__th">Vehicle</th>
+                  <th className="app__th text-right">Quantity</th>
+                  <th className="app__th text-right">Price</th>
+                  <th className="app__th text-right">Amount</th>
+                  <th className="app__th">Requester</th>
+                </tr>
+              </thead>
+              <tbody>
+                {list.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="app__tr">
+                    <td className="app__td whitespace-nowrap">
+                      {item.date_requested
+                        ? format(new Date(item.date_requested), 'MMM dd, yyyy')
+                        : '—'}
+                    </td>
+                    <td className="app__td">
+                      {item.vehicle
+                        ? `${item.vehicle.name} - ${item.vehicle.plate_number}`
+                        : '—'}
+                    </td>
+                    <td className="app__td whitespace-nowrap text-right tabular-nums">
+                      {toRisFixed(item.quantity)} L
+                    </td>
+                    <td className="app__td whitespace-nowrap text-right tabular-nums">
+                      ₱{formatRisAmount(Number(item.price ?? 0))}/L
+                    </td>
+                    <td className="app__td whitespace-nowrap text-right font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                      ₱{formatRisAmount(getRisAmount(item))}
+                    </td>
+                    <td className="app__td">
+                      <div className="font-medium text-gray-800 dark:text-gray-200">
+                        {item.requester || '—'}
+                      </div>
+                      {item.department?.name && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {item.department.name}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -1,5 +1,4 @@
 'use client'
-import { CustomButton } from '@/components/index'
 import {
   Form,
   FormControl,
@@ -44,7 +43,7 @@ import type {
   RisPoTypes,
 } from '@/types'
 import { format } from 'date-fns'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, Loader2, X } from 'lucide-react'
 
 // Allow saving even if the total amount exceeds the appropriation's remaining amount
 const ALLOW_SAVE_WHEN_EXCEEDED = true
@@ -105,8 +104,6 @@ interface ModalProps {
 export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const { setToast } = useFilter()
   const { supabase, session, systemUsers } = useSupabase()
-
-  const [fuelType, setFuelType] = useState('')
 
   const [appropriations, setAppropriations] = useState<
     RisAppropriationTypes[] | []
@@ -170,6 +167,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
         description: formdata.description,
         po_number: formdata.po_number,
         appropriation: formdata.appropriation,
+        department_id: formdata.department_id,
         supplier: formdata.supplier?.trim() || null,
         diesel_price: formdata.diesel_price,
         gasoline_price: formdata.gasoline_price,
@@ -216,6 +214,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       hideModal()
     } catch (error) {
       console.error('error', error)
+      setToast('error', 'Something went wrong. Please try again.')
     }
   }
 
@@ -295,6 +294,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       hideModal()
     } catch (error) {
       console.error('error', error)
+      setToast('error', 'Something went wrong. Please try again.')
     }
   }
 
@@ -357,34 +357,62 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     }
   }, [wrapperRef])
 
+  const selectedType = form.watch('type')
+  const isSubmitting = form.formState.isSubmitting
+  const sectionHeading =
+    'text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400'
+  const helperText = 'text-xs text-muted-foreground'
+
   return (
     <div
       ref={wrapperRef}
       className="app__modal_wrapper">
       <div className="app__modal_wrapper2_large">
         <div className="app__modal_wrapper3">
-          <div className="app__modal_header">
-            <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
-              Department Allocation Details
-            </h5>
-            <CustomButton
-              containerStyles="app__btn_gray"
-              title="Close"
-              btnType="button"
-              handleClick={hideModal}
-            />
+          <div className="flex items-start justify-between gap-3 rounded-t-md border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+            <div>
+              <h5 className="text-base font-semibold leading-normal text-gray-900 dark:text-gray-100">
+                {editData
+                  ? 'Edit Department Allocation'
+                  : 'New Department Allocation'}
+              </h5>
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                {editData
+                  ? `Dept. Allocation #: ${editData.po_number}`
+                  : 'Set the budget a department can charge R.I.S. against'}
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              aria-label="Close"
+              disabled={isSubmitting}
+              onClick={hideModal}>
+              <X
+                aria-hidden="true"
+                className="h-4 w-4"
+              />
+            </Button>
           </div>
 
-          <div className="app__modal_body">
+          <div className="relative p-4 sm:p-5">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <section
+                    aria-labelledby="dept-alloc-details"
+                    className="space-y-4">
+                    <h6
+                      id="dept-alloc-details"
+                      className={sectionHeading}>
+                      Allocation details
+                    </h6>
                     <FormField
                       control={form.control}
                       name="po_date"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col space-y-3">
+                        <FormItem className="flex flex-col">
                           <FormLabel className="app__form_label">
                             Department Allocation Date
                           </FormLabel>
@@ -394,7 +422,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                 <Button
                                   variant={'outline'}
                                   className={cn(
-                                    'pl-3 text-left font-normal',
+                                    'h-9 w-full pl-3 text-left font-normal',
                                     !field.value && 'text-muted-foreground',
                                   )}>
                                   {field.value ? (
@@ -402,7 +430,10 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                                   ) : (
                                     <span>Pick a date</span>
                                   )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  <CalendarIcon
+                                    aria-hidden="true"
+                                    className="ml-auto h-4 w-4 opacity-50"
+                                  />
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
@@ -434,7 +465,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                           </FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="Department Allocation No."
+                              placeholder="e.g. 2026-001"
+                              className="h-9"
                               {...field}
                             />
                           </FormControl>
@@ -455,21 +487,21 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             value={field.value.toString()}
                             defaultValue={field.value.toString()}>
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="h-9">
                                 <SelectValue placeholder="Choose Appropriation" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {appropriations?.map((a, i) => (
+                              {appropriations?.map((a) => (
                                 <SelectItem
-                                  key={i}
+                                  key={a.id}
                                   value={a.id.toString()}>
-                                  {a.name} ( Available Amount:{' '}
+                                  {a.name} (Available: ₱
                                   {Number(a.remaining_amount).toLocaleString(
                                     'en-US',
                                     {
-                                      minimumFractionDigits: 2, // Minimum number of decimal places
-                                      maximumFractionDigits: 2, // Maximum number of decimal places
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
                                     },
                                   )}
                                   )
@@ -477,6 +509,12 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               ))}
                             </SelectContent>
                           </Select>
+                          {!editData && (
+                            <p className={helperText}>
+                              Only appropriations with an available amount are
+                              listed.
+                            </p>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -494,14 +532,14 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             value={field.value.toString()}
                             defaultValue={field.value.toString()}>
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="h-9">
                                 <SelectValue placeholder="Choose Department" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {departments?.map((d, i) => (
+                              {departments?.map((d) => (
                                 <SelectItem
-                                  key={i}
+                                  key={d.id}
                                   value={d.id.toString()}>
                                   {d.name}
                                 </SelectItem>
@@ -512,7 +550,28 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         </FormItem>
                       )}
                     />
-
+                    <FormField
+                      control={form.control}
+                      name="supplier"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="app__form_label">
+                            Supplier{' '}
+                            <span className="font-normal text-gray-400">
+                              (optional)
+                            </span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Supplier"
+                              className="h-9"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={form.control}
                       name="description"
@@ -532,26 +591,15 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="supplier"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Supplier
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Supplier"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="space-y-6">
+                  </section>
+                  <section
+                    aria-labelledby="dept-alloc-limits"
+                    className="space-y-4">
+                    <h6
+                      id="dept-alloc-limits"
+                      className={sectionHeading}>
+                      Fuel type &amp; limits
+                    </h6>
                     <FormField
                       control={form.control}
                       name="type"
@@ -563,11 +611,10 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                           <Select
                             onValueChange={(value) => {
                               form.setValue('type', value)
-                              setFuelType(value)
                             }}
                             defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="h-9">
                                 <SelectValue placeholder="Choose Type" />
                               </SelectTrigger>
                             </FormControl>
@@ -580,24 +627,35 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               <SelectItem value="Fuel">Fuel</SelectItem>
                             </SelectContent>
                           </Select>
+                          <p className={helperText}>
+                            Fuel is tracked by amount; Gasoline, Diesel and Oil
+                            and Lubricants by liters.
+                          </p>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    {(form.getValues('type') === 'Fuel' ||
-                      form.getValues('type') === 'Gasoline') && (
+                    {!selectedType && (
+                      <div className="rounded-md border border-dashed border-gray-200 px-3 py-4 text-center text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                        Choose a type to enter prices and limits.
+                      </div>
+                    )}
+                    {(selectedType === 'Fuel' ||
+                      selectedType === 'Gasoline') && (
                       <FormField
                         control={form.control}
                         name="gasoline_price"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="app__form_label">
-                              Gasoline price per Liter
+                              Gasoline price per Liter (₱)
                             </FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
+                                inputMode="decimal"
                                 placeholder="Price per Liter"
+                                className="h-9 tabular-nums"
                                 {...field}
                               />
                             </FormControl>
@@ -606,20 +664,21 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         )}
                       />
                     )}
-                    {(form.getValues('type') === 'Fuel' ||
-                      form.getValues('type') === 'Diesel') && (
+                    {(selectedType === 'Fuel' || selectedType === 'Diesel') && (
                       <FormField
                         control={form.control}
                         name="diesel_price"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="app__form_label">
-                              Diesel price per Liter
+                              Diesel price per Liter (₱)
                             </FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
+                                inputMode="decimal"
                                 placeholder="Price per Liter"
+                                className="h-9 tabular-nums"
                                 {...field}
                               />
                             </FormControl>
@@ -628,19 +687,21 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         )}
                       />
                     )}
-                    {form.getValues('type') === 'Oil and Lubricants' && (
+                    {selectedType === 'Oil and Lubricants' && (
                       <FormField
                         control={form.control}
                         name="oil_price"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="app__form_label">
-                              Oil and Lubricants price per Liter
+                              Oil and Lubricants price per Liter (₱)
                             </FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
+                                inputMode="decimal"
                                 placeholder="Price per Liter"
+                                className="h-9 tabular-nums"
                                 {...field}
                               />
                             </FormControl>
@@ -649,9 +710,9 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                         )}
                       />
                     )}
-                    {(form.getValues('type') === 'Gasoline' ||
-                      form.getValues('type') === 'Diesel' ||
-                      form.getValues('type') === 'Oil and Lubricants') && (
+                    {(selectedType === 'Gasoline' ||
+                      selectedType === 'Diesel' ||
+                      selectedType === 'Oil and Lubricants') && (
                       <FormField
                         control={form.control}
                         name="quantity"
@@ -663,31 +724,41 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             <FormControl>
                               <Input
                                 type="number"
+                                inputMode="decimal"
                                 placeholder="Quantity"
+                                className="h-9 tabular-nums"
                                 {...field}
                               />
                             </FormControl>
+                            <p className={helperText}>
+                              Total liters this allocation covers.
+                            </p>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     )}
-                    {form.getValues('type') === 'Fuel' && (
+                    {selectedType === 'Fuel' && (
                       <FormField
                         control={form.control}
                         name="total_amount"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="app__form_label">
-                              Total Amount
+                              Total Amount (₱)
                             </FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
+                                inputMode="decimal"
                                 placeholder="Total Amount"
+                                className="h-9 tabular-nums"
                                 {...field}
                               />
                             </FormControl>
+                            <p className={helperText}>
+                              Spending limit R.I.S. can draw from.
+                            </p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -708,7 +779,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             value={field.value ? 'allow' : 'disallow'}
                             defaultValue={field.value ? 'allow' : 'disallow'}>
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="h-9">
                                 <SelectValue placeholder="Choose option" />
                               </SelectTrigger>
                             </FormControl>
@@ -717,31 +788,43 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                               <SelectItem value="disallow">Disallow</SelectItem>
                             </SelectContent>
                           </Select>
-                          <p className="text-xs text-muted-foreground">
-                            When allowed, this Department Allocation stays selectable even when
-                            fully consumed or over-consumed.
+                          <p className={helperText}>
+                            When allowed, this Department Allocation stays
+                            selectable even when fully consumed or
+                            over-consumed.
                           </p>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  </div>
+                  </section>
                 </div>
-                <hr className="my-4" />
-                <div className="app__modal_footer">
-                  <CustomButton
-                    btnType="submit"
-                    isDisabled={form.formState.isSubmitting}
-                    title={form.formState.isSubmitting ? 'Saving...' : 'Submit'}
-                    containerStyles="app__btn_green"
-                  />
-                  <CustomButton
-                    btnType="button"
-                    isDisabled={form.formState.isSubmitting}
-                    title="Cancel"
-                    handleClick={hideModal}
-                    containerStyles="app__btn_gray"
-                  />
+                <div className="mt-6 flex flex-col-reverse gap-2 border-t border-gray-200 pt-4 dark:border-gray-700 sm:flex-row sm:justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={isSubmitting}
+                    onClick={hideModal}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={isSubmitting}
+                    className="bg-emerald-600 text-white hover:bg-emerald-700">
+                    {isSubmitting && (
+                      <Loader2
+                        aria-hidden="true"
+                        className="mr-1.5 h-4 w-4 animate-spin"
+                      />
+                    )}
+                    {isSubmitting
+                      ? 'Saving…'
+                      : editData
+                        ? 'Save Changes'
+                        : 'Create Department Allocation'}
+                  </Button>
                 </div>
               </form>
             </Form>

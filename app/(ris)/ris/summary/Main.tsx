@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  CustomButton,
   RisSidebar,
   Sidebar,
   Title,
@@ -9,7 +8,7 @@ import {
   TwoColTableLoading,
   Unauthorized,
 } from '@/components/index'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
@@ -19,6 +18,16 @@ import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
 import { format } from 'date-fns'
 import Excel from 'exceljs'
 import { saveAs } from 'file-saver'
+import {
+  Droplet,
+  Droplets,
+  FileSpreadsheet,
+  FileText,
+  Fuel,
+  Inbox,
+  Loader2,
+  Wallet,
+} from 'lucide-react'
 import React, { useEffect, useMemo, useState } from 'react'
 
 import CategoriesChart from '../../rissummary/CategoriesChart'
@@ -203,6 +212,30 @@ const Page: React.FC = () => {
     )
   }, [risData])
 
+  const sumRows = (
+    rows: {
+      gasoline: number
+      diesel: number
+      oil: number
+      totalAmount: number
+    }[],
+  ) =>
+    rows.reduce(
+      (acc, r) => ({
+        gasoline: acc.gasoline + r.gasoline,
+        diesel: acc.diesel + r.diesel,
+        oil: acc.oil + r.oil,
+        totalAmount: acc.totalAmount + r.totalAmount,
+      }),
+      { gasoline: 0, diesel: 0, oil: 0, totalAmount: 0 },
+    )
+
+  const departmentTotals = useMemo(
+    () => sumRows(departmentSummary),
+    [departmentSummary],
+  )
+  const poTotals = useMemo(() => sumRows(poSummary), [poSummary])
+
   const chartDataSets = useMemo(
     () => [
       {
@@ -226,69 +259,82 @@ const Page: React.FC = () => {
 
   const exportDepartmentExcel = async () => {
     setDownloadingDept(true)
-    const workbook = new Excel.Workbook()
-    const worksheet = workbook.addWorksheet('By Department')
-    worksheet.columns = [
-      { header: '#', key: 'no', width: 8 },
-      { header: 'Department', key: 'department', width: 25 },
-      { header: 'Gasoline (L)', key: 'gasoline', width: 15 },
-      { header: 'Diesel (L)', key: 'diesel', width: 15 },
-      { header: 'Oil and Lubricants (L)', key: 'oil', width: 20 },
-      { header: 'Total Amount', key: 'totalAmount', width: 18 },
-    ]
-    departmentSummary.forEach((row, i) => {
-      worksheet.addRow({
-        no: i + 1,
-        department: row.departmentName,
-        gasoline: formatNum(row.gasoline),
-        diesel: formatNum(row.diesel),
-        oil: formatNum(row.oil),
-        totalAmount: formatCurrency(row.totalAmount),
+    try {
+      const workbook = new Excel.Workbook()
+      const worksheet = workbook.addWorksheet('By Department')
+      worksheet.columns = [
+        { header: '#', key: 'no', width: 8 },
+        { header: 'Department', key: 'department', width: 25 },
+        { header: 'Gasoline (L)', key: 'gasoline', width: 15 },
+        { header: 'Diesel (L)', key: 'diesel', width: 15 },
+        { header: 'Oil and Lubricants (L)', key: 'oil', width: 20 },
+        { header: 'Total Amount', key: 'totalAmount', width: 18 },
+      ]
+      departmentSummary.forEach((row, i) => {
+        worksheet.addRow({
+          no: i + 1,
+          department: row.departmentName,
+          gasoline: formatNum(row.gasoline),
+          diesel: formatNum(row.diesel),
+          oil: formatNum(row.oil),
+          totalAmount: formatCurrency(row.totalAmount),
+        })
       })
-    })
-    const buffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([buffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    })
-    saveAs(
-      blob,
-      `RIS_Summary_By_Department_${format(new Date(), 'yyyy-MM-dd')}.xlsx`,
-    )
-    setDownloadingDept(false)
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      saveAs(
+        blob,
+        `RIS_Summary_By_Department_${format(new Date(), 'yyyy-MM-dd')}.xlsx`,
+      )
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setDownloadingDept(false)
+    }
   }
 
   const exportPoExcel = async () => {
     setDownloadingPo(true)
-    const workbook = new Excel.Workbook()
-    const worksheet = workbook.addWorksheet('By Department Allocation')
-    worksheet.columns = [
-      { header: '#', key: 'no', width: 8 },
-      { header: 'Department Allocation No.', key: 'poNumber', width: 18 },
-      { header: 'Appropriation', key: 'appropriation', width: 20 },
-      { header: 'Department', key: 'department', width: 22 },
-      { header: 'Gasoline (L)', key: 'gasoline', width: 15 },
-      { header: 'Diesel (L)', key: 'diesel', width: 15 },
-      { header: 'Oil and Lubricants (L)', key: 'oil', width: 20 },
-      { header: 'Total Amount', key: 'totalAmount', width: 18 },
-    ]
-    poSummary.forEach((row, i) => {
-      worksheet.addRow({
-        no: i + 1,
-        poNumber: row.poNumber,
-        appropriation: row.appropriationName,
-        department: row.departmentName,
-        gasoline: formatNum(row.gasoline),
-        diesel: formatNum(row.diesel),
-        oil: formatNum(row.oil),
-        totalAmount: formatCurrency(row.totalAmount),
+    try {
+      const workbook = new Excel.Workbook()
+      const worksheet = workbook.addWorksheet('By Department Allocation')
+      worksheet.columns = [
+        { header: '#', key: 'no', width: 8 },
+        { header: 'Department Allocation No.', key: 'poNumber', width: 18 },
+        { header: 'Appropriation', key: 'appropriation', width: 20 },
+        { header: 'Department', key: 'department', width: 22 },
+        { header: 'Gasoline (L)', key: 'gasoline', width: 15 },
+        { header: 'Diesel (L)', key: 'diesel', width: 15 },
+        { header: 'Oil and Lubricants (L)', key: 'oil', width: 20 },
+        { header: 'Total Amount', key: 'totalAmount', width: 18 },
+      ]
+      poSummary.forEach((row, i) => {
+        worksheet.addRow({
+          no: i + 1,
+          poNumber: row.poNumber,
+          appropriation: row.appropriationName,
+          department: row.departmentName,
+          gasoline: formatNum(row.gasoline),
+          diesel: formatNum(row.diesel),
+          oil: formatNum(row.oil),
+          totalAmount: formatCurrency(row.totalAmount),
+        })
       })
-    })
-    const buffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([buffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    })
-    saveAs(blob, `RIS_Summary_By_PO_${format(new Date(), 'yyyy-MM-dd')}.xlsx`)
-    setDownloadingPo(false)
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      saveAs(
+        blob,
+        `RIS_Summary_By_Department_Allocation_${format(new Date(), 'yyyy-MM-dd')}.xlsx`,
+      )
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setDownloadingPo(false)
+    }
   }
 
   const email = session?.user?.email ?? ''
@@ -299,16 +345,74 @@ const Page: React.FC = () => {
   )
     return <Unauthorized />
 
+  const th =
+    'whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300'
+  const thNum = `${th} text-right`
+  const td = 'px-3 py-2 text-gray-700 dark:text-gray-300'
+  const tdNum = `${td} whitespace-nowrap text-right tabular-nums`
+  const tfNum =
+    'whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums text-gray-900 dark:text-gray-100'
+
+  const renderExportButton = (
+    onClick: () => void,
+    downloading: boolean,
+    label: string,
+    isEmpty = false,
+  ) => (
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      onClick={onClick}
+      disabled={downloading || isEmpty}
+      aria-label={label}>
+      {downloading ? (
+        <Loader2
+          aria-hidden="true"
+          className="mr-1.5 h-4 w-4 animate-spin"
+        />
+      ) : (
+        <FileSpreadsheet
+          aria-hidden="true"
+          className="mr-1.5 h-4 w-4 text-emerald-600"
+        />
+      )}
+      {downloading ? 'Exporting...' : 'Export to Excel'}
+    </Button>
+  )
+
+  const renderCardHeader = (
+    title: string,
+    subtitle: string,
+    action?: React.ReactNode,
+  ) => (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+      <div>
+        <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+          {title}
+        </h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
+      </div>
+      {action}
+    </div>
+  )
+
   return (
     <>
       <Sidebar>
         <RisSidebar />
       </Sidebar>
       <div className="app__main">
-        <div className="space-y-6">
+        <div>
           <TopBar />
-          <div className="app__title">
-            <Title title="RIS Summary" />
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+            <div>
+              <Title title="R.I.S. Summary" />
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                Approved fuel consumption by department and department
+                allocation
+              </p>
+            </div>
           </div>
 
           <div className="app__filters">
@@ -323,188 +427,245 @@ const Page: React.FC = () => {
           {loading && <TwoColTableLoading />}
 
           {!loading && (
-            <>
-              {/* Stat Widgets */}
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5 px-4">
+            <div className="space-y-4 pb-6">
+              <div className="mx-4 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
                 <StatWidget
                   label="Total Gasoline"
                   value={`${formatNum(stats.totalGasoline)} L`}
+                  icon={Fuel}
+                  tone="text-amber-600 bg-amber-50 dark:bg-amber-950/40"
                 />
                 <StatWidget
                   label="Total Diesel"
                   value={`${formatNum(stats.totalDiesel)} L`}
+                  icon={Fuel}
+                  tone="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40"
                 />
                 <StatWidget
                   label="Total Oil and Lubricants"
                   value={`${formatNum(stats.totalOil)} L`}
-                />
-                <StatWidget
-                  label="Total Amount"
-                  value={formatCurrency(stats.totalAmount)}
-                />
-                <StatWidget
-                  label="Requisitions"
-                  value={stats.requisitions}
+                  icon={Droplet}
+                  tone="text-sky-600 bg-sky-50 dark:bg-sky-950/40"
                 />
                 <StatWidget
                   label="Total Liters"
                   value={`${formatNum(stats.totalLiters)} L`}
+                  icon={Droplets}
+                  tone="text-blue-600 bg-blue-50 dark:bg-blue-950/40"
+                />
+                <StatWidget
+                  label="Total Amount"
+                  value={formatCurrency(stats.totalAmount)}
+                  icon={Wallet}
+                  tone="text-violet-600 bg-violet-50 dark:bg-violet-950/40"
+                />
+                <StatWidget
+                  label="Approved Requisitions"
+                  value={stats.requisitions.toLocaleString('en-US')}
+                  icon={FileText}
+                  tone="text-gray-600 bg-gray-100 dark:bg-gray-800"
                 />
               </div>
 
               {risData.length === 0 ? (
-                <div className="mx-4 p-6 bg-muted/50 rounded-lg text-center text-muted-foreground">
-                  No data for selected filters.
+                <div className="mx-4 flex flex-col items-center gap-1 rounded-lg border border-gray-200 bg-white px-4 py-10 text-center shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                  <Inbox
+                    aria-hidden="true"
+                    className="h-8 w-8 text-gray-300"
+                  />
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    No approved R.I.S. found
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Try adjusting or clearing the filters.
+                  </div>
                 </div>
               ) : (
                 <>
-                  {/* Department Table */}
-                  <Card className="mx-4">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle>Consumption by Department</CardTitle>
-                      <CustomButton
-                        containerStyles="app__btn_green"
-                        title={
-                          downloadingDept ? 'Exporting...' : 'Export to Excel'
-                        }
-                        btnType="button"
-                        handleClick={exportDepartmentExcel}
-                        isDisabled={downloadingDept}
-                      />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="overflow-x-auto">
-                        <table className="app__table">
-                          <thead className="app__thead">
-                            <tr>
-                              <th className="app__th w-12">#</th>
-                              <th className="app__th">Department</th>
-                              <th className="app__th text-right">
-                                Gasoline (L)
-                              </th>
-                              <th className="app__th text-right">Diesel (L)</th>
-                              <th className="app__th text-right">
-                                Oil and Lubricants (L)
-                              </th>
-                              <th className="app__th text-right">
-                                Total Amount
-                              </th>
+                  <section className="mx-4 rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                    {renderCardHeader(
+                      'Consumption by Department',
+                      `${departmentSummary.length.toLocaleString('en-US')} ${
+                        departmentSummary.length === 1
+                          ? 'department'
+                          : 'departments'
+                      }`,
+                      renderExportButton(
+                        exportDepartmentExcel,
+                        downloadingDept,
+                        'Export consumption by department to Excel',
+                      ),
+                    )}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/60">
+                          <tr>
+                            <th className={`${th} w-12`}>#</th>
+                            <th className={th}>Department</th>
+                            <th className={thNum}>Gasoline (L)</th>
+                            <th className={thNum}>Diesel (L)</th>
+                            <th className={thNum}>Oil and Lubricants (L)</th>
+                            <th className={thNum}>Total Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                          {departmentSummary.map((row, idx) => (
+                            <tr
+                              key={row.departmentId}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                              <td
+                                className={`${td} tabular-nums text-gray-400`}>
+                                {idx + 1}
+                              </td>
+                              <td className={`${td} font-medium`}>
+                                {row.departmentName}
+                              </td>
+                              <td className={tdNum}>
+                                {formatNum(row.gasoline)}
+                              </td>
+                              <td className={tdNum}>{formatNum(row.diesel)}</td>
+                              <td className={tdNum}>{formatNum(row.oil)}</td>
+                              <td className={`${tdNum} font-medium`}>
+                                {formatCurrency(row.totalAmount)}
+                              </td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {departmentSummary.map((row, idx) => (
-                              <tr
-                                key={row.departmentId}
-                                className="app__tr">
-                                <td className="app__td">{idx + 1}</td>
-                                <td className="app__td">
-                                  {row.departmentName}
-                                </td>
-                                <td className="app__td text-right tabular-nums">
-                                  {formatNum(row.gasoline)}
-                                </td>
-                                <td className="app__td text-right tabular-nums">
-                                  {formatNum(row.diesel)}
-                                </td>
-                                <td className="app__td text-right tabular-nums">
-                                  {formatNum(row.oil)}
-                                </td>
-                                <td className="app__td text-right tabular-nums">
-                                  {formatCurrency(row.totalAmount)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </CardContent>
-                  </Card>
+                          ))}
+                        </tbody>
+                        <tfoot className="border-t-2 border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/60">
+                          <tr>
+                            <td
+                              colSpan={2}
+                              className="px-3 py-2 font-semibold text-gray-900 dark:text-gray-100">
+                              Total
+                            </td>
+                            <td className={tfNum}>
+                              {formatNum(departmentTotals.gasoline)}
+                            </td>
+                            <td className={tfNum}>
+                              {formatNum(departmentTotals.diesel)}
+                            </td>
+                            <td className={tfNum}>
+                              {formatNum(departmentTotals.oil)}
+                            </td>
+                            <td className={tfNum}>
+                              {formatCurrency(departmentTotals.totalAmount)}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </section>
 
-                  {/* PO Summary Table */}
-                  <Card className="mx-4">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle>Summary by Department Allocation</CardTitle>
-                      <CustomButton
-                        containerStyles="app__btn_green"
-                        title={
-                          downloadingPo ? 'Exporting...' : 'Export to Excel'
-                        }
-                        btnType="button"
-                        handleClick={exportPoExcel}
-                        isDisabled={downloadingPo}
-                      />
-                    </CardHeader>
-                    <CardContent>
+                  <section className="mx-4 rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                    {renderCardHeader(
+                      'Summary by Department Allocation',
+                      `${poSummary.length.toLocaleString('en-US')} ${
+                        poSummary.length === 1
+                          ? 'department allocation'
+                          : 'department allocations'
+                      }`,
+                      renderExportButton(
+                        exportPoExcel,
+                        downloadingPo,
+                        'Export summary by department allocation to Excel',
+                        poSummary.length === 0,
+                      ),
+                    )}
+                    {poSummary.length === 0 ? (
+                      <div className="flex flex-col items-center gap-1 px-4 py-8 text-center">
+                        <Inbox
+                          aria-hidden="true"
+                          className="h-6 w-6 text-gray-300"
+                        />
+                        <div className="text-xs text-gray-500">
+                          No R.I.S. in this view is charged to a department
+                          allocation.
+                        </div>
+                      </div>
+                    ) : (
                       <div className="overflow-x-auto">
-                        <table className="app__table">
-                          <thead className="app__thead">
+                        <table className="w-full text-sm">
+                          <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/60">
                             <tr>
-                              <th className="app__th w-12">#</th>
-                              <th className="app__th">Department Allocation</th>
-                              <th className="app__th">Appropriation</th>
-                              <th className="app__th">Department</th>
-                              <th className="app__th text-right">
-                                Gasoline (L)
-                              </th>
-                              <th className="app__th text-right">Diesel (L)</th>
-                              <th className="app__th text-right">
-                                Oil and Lubricants (L)
-                              </th>
-                              <th className="app__th text-right">
-                                Total Amount
-                              </th>
+                              <th className={`${th} w-12`}>#</th>
+                              <th className={th}>Department Allocation</th>
+                              <th className={th}>Appropriation</th>
+                              <th className={th}>Department</th>
+                              <th className={thNum}>Gasoline (L)</th>
+                              <th className={thNum}>Diesel (L)</th>
+                              <th className={thNum}>Oil and Lubricants (L)</th>
+                              <th className={thNum}>Total Amount</th>
                             </tr>
                           </thead>
-                          <tbody>
+                          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                             {poSummary.map((row, idx) => (
                               <tr
                                 key={row.poId}
-                                className="app__tr">
-                                <td className="app__td">{idx + 1}</td>
-                                <td className="app__td">{row.poNumber}</td>
-                                <td className="app__td">
-                                  {row.appropriationName}
+                                className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                <td
+                                  className={`${td} tabular-nums text-gray-400`}>
+                                  {idx + 1}
                                 </td>
-                                <td className="app__td">
-                                  {row.departmentName}
+                                <td
+                                  className={`${td} whitespace-nowrap font-medium`}>
+                                  {row.poNumber}
                                 </td>
-                                <td className="app__td text-right tabular-nums">
+                                <td className={td}>{row.appropriationName}</td>
+                                <td className={td}>{row.departmentName}</td>
+                                <td className={tdNum}>
                                   {formatNum(row.gasoline)}
                                 </td>
-                                <td className="app__td text-right tabular-nums">
+                                <td className={tdNum}>
                                   {formatNum(row.diesel)}
                                 </td>
-                                <td className="app__td text-right tabular-nums">
-                                  {formatNum(row.oil)}
-                                </td>
-                                <td className="app__td text-right tabular-nums">
+                                <td className={tdNum}>{formatNum(row.oil)}</td>
+                                <td className={`${tdNum} font-medium`}>
                                   {formatCurrency(row.totalAmount)}
                                 </td>
                               </tr>
                             ))}
                           </tbody>
+                          <tfoot className="border-t-2 border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/60">
+                            <tr>
+                              <td
+                                colSpan={4}
+                                className="px-3 py-2 font-semibold text-gray-900 dark:text-gray-100">
+                                Total
+                              </td>
+                              <td className={tfNum}>
+                                {formatNum(poTotals.gasoline)}
+                              </td>
+                              <td className={tfNum}>
+                                {formatNum(poTotals.diesel)}
+                              </td>
+                              <td className={tfNum}>
+                                {formatNum(poTotals.oil)}
+                              </td>
+                              <td className={tfNum}>
+                                {formatCurrency(poTotals.totalAmount)}
+                              </td>
+                            </tr>
+                          </tfoot>
                         </table>
                       </div>
-                    </CardContent>
-                  </Card>
+                    )}
+                  </section>
 
-                  {/* Gasoline vs Diesel Chart */}
-                  <Card className="mx-4">
-                    <CardHeader>
-                      <CardTitle>Liters Consumed by Type</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-48">
-                        <CategoriesChart
-                          labels={['Liters']}
-                          dataSets={chartDataSets}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <section className="mx-4 rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                    {renderCardHeader(
+                      'Liters Consumed by Type',
+                      'Gasoline, diesel, and oil and lubricants',
+                    )}
+                    <div className="h-48 p-4">
+                      <CategoriesChart
+                        labels={['Liters']}
+                        dataSets={chartDataSets}
+                      />
+                    </div>
+                  </section>
                 </>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>

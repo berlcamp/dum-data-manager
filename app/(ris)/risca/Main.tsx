@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  CustomButton,
   PerPage,
   RisSidebar,
   ShowMore,
@@ -11,14 +10,17 @@ import {
   TopBar,
   Unauthorized,
 } from '@/components/index'
+import { Button } from '@/components/ui/button'
 import { fetchCashAdvances } from '@/utils/fetchApi'
+import { formatRisAmount } from '@/utils/ris-helper'
 import { format } from 'date-fns'
+import { Inbox, ListChecks, Pencil, Plus } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 
 import Filters from './Filters'
 
 // Types
-import type { AccountTypes, RisCaTypes } from '@/types'
+import type { RisCaTypes } from '@/types'
 
 // Redux imports
 import { updateList } from '@/GlobalRedux/Features/listSlice'
@@ -46,12 +48,8 @@ const Page: React.FC = () => {
   const [showingCount, setShowingCount] = useState<number>(0)
   const [resultsCount, setResultsCount] = useState<number>(0)
 
-  const { supabase, session, systemUsers } = useSupabase()
-  const { hasAccess, setToast } = useFilter()
-
-  const user: AccountTypes = systemUsers.find(
-    (user: AccountTypes) => user.id === session.user.id
-  )
+  const { session } = useSupabase()
+  const { hasAccess } = useFilter()
 
   // Redux staff
   const globallist = useSelector((state: any) => state.list.value)
@@ -66,7 +64,7 @@ const Page: React.FC = () => {
           filterKeyword,
         },
         perPageCount,
-        0
+        0,
       )
 
       // update the list in redux
@@ -91,7 +89,7 @@ const Page: React.FC = () => {
           filterKeyword,
         },
         perPageCount,
-        list.length
+        list.length,
       )
 
       // update the list in redux
@@ -117,33 +115,20 @@ const Page: React.FC = () => {
     setSelectedItem(item)
   }
 
-  const formatAmount = (n: number) =>
-    Number(n).toLocaleString('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    })
+  const handleViewRis = (item: RisCaTypes) => {
+    setSelectedItem(item)
+    setShowRisModal(true)
+  }
 
   const countRemainingAmount = (item: RisCaTypes) => {
     const totalAmountUsed = item.ddm_ris
       ? item.ddm_ris.reduce(
           (accumulator, ris) =>
             accumulator + Number(ris.quantity) * Number(ris.price),
-          0
+          0,
         )
       : 0
-    const remainingAmount = Number(item.amount) - totalAmountUsed
-
-    if (isNaN(remainingAmount)) return ''
-
-    if (remainingAmount < 1000) {
-      return (
-        <span style={{ color: 'red', fontWeight: 'bold' }}>
-          {formatAmount(remainingAmount)}
-        </span>
-      )
-    } else {
-      return <span>{formatAmount(remainingAmount)}</span>
-    }
+    return Number(item.amount) - totalAmountUsed
   }
 
   // Update list whenever list in redux updates
@@ -172,14 +157,24 @@ const Page: React.FC = () => {
         <div>
           {/* Header */}
           <TopBar />
-          <div className="app__title">
-            <Title title="Cash Advances" />
-            <CustomButton
-              containerStyles="app__btn_green"
-              title="Add New CA"
-              btnType="button"
-              handleClick={handleAdd}
-            />
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 mt-4 dark:border-gray-700">
+            <div>
+              <Title title="Cash Advances" />
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                Cash advances that fund R.I.S. fuel requests
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleAdd}
+              className="bg-emerald-600 text-white hover:bg-emerald-700">
+              <Plus
+                aria-hidden="true"
+                className="mr-1.5 h-4 w-4"
+              />
+              New C.A.
+            </Button>
           </div>
 
           {/* Filters */}
@@ -200,86 +195,154 @@ const Page: React.FC = () => {
             <table className="app__table">
               <thead className="app__thead">
                 <tr>
-                  <th className="hidden md:table-cell app__th">CA #</th>
+                  <th className="hidden md:table-cell app__th">C.A. #</th>
                   <th className="app__th">Details</th>
-                  <th className="app__th"></th>
+                  <th className="app__th">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {!isDataEmpty &&
-                  list.map((item: RisCaTypes, index: number) => (
-                    <tr
-                      key={index}
-                      className="app__tr">
-                      <td className="hidden md:table-cell app__td">
-                        <div className="font-medium">{item.ca_number}</div>
-                      </td>
-                      <td className="app__td">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          <div className="md:hidden">
-                            <span className="font-light">CA #:</span>{' '}
-                            <span className="font-medium">
-                              {item.ca_number}
-                            </span>
+                  list.map((item: RisCaTypes) => {
+                    const amount = Number(item.amount ?? 0)
+                    const remaining = countRemainingAmount(item)
+                    const hasRemaining = !isNaN(remaining)
+                    const isLow = hasRemaining && remaining < 1000
+                    const usedPct =
+                      hasRemaining && amount > 0
+                        ? Math.max(
+                            0,
+                            Math.min(
+                              100,
+                              ((amount - remaining) / amount) * 100,
+                            ),
+                          )
+                        : 0
+
+                    return (
+                      <tr
+                        key={item.id}
+                        className="app__tr">
+                        <td className="hidden md:table-cell app__td align-top pt-3">
+                          <div className="font-semibold text-gray-900 dark:text-gray-100">
+                            {item.ca_number}
                           </div>
-                          <div>
-                            <span className="font-light">Amount:</span>{' '}
-                            <span className="font-medium">
-                              {formatAmount(Number(item.amount ?? 0))}
+                        </td>
+                        <td className="app__td py-2.5">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-gray-900 md:hidden dark:text-gray-100">
+                              C.A. {item.ca_number}
                             </span>
-                          </div>
-                          <div>
-                            <span className="font-light">CA Date:</span>{' '}
-                            <span className="font-medium">
+                            <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                              ₱{formatRisAmount(amount)}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
                               {item.ca_date &&
                                 format(new Date(item.ca_date), 'MMMM dd, yyyy')}
                             </span>
+                            {isLow && (
+                              <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-800 dark:bg-red-950/50 dark:text-red-300">
+                                Low balance
+                              </span>
+                            )}
                           </div>
-                          <div>
-                            <span className="font-light">
-                              Remaining Amount:
-                            </span>{' '}
-                            <span className="font-medium">
-                              {countRemainingAmount(item)}
-                            </span>
+                          <dl className="grid grid-cols-1 gap-x-6 gap-y-1 md:grid-cols-2">
+                            <div className="flex min-w-0 gap-1.5">
+                              <dt className="shrink-0 text-gray-500 dark:text-gray-400">
+                                Remaining:
+                              </dt>
+                              <dd
+                                className={`min-w-0 font-medium tabular-nums ${
+                                  isLow
+                                    ? 'font-semibold text-red-600 dark:text-red-400'
+                                    : 'text-gray-800 dark:text-gray-200'
+                                }`}>
+                                {hasRemaining
+                                  ? `₱${formatRisAmount(remaining)}`
+                                  : '—'}
+                              </dd>
+                            </div>
+                            <div className="flex min-w-0 gap-1.5">
+                              <dt className="shrink-0 text-gray-500 dark:text-gray-400">
+                                Description:
+                              </dt>
+                              <dd className="min-w-0 font-medium text-gray-800 dark:text-gray-200">
+                                {item.description || '—'}
+                              </dd>
+                            </div>
+                          </dl>
+                          {hasRemaining && amount > 0 && (
+                            <div
+                              className="mt-2 h-1.5 max-w-md overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800"
+                              role="progressbar"
+                              aria-label={`C.A. ${item.ca_number} used`}
+                              aria-valuenow={Math.round(usedPct)}
+                              aria-valuemin={0}
+                              aria-valuemax={100}>
+                              <div
+                                className={`h-full rounded-full ${
+                                  isLow ? 'bg-red-500' : 'bg-emerald-500'
+                                }`}
+                                style={{ width: `${usedPct}%` }}
+                              />
+                            </div>
+                          )}
+                        </td>
+                        <td className="app__td align-top pt-2.5">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              aria-label={`Edit C.A. ${item.ca_number}`}
+                              onClick={() => handleEdit(item)}>
+                              <Pencil
+                                aria-hidden="true"
+                                className="h-3.5 w-3.5 md:mr-1.5"
+                              />
+                              <span className="hidden md:inline">Edit</span>
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              aria-label={`View R.I.S. charged to C.A. ${item.ca_number}`}
+                              onClick={() => handleViewRis(item)}>
+                              <ListChecks
+                                aria-hidden="true"
+                                className="h-3.5 w-3.5 md:mr-1.5"
+                              />
+                              <span className="hidden whitespace-nowrap md:inline">
+                                View R.I.S.
+                              </span>
+                            </Button>
                           </div>
-                          <div>
-                            <span className="font-light">Description:</span>{' '}
-                            <span className="font-medium">
-                              {item.description}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="app__td">
-                        <div className="flex space-x-2 items-center">
-                          <button
-                            onClick={() => handleEdit(item)}
-                            className="app__btn_green_xs">
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedItem(item)
-                              setShowRisModal(true)
-                            }}
-                            className="app__btn_blue_xs whitespace-nowrap">
-                            View R.I.S.
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 {loading && (
                   <TableRowLoading
-                    cols={4}
+                    cols={3}
                     rows={2}
                   />
                 )}
               </tbody>
             </table>
             {!loading && isDataEmpty && (
-              <div className="app__norecordsfound">No records found.</div>
+              <div className="flex flex-col items-center gap-1 px-4 py-10 text-center">
+                <Inbox
+                  aria-hidden="true"
+                  className="h-8 w-8 text-gray-300"
+                />
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  No cash advances found
+                </div>
+                <div className="text-xs text-gray-500">
+                  Try adjusting or clearing the filters.
+                </div>
+              </div>
             )}
           </div>
 

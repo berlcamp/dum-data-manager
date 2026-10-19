@@ -2,7 +2,6 @@
 
 import {
   ConfirmModal,
-  CustomButton,
   PerPage,
   RisSidebar,
   ShowMore,
@@ -12,7 +11,9 @@ import {
   TopBar,
   Unauthorized,
 } from '@/components/index'
+import { Button } from '@/components/ui/button'
 import { fetchRisDepartments } from '@/utils/fetchApi'
+import { Inbox, Pencil, Plus, Trash2 } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 
 import Filters from './Filters'
@@ -35,10 +36,10 @@ const Page: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RisDepartmentTypes | null>(
-    null
+    null,
   )
   const [itemToDelete, setItemToDelete] = useState<RisDepartmentTypes | null>(
-    null
+    null,
   )
 
   // Filters
@@ -66,7 +67,7 @@ const Page: React.FC = () => {
           filterKeyword,
         },
         perPageCount,
-        0
+        0,
       )
 
       // update the list in redux
@@ -91,7 +92,7 @@ const Page: React.FC = () => {
           filterKeyword,
         },
         perPageCount,
-        list.length
+        list.length,
       )
 
       // update the list in redux
@@ -136,7 +137,7 @@ const Page: React.FC = () => {
       // Update data in redux
       const items = [...list]
       const updatedList = items.filter(
-        (item) => item.id.toString() !== itemToDelete.id.toString()
+        (item) => item.id.toString() !== itemToDelete.id.toString(),
       )
       dispatch(updateList(updatedList))
       setList(updatedList)
@@ -183,14 +184,24 @@ const Page: React.FC = () => {
         <div>
           {/* Header */}
           <TopBar />
-          <div className="app__title">
-            <Title title="Departments" />
-            <CustomButton
-              containerStyles="app__btn_green"
-              title="Add New Department"
-              btnType="button"
-              handleClick={handleAdd}
-            />
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 mt-4 dark:border-gray-700">
+            <div>
+              <Title title="Departments" />
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                Requesting departments and the signatory printed on their R.I.S.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleAdd}
+              className="bg-emerald-600 text-white hover:bg-emerald-700">
+              <Plus
+                aria-hidden="true"
+                className="mr-1.5 h-4 w-4"
+              />
+              New Department
+            </Button>
           </div>
 
           {/* Filters */}
@@ -212,9 +223,13 @@ const Page: React.FC = () => {
               <thead className="app__thead">
                 <tr>
                   <th className="app__th">Requesting Department</th>
-                  <th className="app__th">Issued By</th>
-                  <th className="app__th">Issued By Designation</th>
-                  <th className="app__th"></th>
+                  <th className="hidden md:table-cell app__th">Issued By</th>
+                  <th className="hidden md:table-cell app__th">
+                    Issued By Designation
+                  </th>
+                  <th className="app__th">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -223,21 +238,74 @@ const Page: React.FC = () => {
                     <tr
                       key={index}
                       className="app__tr">
-                      <td className="app__td">{item.name}</td>
-                      <td className="app__td">{item.issued_by ?? '-'}</td>
-                      <td className="app__td">{item.issued_by_dessignation ?? '-'}</td>
-                      <td className="app__td">
-                        <div className="flex space-x-2 items-center">
-                          <button
-                            onClick={() => handleEdit(item)}
-                            className="app__btn_green_xs">
-                            Edit
-                          </button>
-                          <button
+                      <td className="app__td py-2.5">
+                        <div className="font-semibold text-gray-900 dark:text-gray-100">
+                          {item.name || '—'}
+                        </div>
+                        <dl className="mt-1 grid grid-cols-1 gap-y-1 md:hidden">
+                          <div className="flex min-w-0 gap-1.5">
+                            <dt className="shrink-0 text-gray-500 dark:text-gray-400">
+                              Issued By:
+                            </dt>
+                            <dd className="min-w-0 font-medium text-gray-800 dark:text-gray-200">
+                              {item.issued_by || '—'}
+                            </dd>
+                          </div>
+                          <div className="flex min-w-0 gap-1.5">
+                            <dt className="shrink-0 text-gray-500 dark:text-gray-400">
+                              Designation:
+                            </dt>
+                            <dd className="min-w-0 font-medium text-gray-800 dark:text-gray-200">
+                              {item.issued_by_dessignation || '—'}
+                            </dd>
+                          </div>
+                        </dl>
+                      </td>
+                      <td className="hidden md:table-cell app__td">
+                        {item.issued_by ? (
+                          <span className="font-medium text-gray-800 dark:text-gray-200">
+                            {item.issued_by}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="hidden md:table-cell app__td">
+                        {item.issued_by_dessignation ? (
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {item.issued_by_dessignation}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="app__td align-top pt-2.5">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            aria-label={`Edit department ${item.name}`}
+                            onClick={() => handleEdit(item)}>
+                            <Pencil
+                              aria-hidden="true"
+                              className="h-3.5 w-3.5 md:mr-1.5"
+                            />
+                            <span className="hidden md:inline">Edit</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            aria-label={`Delete department ${item.name}`}
                             onClick={() => handleDelete(item)}
-                            className="app__btn_red_xs">
-                            Delete
-                          </button>
+                            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300">
+                            <Trash2
+                              aria-hidden="true"
+                              className="h-3.5 w-3.5 md:mr-1.5"
+                            />
+                            <span className="hidden md:inline">Delete</span>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -251,7 +319,18 @@ const Page: React.FC = () => {
               </tbody>
             </table>
             {!loading && isDataEmpty && (
-              <div className="app__norecordsfound">No records found.</div>
+              <div className="flex flex-col items-center gap-1 px-4 py-10 text-center">
+                <Inbox
+                  aria-hidden="true"
+                  className="h-8 w-8 text-gray-300"
+                />
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  No departments found
+                </div>
+                <div className="text-xs text-gray-500">
+                  Try adjusting or clearing the filters.
+                </div>
+              </div>
             )}
           </div>
 

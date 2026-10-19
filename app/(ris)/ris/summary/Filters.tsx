@@ -1,4 +1,4 @@
-import { CustomButton } from '@/components/index'
+import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -15,10 +15,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useSupabase } from '@/context/SupabaseProvider'
-import {
-  RisAppropriationTypes,
-  RisDepartmentTypes,
-} from '@/types'
+import { RisAppropriationTypes, RisDepartmentTypes } from '@/types'
+import { Filter, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -68,8 +66,8 @@ const Filters = ({
 
   const handleClear = () => {
     form.reset({
-      dateFrom: undefined,
-      dateTo: undefined,
+      dateFrom: '',
+      dateTo: '',
       department: '',
       appropriation: '',
     })
@@ -96,19 +94,64 @@ const Filters = ({
     })()
   }, [supabase])
 
+  const watched = form.watch()
+  const activeFilterCount = Object.values(watched).filter(
+    (value) => value !== undefined && value !== '' && value !== 'All',
+  ).length
+
+  const renderSelect = (
+    name: 'department' | 'appropriation',
+    label: string,
+    options: { value: string; label: string }[],
+  ) => (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className="min-w-0">
+          <FormLabel className="app__form_label">{label}</FormLabel>
+          <Select
+            onValueChange={field.onChange}
+            value={field.value != null ? field.value.toString() : ''}>
+            <FormControl>
+              <SelectTrigger className="h-9 bg-white dark:bg-gray-900">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              <SelectItem value="All">All</SelectItem>
+              {options.map((o) => (
+                <SelectItem
+                  key={o.value}
+                  value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormItem>
+      )}
+    />
+  )
+
   return (
-    <div className="">
+    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="flex flex-wrap items-end gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
             <FormField
               control={form.control}
               name="dateFrom"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem className="min-w-0">
                   <FormLabel className="app__form_label">Date From</FormLabel>
                   <FormControl>
-                    <Input type="date" className="w-[140px]" {...field} />
+                    <Input
+                      type="date"
+                      className="h-9 bg-white dark:bg-gray-900"
+                      {...field}
+                      value={field.value ?? ''}
+                    />
                   </FormControl>
                 </FormItem>
               )}
@@ -117,81 +160,65 @@ const Filters = ({
               control={form.control}
               name="dateTo"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem className="min-w-0">
                   <FormLabel className="app__form_label">Date To</FormLabel>
                   <FormControl>
-                    <Input type="date" className="w-[140px]" {...field} />
+                    <Input
+                      type="date"
+                      className="h-9 bg-white dark:bg-gray-900"
+                      {...field}
+                      value={field.value ?? ''}
+                    />
                   </FormControl>
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="department"
-              render={({ field }) => (
-                <FormItem className="w-[160px]">
-                  <FormLabel className="app__form_label">Department</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value?.toString()}
-                    defaultValue={field.value?.toString()}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {departments?.map((item, idx) => (
-                        <SelectItem key={idx} value={item.id.toString()}>
-                          {item.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="appropriation"
-              render={({ field }) => (
-                <FormItem className="w-[160px]">
-                  <FormLabel className="app__form_label">Appropriation</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value?.toString()}
-                    defaultValue={field.value?.toString()}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {appropriations?.map((item, idx) => (
-                        <SelectItem key={idx} value={item.id.toString()}>
-                          {item.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )}
-            />
+            {renderSelect(
+              'department',
+              'Department',
+              departments.map((d) => ({
+                value: d.id.toString(),
+                label: d.name,
+              })),
+            )}
+            {renderSelect(
+              'appropriation',
+              'Appropriation',
+              appropriations.map((a) => ({
+                value: a.id.toString(),
+                label: a.name,
+              })),
+            )}
           </div>
 
-          <div className="flex items-center gap-2 mt-4">
-            <CustomButton
-              containerStyles="app__btn_green"
-              title="Apply Filter"
-              btnType="submit"
-              handleClick={form.handleSubmit(onSubmit)}
-            />
-            <CustomButton
-              containerStyles="app__btn_gray"
-              title="Clear Filter"
-              btnType="button"
-              handleClick={handleClear}
-            />
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
+            <Button
+              type="submit"
+              size="sm"
+              className="bg-emerald-600 text-white hover:bg-emerald-700">
+              <Filter
+                aria-hidden="true"
+                className="mr-1.5 h-4 w-4"
+              />
+              Apply Filters
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleClear}
+              disabled={activeFilterCount === 0}>
+              <X
+                aria-hidden="true"
+                className="mr-1.5 h-4 w-4"
+              />
+              Clear
+              {activeFilterCount > 0 && (
+                <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 text-[11px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
           </div>
         </form>
       </Form>

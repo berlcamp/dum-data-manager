@@ -1,8 +1,9 @@
 'use client'
-import { CustomButton } from '@/components/index'
+import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -22,6 +23,7 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import { Input } from '@/components/ui/input'
 import type { RisAppropriationTypes } from '@/types'
+import { Loader2, Save, X } from 'lucide-react'
 
 const FormSchema = z.object({
   appropriation_name: z.string().min(1, {
@@ -148,6 +150,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     }
   }, [wrapperRef])
 
+  const isSubmitting = form.formState.isSubmitting
+
   return (
     <div
       ref={wrapperRef}
@@ -155,74 +159,112 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       <div className="app__modal_wrapper2">
         <div className="app__modal_wrapper3">
           <div className="app__modal_header">
-            <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
-              Appropriation Details
-            </h5>
-            <CustomButton
-              containerStyles="app__btn_gray"
-              title="Close"
-              btnType="button"
-              handleClick={hideModal}
-            />
+            <div>
+              <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
+                {editData ? 'Edit Appropriation' : 'New Appropriation'}
+              </h5>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                Budget source that Department Allocations draw from
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 shrink-0"
+              aria-label="Close"
+              onClick={hideModal}>
+              <X
+                aria-hidden="true"
+                className="h-4 w-4"
+              />
+            </Button>
           </div>
 
           <div className="app__modal_body">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
-                <div className="md:grid md:grid-cols-1 md:gap-4">
-                  <div className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="appropriation_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Appropriation Name
-                          </FormLabel>
+                <div className="space-y-5">
+                  <FormField
+                    control={form.control}
+                    name="appropriation_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Appropriation Name
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g. Fuel, Oil and Lubricants"
+                            className="h-9"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Allocated Amount
+                        </FormLabel>
+                        <div className="relative">
+                          <span
+                            aria-hidden="true"
+                            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                            ₱
+                          </span>
                           <FormControl>
                             <Input
-                              placeholder="Appropriation"
+                              type="number"
+                              inputMode="decimal"
+                              step="any"
+                              placeholder="0.00"
+                              className="h-9 pl-7 tabular-nums"
                               {...field}
                             />
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                        </div>
+                        <FormDescription className="text-xs">
+                          Total budget for this appropriation, up to 2 decimal
+                          places. Approved R.I.S. are deducted from it.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-                <FormField
-                  control={form.control}
-                  name="amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="app__form_label">Amount</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Amount"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <hr className="my-4" />
-                <div className="app__modal_footer">
-                  <CustomButton
-                    btnType="submit"
-                    isDisabled={form.formState.isSubmitting}
-                    title={form.formState.isSubmitting ? 'Saving...' : 'Submit'}
-                    containerStyles="app__btn_green"
-                  />
-                  <CustomButton
-                    btnType="button"
-                    isDisabled={form.formState.isSubmitting}
-                    title="Cancel"
-                    handleClick={hideModal}
-                    containerStyles="app__btn_gray"
-                  />
+                <div className="app__modal_footer mt-6 border-t border-gray-200 pt-4 dark:border-gray-700">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={isSubmitting}
+                    onClick={hideModal}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={isSubmitting}
+                    className="bg-emerald-600 text-white hover:bg-emerald-700">
+                    {isSubmitting ? (
+                      <Loader2
+                        aria-hidden="true"
+                        className="mr-1.5 h-4 w-4 animate-spin"
+                      />
+                    ) : (
+                      <Save
+                        aria-hidden="true"
+                        className="mr-1.5 h-4 w-4"
+                      />
+                    )}
+                    {isSubmitting ? 'Saving...' : 'Save'}
+                  </Button>
                 </div>
               </form>
             </Form>

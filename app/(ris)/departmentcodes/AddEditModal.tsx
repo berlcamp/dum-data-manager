@@ -1,8 +1,9 @@
 'use client'
-import { CustomButton } from '@/components/index'
+import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -33,6 +34,7 @@ import type {
   RisPoTypes,
 } from '@/types'
 import { generateRandomAlphaNumber } from '@/utils/text-helper'
+import { Loader2, Save, X } from 'lucide-react'
 
 const FormSchema = z.object({
   po_id: z.string().min(1, {
@@ -232,6 +234,8 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     })()
   }, [])
 
+  const isSubmitting = form.formState.isSubmitting
+
   return (
     <div
       ref={wrapperRef}
@@ -239,133 +243,177 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       <div className="app__modal_wrapper2">
         <div className="app__modal_wrapper3">
           <div className="app__modal_header">
-            <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
-              Request Code
-            </h5>
-            <CustomButton
-              containerStyles="app__btn_gray"
-              title="Close"
-              btnType="button"
-              handleClick={hideModal}
-            />
+            <div>
+              <h5 className="text-md font-bold leading-normal text-gray-800 dark:text-gray-300">
+                {editData ? 'Edit Request Code' : 'New Request Code'}
+              </h5>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                Links a fuel request portal code to a Department Allocation
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 shrink-0"
+              aria-label="Close"
+              onClick={hideModal}>
+              <X
+                aria-hidden="true"
+                className="h-4 w-4"
+              />
+            </Button>
           </div>
 
           <div className="app__modal_body">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
-                <div className="md:grid md:grid-cols-1 md:gap-4">
-                  <div className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="department_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Requesting Department
-                          </FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={
-                              editData
-                                ? editData.department_id.toString()
-                                : field.value
-                            }>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Choose Department" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {departments?.map((department, idx) => (
-                                <SelectItem
-                                  key={idx}
-                                  value={department.id.toString()}>
-                                  {department.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="po_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Department Allocation
-                          </FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={
-                              editData ? editData.po_id.toString() : field.value
-                            }>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Choose Department Allocation" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {purchaseOrders?.map((po, idx) => (
-                                <SelectItem
-                                  key={idx}
-                                  value={po.id.toString()}>
-                                  {po.po_number}-{po.type}
-                                  {po.remaining_quantity}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="status"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="app__form_label">
-                            Status
-                          </FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={
-                              editData ? editData.status : field.value
-                            }>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Choose Status" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Active">Active</SelectItem>
-                              <SelectItem value="Inactive">Inactive</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                <div className="space-y-5">
+                  <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800/50">
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Code:{' '}
+                    </span>
+                    {editData ? (
+                      <span className="font-mono font-semibold tracking-wider text-gray-900 dark:text-gray-100">
+                        {editData.code}
+                      </span>
+                    ) : (
+                      <span className="text-gray-700 dark:text-gray-300">
+                        A 5-character code is generated automatically when you
+                        save.
+                      </span>
+                    )}
                   </div>
+                  <FormField
+                    control={form.control}
+                    name="department_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Requesting Department
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={
+                            editData
+                              ? editData.department_id.toString()
+                              : field.value
+                          }>
+                          <FormControl>
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Choose Department" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {departments?.map((department, idx) => (
+                              <SelectItem
+                                key={idx}
+                                value={department.id.toString()}>
+                                {department.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="po_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Department Allocation
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={
+                            editData ? editData.po_id.toString() : field.value
+                          }>
+                          <FormControl>
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Choose Department Allocation" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {purchaseOrders?.map((po, idx) => (
+                              <SelectItem
+                                key={idx}
+                                value={po.id.toString()}>
+                                {po.po_number}-{po.type}
+                                {po.remaining_quantity}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription className="text-xs">
+                          Fuel requests made with this code are charged against
+                          this allocation. Used-up allocations are hidden unless
+                          overuse is allowed.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">
+                          Status
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={
+                            editData ? editData.status : field.value
+                          }>
+                          <FormControl>
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Choose Status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Active">Active</SelectItem>
+                            <SelectItem value="Inactive">Inactive</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription className="text-xs">
+                          Inactive codes can no longer be used to request fuel.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-                <hr className="my-4" />
-                <div className="app__modal_footer">
-                  <CustomButton
-                    btnType="submit"
-                    isDisabled={form.formState.isSubmitting}
-                    title={form.formState.isSubmitting ? 'Saving...' : 'Submit'}
-                    containerStyles="app__btn_green"
-                  />
-                  <CustomButton
-                    btnType="button"
-                    isDisabled={form.formState.isSubmitting}
-                    title="Cancel"
-                    handleClick={hideModal}
-                    containerStyles="app__btn_gray"
-                  />
+                <div className="app__modal_footer mt-6 border-t border-gray-200 pt-4 dark:border-gray-700">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={isSubmitting}
+                    onClick={hideModal}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={isSubmitting}
+                    className="bg-emerald-600 text-white hover:bg-emerald-700">
+                    {isSubmitting ? (
+                      <Loader2
+                        aria-hidden="true"
+                        className="mr-1.5 h-4 w-4 animate-spin"
+                      />
+                    ) : (
+                      <Save
+                        aria-hidden="true"
+                        className="mr-1.5 h-4 w-4"
+                      />
+                    )}
+                    {isSubmitting ? 'Saving...' : 'Save'}
+                  </Button>
                 </div>
               </form>
             </Form>

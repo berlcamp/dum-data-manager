@@ -1,6 +1,7 @@
-import { CustomButton } from '@/components/index'
+import { Button } from '@/components/ui/button'
 import { Form, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Filter, Search, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -13,7 +14,6 @@ const FormSchema = z.object({
 })
 
 const Filters = ({ setFilterKeyword }: FilterTypes) => {
-  //
   const form = useForm<z.infer<typeof FormSchema>>({
     defaultValues: { keyword: '' },
   })
@@ -28,43 +28,63 @@ const Filters = ({ setFilterKeyword }: FilterTypes) => {
     setFilterKeyword('')
   }
 
+  const keyword = form.watch('keyword')
+  const activeFilterCount = keyword ? 1 : 0
+
   return (
-    <div className="">
+    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="items-center space-x-2 space-y-1">
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="keyword"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="app__form_label">
-                      Search Vehicle.
-                    </FormLabel>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+            <FormField
+              control={form.control}
+              name="keyword"
+              render={({ field }) => (
+                <FormItem className="min-w-0 sm:col-span-2">
+                  <FormLabel className="app__form_label">Search</FormLabel>
+                  <div className="relative">
+                    <Search
+                      aria-hidden="true"
+                      className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                    />
                     <Input
-                      placeholder="Search Vehicle Name or Plate Number"
-                      className="w-[340px]"
+                      placeholder="Vehicle name or plate number"
+                      className="h-9 bg-white pl-8 dark:bg-gray-900"
                       {...field}
                     />
-                  </FormItem>
-                )}
-              />
-            </div>
+                  </div>
+                </FormItem>
+              )}
+            />
           </div>
-          <div className="flex items-center space-x-2 mt-4">
-            <CustomButton
-              containerStyles="app__btn_green"
-              title="Apply Filter"
-              btnType="submit"
-              handleClick={form.handleSubmit(onSubmit)}
-            />
-            <CustomButton
-              containerStyles="app__btn_gray"
-              title="Clear Filter"
-              btnType="button"
-              handleClick={handleClear}
-            />
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
+            <Button
+              type="submit"
+              size="sm"
+              className="bg-emerald-600 text-white hover:bg-emerald-700">
+              <Filter
+                aria-hidden="true"
+                className="mr-1.5 h-4 w-4"
+              />
+              Apply Filters
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleClear}
+              disabled={activeFilterCount === 0}>
+              <X
+                aria-hidden="true"
+                className="mr-1.5 h-4 w-4"
+              />
+              Clear
+              {activeFilterCount > 0 && (
+                <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 text-[11px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
           </div>
         </form>
       </Form>

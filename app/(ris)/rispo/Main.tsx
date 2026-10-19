@@ -1,8 +1,6 @@
 'use client'
 
 import {
-  ConfirmModal,
-  CustomButton,
   PerPage,
   RisSidebar,
   ShowMore,
@@ -12,6 +10,15 @@ import {
   TopBar,
   Unauthorized,
 } from '@/components/index'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { fetchPurchaseOrders } from '@/utils/fetchApi'
 import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
 import { format } from 'date-fns'
@@ -29,18 +36,30 @@ import { updateList } from '@/GlobalRedux/Features/listSlice'
 import { superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
+import {
+  AlertTriangle,
+  FileSpreadsheet,
+  Inbox,
+  ListChecks,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+} from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import AddEditModal from './AddEditModal'
 import RisModal from './RisModal'
+
+const quantityTypes = ['Diesel', 'Gasoline', 'Oil and Lubricants']
 
 const Page: React.FC = () => {
   const [loading, setLoading] = useState(false)
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showAddVarious, setShowAddVarious] = useState(false)
   const [showRisModal, setShowRisModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<RisPoTypes | null>(null)
   const [selectedItem, setSelectedItem] = useState<RisPoTypes | null>(null)
 
@@ -81,20 +100,6 @@ const Page: React.FC = () => {
         perPageCount,
         0,
       )
-
-      // Update amount (delete this)
-      // result.data.forEach(async (d: RisPoTypes) => {
-      //   if (d.price) {
-      //     const tempAmount = Number(d.quantity) * Number(d.price)
-      //     const amount =
-      //       tempAmount % 1 !== 0 ? tempAmount.toFixed(2) : tempAmount
-
-      //     await supabase
-      //       .from('ddm_ris_purchase_orders')
-      //       .update({ amount: amount })
-      //       .eq('id', d.id)
-      //   }
-      // })
 
       // update the list in redux
       dispatch(updateList(result.data))
@@ -155,9 +160,15 @@ const Page: React.FC = () => {
     setShowDeleteModal(true)
   }
 
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false)
+    setItemToDelete(null)
+  }
+
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return
 
+    setDeleting(true)
     try {
       const { error } = await supabase
         .from('ddm_ris_purchase_orders')
@@ -174,28 +185,16 @@ const Page: React.FC = () => {
       setShowingCount(showingCount - 1)
 
       setToast('success', 'Successfully deleted')
-      setShowDeleteModal(false)
-      setItemToDelete(null)
+      closeDeleteModal()
     } catch (e) {
       console.error(e)
-      setToast('error', 'Could not delete purchase order')
+      setToast('error', 'Could not delete Department Allocation')
+    } finally {
+      setDeleting(false)
     }
   }
 
   const formatAmount = formatRisAmount
-
-  // Consumed Quantity functions (for Diesel/Gasoline)
-  const countConsumedQuantity = (item: RisPoTypes) => {
-    let totalQuantityUsed = 0
-    if (item.ddm_ris) {
-      item.ddm_ris.forEach((ris) => {
-        if (ris.status === 'Approved') {
-          totalQuantityUsed += Number(ris.quantity)
-        }
-      })
-    }
-    return totalQuantityUsed.toFixed(2)
-  }
 
   const countConsumedQuantityFigure = (item: RisPoTypes) => {
     let totalQuantityUsed = 0
@@ -207,19 +206,6 @@ const Page: React.FC = () => {
       })
     }
     return totalQuantityUsed
-  }
-
-  // Consumed Amount functions (for Fuel)
-  const countConsumedAmount = (item: RisPoTypes) => {
-    let totalAmount = 0
-    if (item.ddm_ris) {
-      item.ddm_ris.forEach((ris) => {
-        if (ris.status === 'Approved') {
-          totalAmount += getRisAmount(ris)
-        }
-      })
-    }
-    return formatAmount(totalAmount)
   }
 
   const countConsumedAmountFigure = (item: RisPoTypes) => {
@@ -234,35 +220,6 @@ const Page: React.FC = () => {
     return totalAmount
   }
 
-  const countRemainingQuantity = (item: RisPoTypes) => {
-    // const totalQuantityUsed = item.ddm_ris
-    //   ? item.ddm_ris.reduce(
-    //       (accumulator, ris) => accumulator + Number(ris.quantity),
-    //       0
-    //     )
-    //   : 0
-
-    let totalQuantityUsed = 0
-    if (item.ddm_ris) {
-      item.ddm_ris.forEach((ris) => {
-        if (ris.status === 'Approved') {
-          totalQuantityUsed += Number(ris.quantity)
-        }
-      })
-    }
-
-    const remainingQuantity = Math.max(0, Number(item.quantity) - totalQuantityUsed)
-    if (remainingQuantity < 100) {
-      return (
-        <span style={{ color: 'red', fontWeight: 'bold' }}>
-          {remainingQuantity.toFixed(2)}
-        </span>
-      )
-    } else {
-      return <span>{remainingQuantity.toFixed(2)}</span>
-    }
-  }
-
   const countRemainingQuantityFigure = (item: RisPoTypes) => {
     let totalQuantityUsed = 0
     if (item.ddm_ris) {
@@ -274,23 +231,6 @@ const Page: React.FC = () => {
     }
 
     return Math.max(0, Number(item.quantity) - totalQuantityUsed)
-  }
-
-  const countRemainingAmount = (item: RisPoTypes) => {
-    let totalAmount = 0
-    if (item.ddm_ris) {
-      item.ddm_ris.forEach((ris) => {
-        if (ris.status === 'Approved') {
-          totalAmount += getRisAmount(ris)
-        }
-      })
-    }
-    const remainingAmount = Math.max(0, Number(item.amount) - totalAmount)
-    return (
-      <span style={{ color: 'green', fontWeight: 'bold' }}>
-        {formatAmount(remainingAmount)}
-      </span>
-    )
   }
 
   const countRemainingAmountFigure = (item: RisPoTypes) => {
@@ -311,18 +251,6 @@ const Page: React.FC = () => {
     const allocatedAmount = Number(item.amount)
     const overconsumed = consumedAmount - allocatedAmount
     return overconsumed > 0 ? overconsumed : 0
-  }
-
-  const countOverconsumedAmountDisplay = (item: RisPoTypes) => {
-    const overconsumed = countOverconsumedAmount(item)
-    if (overconsumed > 0) {
-      return (
-        <span style={{ color: 'red', fontWeight: 'bold' }}>
-          {formatAmount(overconsumed)}
-        </span>
-      )
-    }
-    return <span>{formatAmount(0)}</span>
   }
 
   const handleDownloadExcel = async () => {
@@ -393,8 +321,7 @@ const Page: React.FC = () => {
         appropriation: `${approp}`,
         allocated_amount:
           item.type === 'Fuel' ? formatAmount(Number(item.amount ?? 0)) : '',
-        consumed_amount:
-          item.type === 'Fuel' ? formatAmount(consumedAmt) : '',
+        consumed_amount: item.type === 'Fuel' ? formatAmount(consumedAmt) : '',
         remaining_amount: item.type === 'Fuel' ? formatAmount(remAmt) : '',
         overconsumed_amount:
           item.type === 'Fuel' ? formatAmount(overconsumedAmt) : '',
@@ -444,6 +371,91 @@ const Page: React.FC = () => {
     void fetchData()
   }, [filterKeyword, filterAppropriation, filterType, perPageCount])
 
+  // Allocated / consumed / remaining figures for a row. Fuel allocations are
+  // tracked by amount; Diesel, Gasoline and Oil by liters.
+  const renderUsage = (item: RisPoTypes) => {
+    const isFuel = item.type === 'Fuel'
+    if (!isFuel && !quantityTypes.includes(item.type)) return null
+
+    const allocated = isFuel
+      ? Number(item.amount ?? 0)
+      : Number(item.quantity ?? 0)
+    const consumed = isFuel
+      ? countConsumedAmountFigure(item)
+      : countConsumedQuantityFigure(item)
+    const remaining = isFuel
+      ? countRemainingAmountFigure(item)
+      : countRemainingQuantityFigure(item)
+    const overconsumed = isFuel ? countOverconsumedAmount(item) : 0
+    const isLow = !isFuel && remaining < 100
+    const usedPct =
+      allocated > 0 ? Math.min(100, (consumed / allocated) * 100) : 0
+
+    const fmt = (n: number) =>
+      isFuel ? `₱${formatAmount(n)}` : `${n.toFixed(2)} L`
+
+    const figures = [
+      {
+        label: 'Allocated',
+        value: isFuel ? fmt(allocated) : `${item.quantity} L`,
+        tone: 'text-gray-900 dark:text-gray-100',
+      },
+      {
+        label: 'Consumed',
+        value: fmt(consumed),
+        tone: 'text-gray-900 dark:text-gray-100',
+      },
+      {
+        label: 'Remaining',
+        value: fmt(remaining),
+        tone: isLow
+          ? 'text-red-600 dark:text-red-400'
+          : 'text-emerald-600 dark:text-emerald-400',
+      },
+    ]
+    if (overconsumed > 0) {
+      figures.push({
+        label: 'Over-consumed',
+        value: fmt(overconsumed),
+        tone: 'text-red-600 dark:text-red-400',
+      })
+    }
+
+    return (
+      <div className="mt-3 rounded-md border border-gray-100 bg-gray-50 p-2.5 dark:border-gray-800 dark:bg-gray-800/40">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+          {figures.map((f) => (
+            <div
+              key={f.label}
+              className="min-w-0">
+              <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                {f.label}
+              </div>
+              <div
+                className={`truncate text-sm font-semibold tabular-nums ${f.tone}`}>
+                {f.value}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div
+          className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
+          role="progressbar"
+          aria-label={`${item.po_number} consumed`}
+          aria-valuenow={Math.round(usedPct)}
+          aria-valuemin={0}
+          aria-valuemax={100}>
+          <div
+            className={`h-full rounded-full ${
+              overconsumed > 0 || isLow ? 'bg-red-500' : 'bg-emerald-500'
+            }`}
+            style={{ width: `${usedPct}%` }}
+          />
+        </div>
+      </div>
+    )
+  }
+
   const isDataEmpty = !Array.isArray(list) || list.length < 1 || !list
   const email: string = session.user.email
 
@@ -459,14 +471,24 @@ const Page: React.FC = () => {
         <div>
           {/* Header */}
           <TopBar />
-          <div className="app__title">
-            <Title title="Department Allocations" />
-            <CustomButton
-              containerStyles="app__btn_green"
-              title="Add New Department Allocation"
-              btnType="button"
-              handleClick={handleAdd}
-            />
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 mt-4 dark:border-gray-700">
+            <div>
+              <Title title="Department Allocations" />
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                Fuel budgets per department, and how much of each is consumed
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleAdd}
+              className="bg-emerald-600 text-white hover:bg-emerald-700">
+              <Plus
+                aria-hidden="true"
+                className="mr-1.5 h-4 w-4"
+              />
+              New Department Allocation
+            </Button>
           </div>
 
           {/* Filters */}
@@ -478,15 +500,32 @@ const Page: React.FC = () => {
             />
           </div>
 
-          {/* Export Button */}
-          <div className="mx-4 mb-4 flex justify-end space-x-2">
-            <CustomButton
-              containerStyles="app__btn_blue"
-              isDisabled={downloading}
-              title={downloading ? 'Downloading...' : 'Export To Excel'}
-              btnType="button"
-              handleClick={handleDownloadExcel}
-            />
+          {/* Toolbar */}
+          <div className="mx-4 mb-3 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Consumption counts Approved R.I.S. only.
+            </span>
+            <div className="ml-auto">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={downloading}
+                onClick={() => void handleDownloadExcel()}>
+                {downloading ? (
+                  <Loader2
+                    aria-hidden="true"
+                    className="mr-1.5 h-4 w-4 animate-spin"
+                  />
+                ) : (
+                  <FileSpreadsheet
+                    aria-hidden="true"
+                    className="mr-1.5 h-4 w-4"
+                  />
+                )}
+                {downloading ? 'Preparing…' : 'Export to Excel'}
+              </Button>
+            </div>
           </div>
 
           {/* Per Page */}
@@ -502,161 +541,110 @@ const Page: React.FC = () => {
             <table className="app__table">
               <thead className="app__thead">
                 <tr>
-                  <th className="hidden md:table-cell app__th">Dept. Allocation #</th>
+                  <th className="hidden md:table-cell app__th">
+                    Dept. Allocation #
+                  </th>
                   <th className="app__th">Details</th>
-                  <th className="app__th"></th>
+                  <th className="app__th">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {!isDataEmpty &&
-                  list.map((item: RisPoTypes, index: number) => (
+                  list.map((item: RisPoTypes) => (
                     <tr
-                      key={index}
+                      key={item.id}
                       className="app__tr">
-                      <td className="hidden md:table-cell app__td">
-                        <div className="font-medium">{item.po_number}</div>
-                      </td>
-                      <td className="app__td">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          <div className="md:hidden">
-                            <span className="font-light">Dept. Allocation #:</span>{' '}
-                            <span className="font-medium">
-                              {item.po_number}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-light">Type:</span>{' '}
-                            <span className="font-medium">{item.type}</span>
-                          </div>
-                          <div>
-                            <span className="font-light">Po Date:</span>{' '}
-                            <span className="font-medium">
-                              {item.po_date &&
-                                format(new Date(item.po_date), 'MMMM dd, yyyy')}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-light">Appropriation:</span>{' '}
-                            <span className="font-medium">
-                              {item.ddm_ris_appropriation?.name}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-light">Department:</span>{' '}
-                            <span className="font-medium">
-                              {item.department?.name}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-light">Supplier:</span>{' '}
-                            <span className="font-medium">
-                              {item.supplier?.trim()
-                                ? item.supplier
-                                : '—'}
-                            </span>
-                          </div>
-                          {/* Display for Fuel type: Allocated Amount, Consumed Amount, Remaining Amount, Overconsumed Amount */}
-                          {item.type === 'Fuel' && (
-                            <>
-                              <div>
-                                <span className="font-light">
-                                  Allocated Amount:
-                                </span>{' '}
-                                <span
-                                  className="font-medium"
-                                  style={{ color: 'blue', fontWeight: 'bold' }}>
-                                  {formatAmount(Number(item.amount ?? 0))}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="font-light">
-                                  Consumed Amount:
-                                </span>{' '}
-                                <span className="font-medium">
-                                  {countConsumedAmount(item)}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="font-light">
-                                  Remaining Amount:
-                                </span>{' '}
-                                <span className="font-medium">
-                                  {countRemainingAmount(item)}
-                                </span>
-                              </div>
-                              {countOverconsumedAmount(item) > 0 && (
-                                <div>
-                                  <span className="font-light">
-                                    Overconsumed Amount:
-                                  </span>{' '}
-                                  <span className="font-medium">
-                                    {countOverconsumedAmountDisplay(item)}
-                                  </span>
-                                </div>
-                              )}
-                            </>
-                          )}
-                          {/* Display for Diesel/Gasoline/Oil and Lubricants: Allocated Quantity, Consumed Quantity, Remaining Quantity */}
-                          {(item.type === 'Diesel' ||
-                            item.type === 'Gasoline' ||
-                            item.type === 'Oil and Lubricants') && (
-                            <>
-                              <div>
-                                <span className="font-light">
-                                  Allocated Quantity (L):
-                                </span>{' '}
-                                <span className="font-medium">
-                                  {item.quantity}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="font-light">
-                                  Consumed Quantity (L):
-                                </span>{' '}
-                                <span className="font-medium">
-                                  {countConsumedQuantity(item)}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="font-light">
-                                  Remaining Quantity (L):
-                                </span>{' '}
-                                <span className="font-medium">
-                                  {countRemainingQuantity(item)}
-                                </span>
-                              </div>
-                            </>
-                          )}
-                          <div>
-                            <span className="font-light">Description:</span>{' '}
-                            <span className="font-medium">
-                              {item.description}
-                            </span>
-                          </div>
+                      <td className="hidden md:table-cell app__td align-top pt-3">
+                        <div className="font-semibold text-gray-900 dark:text-gray-100">
+                          {item.po_number}
                         </div>
                       </td>
-                      <td className="app__td">
-                        <div className="flex space-x-2 items-center">
-                          <button
-                            onClick={() => handleEdit(item)}
-                            className="app__btn_green_xs">
-                            Edit
-                          </button>
-                          <button
+                      <td className="app__td py-2.5">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-gray-900 md:hidden dark:text-gray-100">
+                            {item.po_number}
+                          </span>
+                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-800 dark:bg-blue-950/50 dark:text-blue-300">
+                            {item.type}
+                          </span>
+                          {item.allow_overconsumed && (
+                            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                              Over-consumption allowed
+                            </span>
+                          )}
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {item.po_date &&
+                              format(new Date(item.po_date), 'MMMM dd, yyyy')}
+                          </span>
+                        </div>
+                        <dl className="grid grid-cols-1 gap-x-6 gap-y-1 md:grid-cols-2 xl:grid-cols-3">
+                          {[
+                            ['Appropriation', item.ddm_ris_appropriation?.name],
+                            ['Department', item.department?.name],
+                            ['Supplier', item.supplier?.trim()],
+                            ['Description', item.description],
+                          ].map(([label, value]) => (
+                            <div
+                              key={label}
+                              className="flex min-w-0 gap-1.5">
+                              <dt className="shrink-0 text-gray-500 dark:text-gray-400">
+                                {label}:
+                              </dt>
+                              <dd className="min-w-0 font-medium text-gray-800 dark:text-gray-200">
+                                {value || '—'}
+                              </dd>
+                            </div>
+                          ))}
+                        </dl>
+                        {renderUsage(item)}
+                      </td>
+                      <td className="app__td align-top pt-2.5">
+                        <div className="flex flex-col items-stretch gap-1.5 md:flex-row md:items-center">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            aria-label={`Edit Department Allocation ${item.po_number}`}
+                            onClick={() => handleEdit(item)}>
+                            <Pencil
+                              aria-hidden="true"
+                              className="h-3.5 w-3.5 md:mr-1.5"
+                            />
+                            <span className="hidden md:inline">Edit</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            aria-label={`View R.I.S. under ${item.po_number}`}
                             onClick={() => {
                               setSelectedItem(item)
                               setShowRisModal(true)
-                            }}
-                            className="app__btn_blue_xs whitespace-nowrap">
-                            View R.I.S.
-                          </button>
+                            }}>
+                            <ListChecks
+                              aria-hidden="true"
+                              className="h-3.5 w-3.5 md:mr-1.5"
+                            />
+                            <span className="hidden whitespace-nowrap md:inline">
+                              View R.I.S.
+                            </span>
+                          </Button>
                           {isPoUnusedByRis(item) && (
-                            <button
+                            <Button
                               type="button"
+                              size="sm"
+                              variant="outline"
+                              aria-label={`Delete Department Allocation ${item.po_number}`}
                               onClick={() => handleDeleteClick(item)}
-                              className="app__btn_red_xs">
-                              Delete
-                            </button>
+                              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40">
+                              <Trash2
+                                aria-hidden="true"
+                                className="h-3.5 w-3.5 md:mr-1.5"
+                              />
+                              <span className="hidden md:inline">Delete</span>
+                            </Button>
                           )}
                         </div>
                       </td>
@@ -671,7 +659,18 @@ const Page: React.FC = () => {
               </tbody>
             </table>
             {!loading && isDataEmpty && (
-              <div className="app__norecordsfound">No records found.</div>
+              <div className="flex flex-col items-center gap-1 px-4 py-10 text-center">
+                <Inbox
+                  aria-hidden="true"
+                  className="h-8 w-8 text-gray-300"
+                />
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  No Department Allocations found
+                </div>
+                <div className="text-xs text-gray-500">
+                  Try adjusting or clearing the filters.
+                </div>
+              </div>
             )}
           </div>
 
@@ -695,18 +694,56 @@ const Page: React.FC = () => {
             />
           )}
 
-          {showDeleteModal && itemToDelete && (
-            <ConfirmModal
-              header="Confirm delete"
-              btnText="Delete"
-              message={`Delete Department Allocation ${itemToDelete.po_number}? This cannot be undone.`}
-              onConfirm={handleConfirmDelete}
-              onCancel={() => {
-                setShowDeleteModal(false)
-                setItemToDelete(null)
-              }}
-            />
-          )}
+          {/* Confirm Delete */}
+          <Dialog
+            open={showDeleteModal && !!itemToDelete}
+            onOpenChange={(open) => !open && !deleting && closeDeleteModal()}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <AlertTriangle
+                    aria-hidden="true"
+                    className="h-5 w-5 text-red-600"
+                  />
+                  Delete Department Allocation?
+                </DialogTitle>
+                <DialogDescription>
+                  Delete Department Allocation{' '}
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">
+                    {itemToDelete?.po_number}
+                  </span>
+                  ? This cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={deleting}
+                  onClick={closeDeleteModal}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={deleting}
+                  onClick={() => void handleConfirmDelete()}>
+                  {deleting ? (
+                    <Loader2
+                      aria-hidden="true"
+                      className="mr-1.5 h-4 w-4 animate-spin"
+                    />
+                  ) : (
+                    <Trash2
+                      aria-hidden="true"
+                      className="mr-1.5 h-4 w-4"
+                    />
+                  )}
+                  {deleting ? 'Deleting…' : 'Delete'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </>

@@ -1,4 +1,4 @@
-import { CustomButton } from '@/components/index'
+import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { RisAppropriationTypes } from '@/types'
+import { Filter, Search, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -32,12 +33,13 @@ const FormSchema = z.object({
   appropriation: z.string().optional(),
 })
 
+const typeOptions = ['Fuel', 'Gasoline', 'Diesel', 'Oil and Lubricants']
+
 const Filters = ({
   setFilterType,
   setFilterKeyword,
   setFilterAppropriation,
 }: FilterTypes) => {
-  //
   const [appropriations, setAppropriations] = useState<
     RisAppropriationTypes[] | []
   >([])
@@ -73,102 +75,124 @@ const Filters = ({
     })()
   }, [])
 
+  const watched = form.watch()
+  const activeFilterCount = Object.values(watched).filter(
+    (value) => value !== undefined && value !== '' && value !== 'All',
+  ).length
+
   return (
-    <div className="">
+    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="items-center space-x-2 space-y-1">
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="keyword"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel className="app__form_label">
-                      Search Department Allocation
-                    </FormLabel>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+            <FormField
+              control={form.control}
+              name="keyword"
+              render={({ field }) => (
+                <FormItem className="min-w-0 sm:col-span-2">
+                  <FormLabel className="app__form_label">Search</FormLabel>
+                  <div className="relative">
+                    <Search
+                      aria-hidden="true"
+                      className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                    />
                     <Input
-                      placeholder="Department Allocation No. / Description"
+                      placeholder="Department Allocation no. or description"
+                      className="h-9 bg-white pl-8 dark:bg-gray-900"
                       {...field}
                     />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="app__form_label">Type</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose Type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="All">All</SelectItem>
-                        <SelectItem value="Gasoline">Gasoline</SelectItem>
-                        <SelectItem value="Diesel">Diesel</SelectItem>
-                        <SelectItem value="Oil and Lubricants">
-                          Oil and Lubricants
+                  </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem className="min-w-0">
+                  <FormLabel className="app__form_label">Type</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value ?? ''}>
+                    <FormControl>
+                      <SelectTrigger className="h-9 bg-white dark:bg-gray-900">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="All">All</SelectItem>
+                      {typeOptions.map((t) => (
+                        <SelectItem
+                          key={t}
+                          value={t}>
+                          {t}
                         </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="items-center inline-flex app__filter_field_container">
-              <FormField
-                control={form.control}
-                name="appropriation"
-                render={({ field }) => (
-                  <FormItem className="w-[140px]">
-                    <FormLabel className="app__form_label">
-                      Appropriation
-                    </FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value?.toString()}
-                      defaultValue={field.value?.toString()}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="All" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {appropriations?.map((item, idx) => (
-                          <SelectItem
-                            key={idx}
-                            value={item.id.toString()}>
-                            {item.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-            </div>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="appropriation"
+              render={({ field }) => (
+                <FormItem className="min-w-0">
+                  <FormLabel className="app__form_label">
+                    Appropriation
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value?.toString() ?? ''}>
+                    <FormControl>
+                      <SelectTrigger className="h-9 bg-white dark:bg-gray-900">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="All">All</SelectItem>
+                      {appropriations?.map((item) => (
+                        <SelectItem
+                          key={item.id}
+                          value={item.id.toString()}>
+                          {item.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
           </div>
-          <div className="flex items-center space-x-2 mt-4">
-            <CustomButton
-              containerStyles="app__btn_green"
-              title="Apply Filter"
-              btnType="submit"
-              handleClick={form.handleSubmit(onSubmit)}
-            />
-            <CustomButton
-              containerStyles="app__btn_gray"
-              title="Clear Filter"
-              btnType="button"
-              handleClick={handleClear}
-            />
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
+            <Button
+              type="submit"
+              size="sm"
+              className="bg-emerald-600 text-white hover:bg-emerald-700">
+              <Filter
+                aria-hidden="true"
+                className="mr-1.5 h-4 w-4"
+              />
+              Apply Filters
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleClear}
+              disabled={activeFilterCount === 0}>
+              <X
+                aria-hidden="true"
+                className="mr-1.5 h-4 w-4"
+              />
+              Clear
+              {activeFilterCount > 0 && (
+                <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 text-[11px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
           </div>
         </form>
       </Form>
