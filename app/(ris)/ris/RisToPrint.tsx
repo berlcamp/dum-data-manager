@@ -9,9 +9,9 @@ import React from 'react'
 export type SlipAlignment = 'left' | 'center' | 'right'
 
 const alignmentClasses: Record<SlipAlignment, string> = {
-  left: 'ml-[0.5in] mr-auto mt-[0.5in]',
-  center: 'mx-auto mt-[0.5in]',
-  right: 'ml-auto mt-8',
+  left: 'ml-[0.5in] mr-auto',
+  center: 'mx-auto',
+  right: 'ml-auto mr-[0.5in]',
 }
 
 interface ChildProps {
@@ -28,7 +28,7 @@ const RisToPrint: React.FC<ChildProps> = ({
   return (
     <div
       ref={forwardedRef}
-      className={`w-[350px] ${alignmentClasses[alignment]} text-xs`}>
+      className={`w-[350px] ${alignmentClasses[alignment]} mt-8 text-xs`}>
       <table className="w-full">
         <thead>
           <tr>
