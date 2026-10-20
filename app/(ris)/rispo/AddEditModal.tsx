@@ -396,7 +396,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
             </Button>
           </div>
 
-          <div className="relative p-4 sm:p-5">
+          <div className="relative min-h-0 overflow-y-auto p-4 sm:p-5">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 <div className="grid gap-6 md:grid-cols-2">
