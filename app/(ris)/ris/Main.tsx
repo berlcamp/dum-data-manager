@@ -19,6 +19,11 @@ import {
   toRisMoney,
   toRisQty,
 } from '@/utils/ris-helper'
+import {
+  buildSignedPdf,
+  signatoriesId,
+  signedTableNodes,
+} from '@/utils/ris-pdf'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -437,14 +442,17 @@ const Page: React.FC = () => {
       grouped[key].push(item)
     })
 
-    const content: any[] = []
+    // One builder per vehicle section; buildSignedPdf may ask a section to
+    // split its table so the signatories keep rows above them
+    const sections: ((splitKeys: Set<string>) => any[])[] = []
 
     // Loop through all vehicles
     for (const [vehicleName, items] of Object.entries(grouped)) {
-      const tableBody: any[] = []
+      const header: any[][] = []
+      const rows: any[][] = []
 
       // Header rows
-      tableBody.push([
+      header.push([
         { text: 'Date Requested', rowSpan: 2, style: 'tableHeader' },
         { text: 'Purpose', rowSpan: 2, style: 'tableHeader' },
         { text: 'Destination', rowSpan: 2, style: 'tableHeader' },
@@ -475,7 +483,7 @@ const Page: React.FC = () => {
       ])
 
       // Second header row
-      tableBody.push([
+      header.push([
         {},
         {},
         {},
@@ -509,7 +517,7 @@ const Page: React.FC = () => {
         totalConsume += item.quantity
         totalAmount += amount
 
-        tableBody.push([
+        rows.push([
           format(new Date(item.date_requested), 'MM/dd/yyyy'),
           item.purpose,
           item.destination || '',
@@ -525,10 +533,10 @@ const Page: React.FC = () => {
       }
 
       // Skip empty vehicles (no data after threshold reached)
-      if (tableBody.length <= 2) continue
+      if (rows.length === 0) continue
 
       // Totals row
-      tableBody.push([
+      const totals = [
         { text: 'TOTAL', colSpan: 4, alignment: 'right', bold: true },
         {},
         {},
@@ -540,7 +548,7 @@ const Page: React.FC = () => {
         '', // Finished Balance
         '', // Price/L
         { text: toRisMoney(totalAmount), bold: true },
-      ])
+      ]
 
       // Signatories from PO department (ddm_ris_departments.issued_by, issued_by_designation)
 
@@ -548,13 +556,18 @@ const Page: React.FC = () => {
       const issuedBy = dept?.issued_by ?? 'ARFEL HOPE L. BOMES'
       const issuedByDesignation = dept?.issued_by_dessignation ?? 'MMO STAFF'
 
-      // Push this vehicle's section into content
-      content.push(
+      const key = String(sections.length)
+
+      // This vehicle's section
+      sections.push((splitKeys) => [
         { text: 'FUEL CONSUMPTION REPORT', style: 'header' },
         { text: vehicleName, style: 'subHeader', margin: [0, 0, 0, 10] },
-        {
-          table: {
-            headerRows: 2,
+        ...signedTableNodes(
+          {
+            key,
+            header,
+            rows,
+            footer: [totals],
             widths: [
               'auto',
               '*',
@@ -568,15 +581,15 @@ const Page: React.FC = () => {
               'auto',
               'auto',
             ],
-            body: tableBody,
+            layout: {
+              hLineWidth: () => 0.5,
+              vLineWidth: () => 0.5,
+              hLineColor: () => '#000000',
+              vLineColor: () => '#000000',
+            },
           },
-          layout: {
-            hLineWidth: () => 0.5,
-            vLineWidth: () => 0.5,
-            hLineColor: () => '#000000',
-            vLineColor: () => '#000000',
-          },
-        },
+          splitKeys,
+        ),
         { text: '\n\n' }, // space before signatories
         {
           unbreakable: true,
@@ -585,6 +598,7 @@ const Page: React.FC = () => {
               width: '50%',
               stack: [
                 {
+                  id: signatoriesId(key),
                   text: issuedBy,
                   bold: true,
                   decoration: 'underline',
@@ -600,7 +614,7 @@ const Page: React.FC = () => {
                 {
                   text: 'CERTIFIED CORRECT:',
                   alignment: 'center',
-                  margin: [0, 20, 0, 60],
+                  margin: [0, 20, 0, 50],
                 },
                 {
                   text: 'MERCY FE DE GUZMAN',
@@ -614,13 +628,13 @@ const Page: React.FC = () => {
           ],
         },
         [{ text: '', pageBreak: 'after' }],
-      )
+      ])
     }
 
-    const docDefinition: any = {
+    const docDefinition = await buildSignedPdf((splitKeys) => ({
       pageOrientation: 'landscape',
       pageSize: 'A4',
-      content,
+      content: sections.flatMap((section) => section(splitKeys)),
       styles: {
         header: {
           fontSize: 14,
@@ -643,7 +657,7 @@ const Page: React.FC = () => {
         fontSize: 9,
         alignment: 'center',
       },
-    }
+    }))
 
     pdfMake.createPdf(docDefinition).download('FuelConsumptionReport.pdf')
     setDownloading(false)
@@ -697,9 +711,10 @@ const Page: React.FC = () => {
     )
 
     // Table
-    const tableBody: any[] = []
+    const header: any[][] = []
+    const rows: any[][] = []
 
-    tableBody.push([
+    header.push([
       { text: 'Date Requested', rowSpan: 2, style: 'tableHeader' },
       { text: 'Vehicle', rowSpan: 2, style: 'tableHeader' },
       { text: 'Purpose', rowSpan: 2, style: 'tableHeader' },
@@ -725,7 +740,7 @@ const Page: React.FC = () => {
       },
     ])
 
-    tableBody.push([
+    header.push([
       {},
       {},
       {},
@@ -769,7 +784,7 @@ const Page: React.FC = () => {
       totalConsume += item.quantity
       totalAmount += amount
 
-      tableBody.push([
+      rows.push([
         format(new Date(item.date_requested), 'MM/dd/yyyy'),
         `${item.vehicle?.name || ''} - ${item.vehicle?.plate_number || ''}`,
         item.purpose,
@@ -786,7 +801,7 @@ const Page: React.FC = () => {
     }
 
     // ➕ Totals row
-    tableBody.push([
+    const totals = [
       { text: 'TOTAL', colSpan: 5, alignment: 'right', bold: true },
       {},
       {},
@@ -799,27 +814,27 @@ const Page: React.FC = () => {
       {}, // finished balance not totaled
       {}, // price not totaled
       { text: toRisMoney(totalAmount), bold: true },
-    ])
+    ]
 
-    content.push({
-      table: {
-        headerRows: 2,
-        widths: [
-          60, // Date Requested
-          90, // Vehicle
-          120, // Purpose
-          120, // Destination
-          60, // Starting Balance
-          50, // Gasoline
-          50, // Diesel
-          50, // Oil & Lub
-          50, // Consume
-          70, // Finished Balance
-          50, // Price/L
-          70, // Amount
-        ],
-        body: tableBody,
-      },
+    const table = {
+      key: 'department',
+      header,
+      rows,
+      footer: [totals],
+      widths: [
+        60, // Date Requested
+        90, // Vehicle
+        120, // Purpose
+        120, // Destination
+        60, // Starting Balance
+        50, // Gasoline
+        50, // Diesel
+        50, // Oil & Lub
+        50, // Consume
+        70, // Finished Balance
+        50, // Price/L
+        70, // Amount
+      ],
       layout: {
         hLineWidth: () => 1,
         vLineWidth: () => 1,
@@ -827,7 +842,7 @@ const Page: React.FC = () => {
         vLineColor: () => '#000000',
       },
       margin: [0, 0, 0, 20],
-    })
+    }
 
     // Signatories: use default when no PO selected; otherwise from PO department
     const dept =
@@ -839,13 +854,14 @@ const Page: React.FC = () => {
     const issuedByDesignation = dept?.issued_by_dessignation ?? 'MMO STAFF'
 
     // ✅ Signatories (kept together)
-    content.push({
+    const signatories = {
       unbreakable: true, // prevents splitting across pages
       columns: [
         {
           width: '50%',
           stack: [
             {
+              id: signatoriesId(table.key),
               text: issuedBy,
               bold: true,
               decoration: 'underline',
@@ -860,7 +876,7 @@ const Page: React.FC = () => {
           stack: [
             {
               text: 'CERTIFIED CORRECT:',
-              margin: [0, 20, 0, 60],
+              margin: [0, 20, 0, 50],
               alignment: 'center',
             },
             {
@@ -874,19 +890,19 @@ const Page: React.FC = () => {
         },
       ],
       margin: [0, 40, 0, 0],
-    })
+    }
 
-    const docDefinition: TDocumentDefinitions = {
+    const docDefinition = await buildSignedPdf((splitKeys) => ({
       pageSize: 'LEGAL', // 📄 switched from A4 to LEGAL
       pageOrientation: 'landscape',
-      content,
+      content: [...content, ...signedTableNodes(table, splitKeys), signatories],
       styles: {
         title: { fontSize: 14, bold: true, margin: [0, 0, 0, 5] },
         subTitle: { fontSize: 12, margin: [0, 0, 0, 10] },
         tableHeader: { bold: true, alignment: 'center' },
       },
       defaultStyle: { fontSize: 9, alignment: 'center' },
-    }
+    }))
 
     pdfMake
       .createPdf(docDefinition)
