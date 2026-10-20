@@ -600,7 +600,7 @@ const Page: React.FC = () => {
                 {
                   text: 'CERTIFIED CORRECT:',
                   alignment: 'center',
-                  margin: [0, 20, 0, 40],
+                  margin: [0, 20, 0, 60],
                 },
                 {
                   text: 'MERCY FE DE GUZMAN',
@@ -860,7 +860,7 @@ const Page: React.FC = () => {
           stack: [
             {
               text: 'CERTIFIED CORRECT:',
-              margin: [0, 20, 0, 40],
+              margin: [0, 20, 0, 60],
               alignment: 'center',
             },
             {
