@@ -1356,7 +1356,9 @@ const Page: React.FC = () => {
               </span>
             )}
             <div className="ml-auto">
-              <DropdownMenu>
+              {/* Non-modal: a modal menu leaves pointer-events: none on <body> when
+                  an item opens a Dialog or blocks the main thread (PDF export) */}
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button
                     type="button"
