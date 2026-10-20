@@ -189,7 +189,7 @@ const Page: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               {superAdmins.includes(email) && (
-                <DropdownMenu>
+                <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
