@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { fetchPurchaseOrders } from '@/utils/fetchApi'
+import { fetchAllPurchaseOrders, fetchPurchaseOrders } from '@/utils/fetchApi'
 import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
 import { format } from 'date-fns'
 import Excel from 'exceljs'
@@ -290,15 +290,11 @@ const Page: React.FC = () => {
       approp = approriation.name
     }
 
-    const result = await fetchPurchaseOrders(
-      {
-        filterType,
-        filterKeyword,
-        filterAppropriation,
-      },
-      99999,
-      0,
-    )
+    const result = await fetchAllPurchaseOrders({
+      filterType,
+      filterKeyword,
+      filterAppropriation,
+    })
 
     const risData: RisPoTypes[] = result.data
 

@@ -11,7 +11,7 @@ import {
   TopBar,
   Unauthorized,
 } from '@/components/index'
-import { fetchRis } from '@/utils/fetchApi'
+import { fetchAllRis, fetchRis } from '@/utils/fetchApi'
 import {
   formatRisAmount,
   getRisAmount,
@@ -130,7 +130,7 @@ const Page: React.FC = () => {
   // Fetch all results for widget calculations
   const fetchWidgetData = async () => {
     try {
-      const result = await fetchRis(
+      const result = await fetchAllRis(
         {
           filterKeyword,
           filterAppropriation,
@@ -142,8 +142,6 @@ const Page: React.FC = () => {
           filterDateFrom,
           filterDateTo,
         },
-        99999, // Fetch all results for widgets
-        0,
         session?.user?.email,
         currentUser?.department_id,
         hasRisAdminAccess,
@@ -319,7 +317,7 @@ const Page: React.FC = () => {
       // Add more columns based on your data structure
     ]
 
-    const result = await fetchRis(
+    const result = await fetchAllRis(
       {
         filterKeyword,
         filterAppropriation,
@@ -330,8 +328,6 @@ const Page: React.FC = () => {
         filterDateFrom,
         filterDateTo,
       },
-      99999,
-      0,
       session?.user?.email,
       currentUser?.department_id,
       hasRisAdminAccess,
@@ -391,7 +387,7 @@ const Page: React.FC = () => {
   const handleDownloadPDF = async () => {
     setDownloading(true)
 
-    const result = await fetchRis(
+    const result = await fetchAllRis(
       {
         filterKeyword,
         filterAppropriation,
@@ -402,8 +398,6 @@ const Page: React.FC = () => {
         filterDateFrom,
         filterDateTo,
       },
-      99999,
-      0,
       session?.user?.email,
       currentUser?.department_id,
       hasRisAdminAccess,
@@ -666,7 +660,7 @@ const Page: React.FC = () => {
   const handleDownloadPDFByDepartment = async (deptName: string) => {
     setDownloading(true)
 
-    const result = await fetchRis(
+    const result = await fetchAllRis(
       {
         filterKeyword,
         filterAppropriation,
@@ -677,8 +671,6 @@ const Page: React.FC = () => {
         filterDateFrom,
         filterDateTo,
       },
-      99999,
-      0,
       session?.user?.email,
       currentUser?.department_id,
       hasRisAdminAccess,

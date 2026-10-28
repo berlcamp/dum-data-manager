@@ -505,6 +505,37 @@ export async function fetchCoordinators(
   }
 }
 
+// Supabase caps each response at 1,000 rows, so "fetch everything" callers
+// (widgets, summaries, exports) must page through instead of asking for a
+// huge range. The first page reports the total; the rest load in parallel.
+const MAX_ROWS_PER_REQUEST = 1000
+
+async function fetchAllPages<T>(
+  fetchPage: (
+    perPageCount: number,
+    rangeFrom: number,
+  ) => Promise<{ data: T[] | null; count: number | null }>,
+): Promise<{ data: T[]; count: number }> {
+  const first = await fetchPage(MAX_ROWS_PER_REQUEST, 0)
+  const data = [...(first.data || [])]
+  const count = first.count ?? data.length
+
+  const rangeFroms: number[] = []
+  for (
+    let from = MAX_ROWS_PER_REQUEST;
+    from < count;
+    from += MAX_ROWS_PER_REQUEST
+  ) {
+    rangeFroms.push(from)
+  }
+  const pages = await Promise.all(
+    rangeFroms.map((from) => fetchPage(MAX_ROWS_PER_REQUEST, from)),
+  )
+  pages.forEach((page) => data.push(...(page.data || [])))
+
+  return { data, count }
+}
+
 export async function fetchPurchaseOrders(
   filters: {
     filterType?: string
@@ -780,6 +811,34 @@ export async function fetchRis(
     console.error('fetch ris error', error)
     return { data: [], count: 0 }
   }
+}
+
+// Every R.I.S. matching the filters, not just one page
+export async function fetchAllRis(
+  filters: Parameters<typeof fetchRis>[0],
+  userEmail?: string,
+  userDepartmentId?: string,
+  hasRisAdminAccess?: boolean,
+) {
+  return fetchAllPages<any>((perPageCount, rangeFrom) =>
+    fetchRis(
+      filters,
+      perPageCount,
+      rangeFrom,
+      userEmail,
+      userDepartmentId,
+      hasRisAdminAccess,
+    ),
+  )
+}
+
+// Every department allocation matching the filters, not just one page
+export async function fetchAllPurchaseOrders(
+  filters: Parameters<typeof fetchPurchaseOrders>[0],
+) {
+  return fetchAllPages<any>((perPageCount, rangeFrom) =>
+    fetchPurchaseOrders(filters, perPageCount, rangeFrom),
+  )
 }
 
 export async function fetchRisVehicles(
@@ -1269,10 +1328,6 @@ export interface RisAppropriationSummaryRis {
   } | null
 }
 
-// Supabase caps each response at 1,000 rows, and a year has several thousand
-// approved R.I.S., so page through until a short page comes back.
-const SUMMARY_PAGE_SIZE = 1000
-
 // Approved R.I.S. charged to an appropriation (via its department allocation).
 // `year` keeps only R.I.S. requested that year; `excludeYear` keeps only the
 // ones requested outside it; `appropriationIds` narrows to those appropriations.
@@ -1283,7 +1338,7 @@ export async function fetchApprovedRisForAppropriations(filters: {
 }): Promise<RisAppropriationSummaryRis[]> {
   const all: RisAppropriationSummaryRis[] = []
   try {
-    for (let from = 0; ; from += SUMMARY_PAGE_SIZE) {
+    for (let from = 0; ; from += MAX_ROWS_PER_REQUEST) {
       let query = supabase
         .from('ddm_ris')
         .select(
@@ -1313,12 +1368,12 @@ export async function fetchApprovedRisForAppropriations(filters: {
 
       const { data, error } = await query
         .order('id', { ascending: true })
-        .range(from, from + SUMMARY_PAGE_SIZE - 1)
+        .range(from, from + MAX_ROWS_PER_REQUEST - 1)
 
       if (error) throw new Error(error.message)
 
       all.push(...((data as any[]) || []))
-      if (!data || data.length < SUMMARY_PAGE_SIZE) break
+      if (!data || data.length < MAX_ROWS_PER_REQUEST) break
     }
     return all
   } catch (error) {

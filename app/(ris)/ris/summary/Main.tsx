@@ -13,7 +13,7 @@ import { superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import type { RisTypes } from '@/types'
-import { fetchRis } from '@/utils/fetchApi'
+import { fetchAllRis } from '@/utils/fetchApi'
 import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
 import { format } from 'date-fns'
 import Excel from 'exceljs'
@@ -86,7 +86,7 @@ const Page: React.FC = () => {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const result = await fetchRis(
+      const result = await fetchAllRis(
         {
           filterAppropriation,
           filterDepartment,
@@ -94,8 +94,6 @@ const Page: React.FC = () => {
           filterDateTo,
           filterStatus: 'Approved',
         },
-        99999,
-        0,
         session?.user?.email,
         currentUser?.department_id,
         hasRisAdminAccess,
