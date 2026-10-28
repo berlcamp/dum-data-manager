@@ -125,6 +125,15 @@ const Filters = ({
     return (po.appropriation?.toString() ?? '') === selectedAppropriation
   })
 
+  // Department users only get the appropriations their own department
+  // allocations draw from (purchaseOrders is already limited to their
+  // department for them).
+  const departmentAppropriations = (appropriations || []).filter((a) =>
+    purchaseOrders.some(
+      (po) => (po.appropriation?.toString() ?? '') === a.id.toString(),
+    ),
+  )
+
   // The P.O. picked earlier may not belong to the appropriation just chosen —
   // clear it rather than leave the dropdown showing a value it no longer lists.
   useEffect(() => {
@@ -140,11 +149,11 @@ const Filters = ({
     setFilterDateFrom(data.dateFrom ? new Date(data.dateFrom) : undefined)
     setFilterDateTo(data.dateTo ? new Date(data.dateTo) : undefined)
     setFilterKeyword(data.keyword || '')
+    setFilterAppropriation(data.appropriation || 'All')
     
     // Only set admin-only filters if user has ris_admin access
     if (hasRisAdminAccess) {
       setFilterCa(data.cash_advance || 'All')
-      setFilterAppropriation(data.appropriation || 'All')
       setFilterVehicle(data.vehicle || 'All')
       setFilterStatus(data.status || 'All')
       setFilterDepartment(data.department || 'All')
@@ -152,7 +161,6 @@ const Filters = ({
     } else {
       // Reset admin-only filters for non-admin users
       setFilterCa('All')
-      setFilterAppropriation('All')
       setFilterVehicle('All')
       setFilterStatus('All')
       setFilterDepartment('All')
@@ -325,7 +333,13 @@ const Filters = ({
   const activeFilterCount = Object.entries(watched).filter(
     ([key, value]) =>
       (hasRisAdminAccess ||
-        ['keyword', 'dateFrom', 'dateTo', 'purchase_order'].includes(key)) &&
+        [
+          'keyword',
+          'dateFrom',
+          'dateTo',
+          'appropriation',
+          'purchase_order',
+        ].includes(key)) &&
       value !== undefined &&
       value !== '' &&
       value !== 'All',
@@ -396,6 +410,19 @@ const Filters = ({
                 </FormItem>
               )}
             />
+            {!hasRisAdminAccess && (
+              <div className="min-w-0 sm:col-span-2">
+                {renderSelect(
+                  'appropriation',
+                  'Appropriation',
+                  departmentAppropriations.map((a) => ({
+                    value: a.id.toString(),
+                    label: a.name,
+                  })),
+                  'No appropriation for your department',
+                )}
+              </div>
+            )}
             <div className="min-w-0 sm:col-span-2">
               {renderSelect(
                 'purchase_order',
