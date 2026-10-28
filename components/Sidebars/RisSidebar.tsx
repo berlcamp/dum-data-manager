@@ -46,6 +46,19 @@ export default function RisSidebar() {
                 <span className="flex-1 ml-3 whitespace-nowrap">Summary</span>
               </Link>
             </li>
+            <li>
+              <Link
+                href="/ris/appropriation-summary"
+                className={`app__menu_link ${
+                  currentRoute === '/ris/appropriation-summary'
+                    ? 'app_menu_link_active'
+                    : ''
+                }`}>
+                <span className="flex-1 ml-3 whitespace-nowrap">
+                  Appropriation Summary
+                </span>
+              </Link>
+            </li>
           </>
         )}
         {hasAccess('ris_admin') && (

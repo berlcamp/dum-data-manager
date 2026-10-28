@@ -1255,6 +1255,78 @@ export async function fetchRisAppropriations(
   }
 }
 
+export interface RisAppropriationSummaryRis {
+  id: number
+  type: string
+  quantity: number
+  price: number
+  total_amount: number
+  date_requested: string
+  po_id: string
+  purchase_order: {
+    appropriation: string
+    ddm_ris_appropriation: { id: string; name: string; amount: number } | null
+  } | null
+}
+
+// Supabase caps each response at 1,000 rows, and a year has several thousand
+// approved R.I.S., so page through until a short page comes back.
+const SUMMARY_PAGE_SIZE = 1000
+
+// Approved R.I.S. charged to an appropriation (via its department allocation).
+// `year` keeps only R.I.S. requested that year; `excludeYear` keeps only the
+// ones requested outside it; `appropriationIds` narrows to those appropriations.
+export async function fetchApprovedRisForAppropriations(filters: {
+  year?: number
+  excludeYear?: number
+  appropriationIds?: string[]
+}): Promise<RisAppropriationSummaryRis[]> {
+  const all: RisAppropriationSummaryRis[] = []
+  try {
+    for (let from = 0; ; from += SUMMARY_PAGE_SIZE) {
+      let query = supabase
+        .from('ddm_ris')
+        .select(
+          'id, type, quantity, price, total_amount, date_requested, po_id, purchase_order:po_id!inner(appropriation, ddm_ris_appropriation:appropriation(id, name, amount))',
+        )
+        .eq('status', 'Approved')
+        .eq('is_deleted', false)
+        .not('purchase_order.appropriation', 'is', null)
+
+      if (filters.year) {
+        query = query
+          .gte('date_requested', `${filters.year}-01-01`)
+          .lt('date_requested', `${filters.year + 1}-01-01`)
+      }
+      if (filters.excludeYear) {
+        query = query.or(
+          `date_requested.lt.${filters.excludeYear}-01-01,date_requested.gte.${filters.excludeYear + 1}-01-01`,
+        )
+      }
+      if (filters.appropriationIds) {
+        if (filters.appropriationIds.length === 0) return []
+        query = query.in(
+          'purchase_order.appropriation',
+          filters.appropriationIds,
+        )
+      }
+
+      const { data, error } = await query
+        .order('id', { ascending: true })
+        .range(from, from + SUMMARY_PAGE_SIZE - 1)
+
+      if (error) throw new Error(error.message)
+
+      all.push(...((data as any[]) || []))
+      if (!data || data.length < SUMMARY_PAGE_SIZE) break
+    }
+    return all
+  } catch (error) {
+    console.error('fetch approved ris for appropriations error', error)
+    throw error
+  }
+}
+
 export async function fetchActivities(
   userDepartment: string,
   today: string,
