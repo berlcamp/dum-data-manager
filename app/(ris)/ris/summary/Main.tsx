@@ -14,7 +14,11 @@ import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
 import type { RisTypes } from '@/types'
 import { fetchAllRis } from '@/utils/fetchApi'
-import { formatRisAmount, getRisAmount } from '@/utils/ris-helper'
+import {
+  formatRisAmount,
+  getRisAmount,
+  roundRisAmount,
+} from '@/utils/ris-helper'
 import { format } from 'date-fns'
 import Excel from 'exceljs'
 import { saveAs } from 'file-saver'
@@ -124,9 +128,11 @@ const Page: React.FC = () => {
     let totalOil = 0
     let totalAmount = 0
     risData.forEach((item: RisTypes) => {
-      if (item.type === 'Gasoline') totalGasoline += item.quantity
-      if (item.type === 'Diesel') totalDiesel += item.quantity
-      if (item.type === 'Oil and Lubricants') totalOil += item.quantity
+      if (item.type === 'Gasoline')
+        totalGasoline += roundRisAmount(item.quantity)
+      if (item.type === 'Diesel') totalDiesel += roundRisAmount(item.quantity)
+      if (item.type === 'Oil and Lubricants')
+        totalOil += roundRisAmount(item.quantity)
       totalAmount += getRisAmount(item)
     })
     return {
@@ -145,9 +151,11 @@ const Page: React.FC = () => {
       const deptId = item.department_id
       const deptName = (item.department as { name?: string })?.name || 'Unknown'
       const existing = map.get(deptId)
-      const gasoline = item.type === 'Gasoline' ? item.quantity : 0
-      const diesel = item.type === 'Diesel' ? item.quantity : 0
-      const oil = item.type === 'Oil and Lubricants' ? item.quantity : 0
+      const gasoline =
+        item.type === 'Gasoline' ? roundRisAmount(item.quantity) : 0
+      const diesel = item.type === 'Diesel' ? roundRisAmount(item.quantity) : 0
+      const oil =
+        item.type === 'Oil and Lubricants' ? roundRisAmount(item.quantity) : 0
       const amt = getRisAmount(item)
 
       if (existing) {
@@ -181,9 +189,11 @@ const Page: React.FC = () => {
       const appropriationName =
         (po.ddm_ris_appropriation as { name?: string })?.name || ''
       const departmentName = (po.department as { name?: string })?.name || ''
-      const gasoline = item.type === 'Gasoline' ? item.quantity : 0
-      const diesel = item.type === 'Diesel' ? item.quantity : 0
-      const oil = item.type === 'Oil and Lubricants' ? item.quantity : 0
+      const gasoline =
+        item.type === 'Gasoline' ? roundRisAmount(item.quantity) : 0
+      const diesel = item.type === 'Diesel' ? roundRisAmount(item.quantity) : 0
+      const oil =
+        item.type === 'Oil and Lubricants' ? roundRisAmount(item.quantity) : 0
       const amt = getRisAmount(item)
 
       const existing = map.get(poId)

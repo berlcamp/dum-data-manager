@@ -15,6 +15,7 @@ import { fetchAllRis, fetchRis } from '@/utils/fetchApi'
 import {
   formatRisAmount,
   getRisAmount,
+  roundRisAmount,
   toRisFixed,
   toRisMoney,
   toRisQty,
@@ -499,16 +500,23 @@ const Page: React.FC = () => {
 
       for (const item of items) {
         const gasoline =
-          item.type?.toLowerCase() === 'gasoline' ? item.quantity : 0
-        const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
+          item.type?.toLowerCase() === 'gasoline'
+            ? roundRisAmount(item.quantity)
+            : 0
+        const diesel =
+          item.type?.toLowerCase() === 'diesel'
+            ? roundRisAmount(item.quantity)
+            : 0
         const oil =
-          item.type?.toLowerCase() === 'oil and lubricants' ? item.quantity : 0
+          item.type?.toLowerCase() === 'oil and lubricants'
+            ? roundRisAmount(item.quantity)
+            : 0
         const amount = getRisAmount(item)
 
         totalGasoline += gasoline
         totalDiesel += diesel
         totalOil += oil
-        totalConsume += item.quantity
+        totalConsume += roundRisAmount(item.quantity)
         totalAmount += amount
 
         rows.push([
@@ -759,10 +767,17 @@ const Page: React.FC = () => {
     for (let i = 0; i < sortedItems.length; i++) {
       const item = sortedItems[i]
       const gasoline =
-        item.type?.toLowerCase() === 'gasoline' ? item.quantity : 0
-      const diesel = item.type?.toLowerCase() === 'diesel' ? item.quantity : 0
+        item.type?.toLowerCase() === 'gasoline'
+          ? roundRisAmount(item.quantity)
+          : 0
+      const diesel =
+        item.type?.toLowerCase() === 'diesel'
+          ? roundRisAmount(item.quantity)
+          : 0
       const oil =
-        item.type?.toLowerCase() === 'oil and lubricants' ? item.quantity : 0
+        item.type?.toLowerCase() === 'oil and lubricants'
+          ? roundRisAmount(item.quantity)
+          : 0
       const amount = getRisAmount(item)
 
       // ⛔ Stop adding if threshold exceeded
@@ -773,7 +788,7 @@ const Page: React.FC = () => {
       totalGasoline += gasoline
       totalDiesel += diesel
       totalOil += oil
-      totalConsume += item.quantity
+      totalConsume += roundRisAmount(item.quantity)
       totalAmount += amount
 
       rows.push([
