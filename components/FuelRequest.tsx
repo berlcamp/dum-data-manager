@@ -43,7 +43,7 @@ import { Input } from '@/components/ui/input'
 import { useSupabase } from '@/context/SupabaseProvider'
 import { RisDepartmentCodeTypes, RisVehicleTypes } from '@/types'
 import type { PortalBalance } from '@/utils/portal-fuel'
-import { startingBalanceSchema } from '@/utils/ris-form'
+import { risQuantitySchema, startingBalanceSchema } from '@/utils/ris-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
 import {
@@ -69,14 +69,7 @@ const FormSchema = z.object({
   type: z.string().min(1, {
     message: 'Type is required',
   }),
-  quantity: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
-    .number({
-      required_error: 'Quantity (L) is required.',
-      invalid_type_error: 'Quantity (L) is required..',
-    })
-    .gte(1, {
-      message: 'Quantity (L) is required...',
-    }),
+  quantity: risQuantitySchema(),
   starting_balance: startingBalanceSchema(true),
   purpose: z.string().min(1, {
     message: 'Purpose is required.',

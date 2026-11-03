@@ -5,7 +5,8 @@ import {
   getPortalBalance,
   lookupFuelCode,
 } from '@/utils/portal-fuel'
-import { roundRisAmount } from '@/utils/ris-helper'
+import { hasRisDecimals } from '@/utils/ris-form'
+import { RIS_DECIMALS, roundRisAmount } from '@/utils/ris-helper'
 
 interface FuelRequestPayload {
   code: string
@@ -48,6 +49,12 @@ export async function POST(req: NextRequest) {
   ) {
     return NextResponse.json({
       error_message: 'Please complete all the required fields.',
+    })
+  }
+
+  if (!hasRisDecimals(quantity)) {
+    return NextResponse.json({
+      error_message: `Quantity (L) can have at most ${RIS_DECIMALS} decimal places.`,
     })
   }
 
