@@ -13,6 +13,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { risQuantitySchema } from '@/utils/ris-form'
 import { z } from 'zod'
 
 // Redux imports
@@ -49,14 +50,7 @@ const FormSchema = z.object({
   type: z.string().min(1, {
     message: 'Type is required',
   }),
-  quantity: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
-    .number({
-      required_error: 'Quantity (L) is required.',
-      invalid_type_error: 'Quantity (L) is required..',
-    })
-    .gte(1, {
-      message: 'Quantity (L) is required...',
-    }),
+  quantity: risQuantitySchema(),
   purpose: z.string().min(1, {
     message: 'Purpose is required.',
   }),

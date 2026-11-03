@@ -36,7 +36,7 @@ import {
   getRisAmount,
   roundRisAmount,
 } from '@/utils/ris-helper'
-import { startingBalanceSchema } from '@/utils/ris-form'
+import { risQuantitySchema, startingBalanceSchema } from '@/utils/ris-form'
 import { useEffect, useRef, useState } from 'react'
 
 // Redux imports
@@ -102,14 +102,7 @@ const FormSchema = z.object({
   type: z.string().min(1, {
     message: 'Type is required',
   }),
-  quantity: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
-    .number({
-      required_error: 'Quantity (L) is required.',
-      invalid_type_error: 'Quantity (L) is required..',
-    })
-    .gte(1, {
-      message: 'Quantity (L) is required...',
-    }),
+  quantity: risQuantitySchema(),
   starting_balance: startingBalanceSchema(false),
   price: z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
     .number()
@@ -174,7 +167,11 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
   const dispatch = useDispatch()
 
   const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(editData ? FormSchema : NewRisFormSchema),
+    resolver: zodResolver(
+      editData
+        ? FormSchema.extend({ quantity: risQuantitySchema(editData.quantity) })
+        : NewRisFormSchema,
+    ),
     defaultValues: {
       requester: editData ? editData.requester : '',
       destination: editData ? editData.destination : '',

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { RIS_DECIMALS, roundRisAmount } from '@/utils/ris-helper'
 
 // Shared by the two forms that create an R.I.S.: the public fuel request portal
 // (components/FuelRequest.tsx) and the admin modal (app/(ris)/ris/AddEditModal).
@@ -50,3 +51,34 @@ export const startingBalanceSchema = (required: boolean) =>
         ? undefined
         : Number(raw)
     })
+
+// Quantity (L) is limited to RIS_DECIMALS places. Reports print liters rounded
+// to 2 places while the Amount uses the full quantity, so a back-calculated
+// figure like 500 / 82 = 6.0975609... L printed as 6.10 L x 82 = 500.20, not
+// the 500.00 actually charged, and department summaries stopped reconciling.
+//
+// `allowed` lets an edit keep the quantity a record already has — a few older
+// records were saved before this rule and must stay editable (status, purpose)
+// without forcing their liters to change.
+export const hasRisDecimals = (n: number) =>
+  Math.abs(roundRisAmount(n) - n) < 1e-9
+
+export const risQuantitySchema = (allowed?: number | null) =>
+  z.coerce // use coerce to cast to string to number https://stackoverflow.com/questions/76878664/react-hook-form-and-zod-inumber-input
+    .number({
+      required_error: 'Quantity (L) is required.',
+      invalid_type_error: 'Quantity (L) is required..',
+    })
+    .gte(1, {
+      message: 'Quantity (L) is required...',
+    })
+    .refine(
+      (n) =>
+        hasRisDecimals(n) ||
+        (allowed !== null &&
+          typeof allowed !== 'undefined' &&
+          n === Number(allowed)),
+      {
+        message: `Quantity (L) can have at most ${RIS_DECIMALS} decimal places.`,
+      },
+    )
