@@ -1328,14 +1328,48 @@ export interface RisAppropriationSummaryRis {
   } | null
 }
 
-// Approved R.I.S. charged to an appropriation (via its department allocation).
-// `year` keeps only R.I.S. requested that year; `excludeYear` keeps only the
-// ones requested outside it; `appropriationIds` narrows to those appropriations.
+export interface RisAppropriationOfYear {
+  id: string
+  name: string
+  amount: number
+  year: number
+}
+
+// Appropriations budgeted for `year` (ddm_ris_appropriations.year)
+export async function fetchRisAppropriationsOfYear(
+  year: number,
+): Promise<RisAppropriationOfYear[]> {
+  const { data, error } = await supabase
+    .from('ddm_ris_appropriations')
+    .select('id, name, amount, year')
+    .eq('year', year)
+    .order('name', { ascending: true })
+
+  if (error) throw new Error(error.message)
+  return (data as RisAppropriationOfYear[]) || []
+}
+
+// Every budget year that has at least one appropriation, newest first
+export async function fetchRisAppropriationYears(): Promise<number[]> {
+  const { data, error } = await supabase
+    .from('ddm_ris_appropriations')
+    .select('year')
+
+  if (error) throw new Error(error.message)
+  return Array.from(
+    new Set(((data as { year: number }[]) || []).map((r) => Number(r.year))),
+  )
+    .filter(Boolean)
+    .sort((a, b) => b - a)
+}
+
+// Approved R.I.S. (any request date) charged to the given appropriations via
+// their department allocations.
 export async function fetchApprovedRisForAppropriations(filters: {
-  year?: number
-  excludeYear?: number
-  appropriationIds?: string[]
+  appropriationIds: string[]
 }): Promise<RisAppropriationSummaryRis[]> {
+  if (filters.appropriationIds.length === 0) return []
+
   const all: RisAppropriationSummaryRis[] = []
   try {
     for (let from = 0; ; from += MAX_ROWS_PER_REQUEST) {
@@ -1348,23 +1382,7 @@ export async function fetchApprovedRisForAppropriations(filters: {
         .eq('is_deleted', false)
         .not('purchase_order.appropriation', 'is', null)
 
-      if (filters.year) {
-        query = query
-          .gte('date_requested', `${filters.year}-01-01`)
-          .lt('date_requested', `${filters.year + 1}-01-01`)
-      }
-      if (filters.excludeYear) {
-        query = query.or(
-          `date_requested.lt.${filters.excludeYear}-01-01,date_requested.gte.${filters.excludeYear + 1}-01-01`,
-        )
-      }
-      if (filters.appropriationIds) {
-        if (filters.appropriationIds.length === 0) return []
-        query = query.in(
-          'purchase_order.appropriation',
-          filters.appropriationIds,
-        )
-      }
+      query = query.in('purchase_order.appropriation', filters.appropriationIds)
 
       const { data, error } = await query
         .order('id', { ascending: true })

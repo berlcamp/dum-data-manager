@@ -19,8 +19,15 @@ import {
 import { superAdmins } from '@/constants/TrackerConstants'
 import { useFilter } from '@/context/FilterContext'
 import { useSupabase } from '@/context/SupabaseProvider'
-import { fetchApprovedRisForAppropriations } from '@/utils/fetchApi'
-import type { RisAppropriationSummaryRis } from '@/utils/fetchApi'
+import {
+  fetchApprovedRisForAppropriations,
+  fetchRisAppropriationsOfYear,
+  fetchRisAppropriationYears,
+} from '@/utils/fetchApi'
+import type {
+  RisAppropriationOfYear,
+  RisAppropriationSummaryRis,
+} from '@/utils/fetchApi'
 import {
   formatRisAmount,
   getRisAmount,
@@ -64,9 +71,6 @@ type AppropriationSummary = {
   remaining: number
 }
 
-// First year with R.I.S. data
-const FIRST_YEAR = 2023
-
 const formatCurrency = (n: number) => `₱ ${formatRisAmount(n)}`
 
 const MONEY_FMT = '#,##0.00'
@@ -74,9 +78,16 @@ const QTY_FMT = '#,##0.##'
 
 const Page: React.FC = () => {
   const currentYear = new Date().getFullYear()
-  const years = Array.from(
-    { length: currentYear - FIRST_YEAR + 1 },
-    (_, i) => currentYear - i,
+
+  // Budget years come from the appropriations themselves; the current year is
+  // always offered so the filter has a sensible default before any exist
+  const [appropriationYears, setAppropriationYears] = useState<number[]>([])
+  const years = useMemo(
+    () =>
+      Array.from(new Set([currentYear, ...appropriationYears])).sort(
+        (a, b) => b - a,
+      ),
+    [appropriationYears],
   )
 
   const [filterYear, setFilterYear] = useState<number>(currentYear)
@@ -85,8 +96,10 @@ const Page: React.FC = () => {
   const [downloadingExcel, setDownloadingExcel] = useState(false)
   const [downloadingPdf, setDownloadingPdf] = useState(false)
 
-  const [yearRis, setYearRis] = useState<RisAppropriationSummaryRis[]>([])
-  const [otherRis, setOtherRis] = useState<RisAppropriationSummaryRis[]>([])
+  const [appropriations, setAppropriations] = useState<
+    RisAppropriationOfYear[]
+  >([])
+  const [ris, setRis] = useState<RisAppropriationSummaryRis[]>([])
 
   const { session } = useSupabase()
   const { hasAccess } = useFilter()
@@ -98,26 +111,19 @@ const Page: React.FC = () => {
     setLoading(true)
     setLoadError(false)
     try {
-      const inYear = await fetchApprovedRisForAppropriations({
-        year: filterYear,
+      // Appropriations budgeted for the year, then every approved R.I.S. charged
+      // to them whatever its request date, so the remaining balance matches
+      // the Appropriations page
+      const ofYear = await fetchRisAppropriationsOfYear(filterYear)
+      const approved = await fetchApprovedRisForAppropriations({
+        appropriationIds: ofYear.map((a) => String(a.id)),
       })
-      const appropriationIds = Array.from(
-        new Set(
-          inYear.map((r) => String(r.purchase_order?.appropriation ?? '')),
-        ),
-      ).filter(Boolean)
-      // Approved R.I.S. from other years against the same appropriations, so
-      // the remaining balance matches the Appropriations page
-      const outsideYear = await fetchApprovedRisForAppropriations({
-        excludeYear: filterYear,
-        appropriationIds,
-      })
-      setYearRis(inYear)
-      setOtherRis(outsideYear)
+      setAppropriations(ofYear)
+      setRis(approved)
     } catch (e) {
       console.error(e)
-      setYearRis([])
-      setOtherRis([])
+      setAppropriations([])
+      setRis([])
       setLoadError(true)
     } finally {
       setLoading(false)
@@ -128,29 +134,42 @@ const Page: React.FC = () => {
     void fetchData()
   }, [filterYear])
 
+  useEffect(() => {
+    fetchRisAppropriationYears()
+      .then(setAppropriationYears)
+      .catch((e) => console.error(e))
+  }, [])
+
   const summary = useMemo((): AppropriationSummary[] => {
     const map = new Map<string, AppropriationSummary>()
 
-    yearRis.forEach((item) => {
-      const appropriation = item.purchase_order?.ddm_ris_appropriation
-      const id = String(item.purchase_order?.appropriation ?? '')
-      if (!id) return
+    // Every appropriation budgeted for the year is listed, even before any
+    // R.I.S. is charged to it
+    appropriations.forEach((a) => {
+      map.set(String(a.id), {
+        appropriationId: String(a.id),
+        name: a.name || 'Unknown',
+        amount: Number(a.amount ?? 0),
+        gasoline: 0,
+        diesel: 0,
+        oil: 0,
+        requisitions: 0,
+        consumedYear: 0,
+        consumedOther: 0,
+        remaining: 0,
+      })
+    })
 
-      let row = map.get(id)
-      if (!row) {
-        row = {
-          appropriationId: id,
-          name: appropriation?.name || 'Unknown',
-          amount: Number(appropriation?.amount ?? 0),
-          gasoline: 0,
-          diesel: 0,
-          oil: 0,
-          requisitions: 0,
-          consumedYear: 0,
-          consumedOther: 0,
-          remaining: 0,
-        }
-        map.set(id, row)
+    // Liters and requisition counts cover the selected year only; R.I.S.
+    // requested in other years (e.g. a 4th quarter budget spent in January)
+    // still come off the remaining balance
+    ris.forEach((item) => {
+      const row = map.get(String(item.purchase_order?.appropriation ?? ''))
+      if (!row) return
+
+      if (!item.date_requested?.startsWith(String(filterYear))) {
+        row.consumedOther += getRisAmount(item)
+        return
       }
 
       const quantity = Number(item.quantity ?? 0)
@@ -159,11 +178,6 @@ const Page: React.FC = () => {
       if (item.type === 'Oil and Lubricants') row.oil += quantity
       row.requisitions += 1
       row.consumedYear += getRisAmount(item)
-    })
-
-    otherRis.forEach((item) => {
-      const row = map.get(String(item.purchase_order?.appropriation ?? ''))
-      if (row) row.consumedOther += getRisAmount(item)
     })
 
     return Array.from(map.values())
@@ -176,7 +190,7 @@ const Page: React.FC = () => {
         ),
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [yearRis, otherRis])
+  }, [appropriations, ris])
 
   const totals = useMemo(
     () =>
@@ -457,7 +471,8 @@ const Page: React.FC = () => {
             <div>
               <Title title="Appropriation Summary" />
               <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                Approved R.I.S. consumption per appropriation for the year
+                Approved R.I.S. consumption per appropriation budgeted for the
+                year
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -582,12 +597,12 @@ const Page: React.FC = () => {
                   <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {loadError
                       ? 'Could not load the appropriation summary'
-                      : `No approved R.I.S. charged to an appropriation in ${filterYear}`}
+                      : `No appropriations budgeted for ${filterYear}`}
                   </div>
                   <div className="text-xs text-gray-500">
                     {loadError
                       ? 'Please refresh the page and try again.'
-                      : 'Try selecting a different year.'}
+                      : 'Set the year on the Appropriations page, or try a different year.'}
                   </div>
                 </div>
               ) : (
@@ -597,9 +612,8 @@ const Page: React.FC = () => {
                       Appropriations in {filterYear}
                     </h2>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Appropriations with approved R.I.S. requested in{' '}
-                      {filterYear}. Remaining balance deducts approved R.I.S.
-                      from all years.
+                      Appropriations budgeted for {filterYear}. Remaining
+                      balance deducts approved R.I.S. from all years.
                     </p>
                   </div>
                   <div className="overflow-x-auto">

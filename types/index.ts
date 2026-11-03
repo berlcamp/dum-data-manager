@@ -288,6 +288,7 @@ export interface RisAppropriationTypes {
   id: string
   name: string
   amount: number
+  year: number
   ddm_ris_purchase_orders: RisPoTypes[]
   remaining_amount?: number
 }

@@ -197,6 +197,7 @@ const Page: React.FC = () => {
               <thead className="app__thead">
                 <tr>
                   <th className="app__th">Appropriation</th>
+                  <th className="app__th">Year</th>
                   <th className="app__th text-right">Allocated Amount</th>
                   <th className="app__th text-right">Remaining Amount</th>
                   <th className="app__th">
@@ -227,6 +228,7 @@ const Page: React.FC = () => {
                         <td className="app__td font-medium text-gray-900 dark:text-gray-100">
                           {item.name}
                         </td>
+                        <td className="app__td tabular-nums">{item.year}</td>
                         <td className="app__td text-right tabular-nums">
                           ₱{formatAmount(allocated)}
                         </td>
@@ -284,7 +286,7 @@ const Page: React.FC = () => {
                   })}
                 {loading && (
                   <TableRowLoading
-                    cols={4}
+                    cols={5}
                     rows={2}
                   />
                 )}

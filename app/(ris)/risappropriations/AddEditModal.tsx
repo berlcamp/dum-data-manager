@@ -37,6 +37,14 @@ const FormSchema = z.object({
     .gte(1, {
       message: 'Amount is required...',
     }),
+  year: z.coerce
+    .number({
+      required_error: 'Year is required.',
+      invalid_type_error: 'Year is required.',
+    })
+    .int({ message: 'Year must be a whole number.' })
+    .gte(2000, { message: 'Enter a 4-digit year.' })
+    .lte(2100, { message: 'Enter a 4-digit year.' }),
 })
 
 interface ModalProps {
@@ -59,6 +67,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
     defaultValues: {
       appropriation_name: editData ? editData.name : '',
       amount: editData ? editData.amount : 0,
+      year: editData?.year ?? new Date().getFullYear(),
     },
   })
 
@@ -75,6 +84,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       const newData = {
         name: formdata.appropriation_name,
         amount: formdata.amount,
+        year: formdata.year,
       }
 
       const { data, error } = await supabase
@@ -108,6 +118,7 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
       const newData = {
         name: formdata.appropriation_name,
         amount: formdata.amount,
+        year: formdata.year,
       }
 
       const { data, error } = await supabase
@@ -200,6 +211,32 @@ export default function AddEditModal({ hideModal, editData }: ModalProps) {
                             {...field}
                           />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="year"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="app__form_label">Year</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            min={2000}
+                            max={2100}
+                            step={1}
+                            placeholder="e.g. 2026"
+                            className="h-9 w-32 tabular-nums"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Budget year. The Appropriation Summary lists this
+                          appropriation under this year.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
